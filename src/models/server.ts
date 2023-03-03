@@ -2,6 +2,7 @@ import express, { Application } from "express";
 import dotenv from "dotenv";
 import connection from "../db/connection";
 import routesProducto from "../routes/production.route";
+import routesDefault from "../routes/default.routes";
 
 class server {
   private app: Application;
@@ -31,7 +32,7 @@ class server {
   }
 
   routes() {
-    //this.app.use("/", routesProducto);
+    this.app.use("/", routesDefault);
     this.app.use("/api/productions", routesProducto);
     //this.app.use('/api/usuarios', routesUsuario );
   }

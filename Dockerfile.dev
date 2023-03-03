@@ -3,7 +3,7 @@ FROM node:19
 RUN npm i -g nodemon
 RUN mkdir -p /home/app
 
-WORKDIR /home/app
+WORKDIR /home/app/dist
 
 EXPOSE 3000
 

@@ -1,7 +1,7 @@
-import dotenv from 'dotenv';
+//import dotenv from 'dotenv';
 import Server from './models/server';
 
 // setting env vars
-dotenv.config();
+//dotenv.config();
 
 const server = new Server();

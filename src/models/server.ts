@@ -1,9 +1,8 @@
 import express, { Application } from 'express';
-import dotenv from 'dotenv';
 import connection from '../db/connection';
-import routesProducto from '../routes/production.route';
+import routesProducto from '../routes/production.routes';
 import routesDefault from '../routes/default.routes';
-import routesUsuario from '../routes/usuario.routes';
+import routesUsuario from '../routes/user.routes';
 
 class server {
   private app: Application;
@@ -36,7 +35,7 @@ class server {
   routes() {
     this.app.use('/', routesDefault);
     this.app.use('/api/productions', routesProducto);
-    this.app.use('/api/usuarios', routesUsuario);
+    this.app.use('/api/user', routesUsuario);
   }
 
   midlewares() {

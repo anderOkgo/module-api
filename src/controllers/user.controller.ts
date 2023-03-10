@@ -3,7 +3,7 @@ import connection from '../db/connection';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-export const addUsuario = async (req: Request, res: Response) => {
+export const addUser = async (req: Request, res: Response) => {
   const { nombre, password } = req.body;
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -42,32 +42,32 @@ export const loginUser = (req: Request, res: Response) => {
         console.log(err);
       } else {
         if (data.length == 0) {
-          // No existe el usuario en la base de datos
+          // user doesn't exist
           res.json({
-            msg: 'No existe el usuario en la base de datos',
+            msg: 'User Does not exist in DB',
           });
         } else {
-          // Existe
+          // Exist
           const userPassword = data[0].password;
           console.log(password);
-          // Comparamos el password
+          // Comparing password
           bcrypt.compare(password, userPassword).then((result) => {
             if (result) {
-              // Login exitoso -- Generamos el token
+              // Login success -- creating token
               const token = jwt.sign(
                 {
                   nombre: nombre,
                 },
-                process.env.SECRET_KEY || 'pepito123'
+                process.env.SECRET_KEY || 'enterkey'
               );
 
               res.json({
                 token,
               });
             } else {
-              // Password incorrecto
+              // wrong Password
               res.json({
-                msg: 'Password incorrecto',
+                msg: 'Wrong Password',
               });
             }
           });

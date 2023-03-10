@@ -5,9 +5,7 @@ const validateToken = (req: Request, res: Response, next: NextFunction) => {
   const headerToken = req.headers['authorization'];
 
   if (headerToken != undefined && headerToken.startsWith('Bearer ')) {
-    // Tiene token
     const bearerToken = headerToken.slice(7);
-
     try {
       const tokenValido = jwt.verify(
         bearerToken,

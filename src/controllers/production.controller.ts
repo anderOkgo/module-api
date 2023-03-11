@@ -3,7 +3,7 @@ import connection from '../db/connection';
 
 export const getProductions = (req: Request, res: Response) => {
   let conditions: string = '';
-  let sql: string;
+  let sql: string = 'SELECT * FROM v_all_info_produtions WHERE 1';
 
   const {
     pro_name,
@@ -16,31 +16,42 @@ export const getProductions = (req: Request, res: Response) => {
 
   Object.keys(req.body).forEach((key) => {
     if (req.body[key] === pro_name)
-      conditions = ` AND pro_name LIKE "%${pro_name}%"`;
-    if (req.body[key] === chapter_numer) {
-      let sp = chapter_numer.split(',');
-      if (sp.length == 1) {
-        conditions += ` AND chapter_numer = ${chapter_numer}`;
-      } else if (sp.length == 2) {
-        conditions += ` AND chapter_numer BETWEEN ${sp[0]} and ${sp[1]}`;
-      }
-    }
+      conditions += generateConditionLike('pro_name', req.body[key]);
+    if (req.body[key] === chapter_numer)
+      conditions += generateConditionParts('chapter_numer', req.body[key]);
     if (req.body[key] === description)
-      conditions += ` AND description LIKE "%${description}%"`;
-    if (req.body[key] === YEAR) {
-      let sp = YEAR.split(',');
-      if (sp.length == 1) {
-        conditions += ` AND YEAR = ${YEAR}`;
-      } else if (sp.length == 2) {
-        conditions += ` AND YEAR BETWEEN ${sp[0]} and ${sp[1]}`;
-      }
-    }
+      conditions += generateConditionLike('description', req.body[key]);
+    if (req.body[key] === YEAR)
+      conditions += generateConditionParts('YEAR', req.body[key]);
     if (req.body[key] === demo_names)
-      conditions += ` AND demo_names LIKE "%${demo_names}%"`;
+      conditions += generateConditionEq('demo_names', req.body[key]);
     if (req.body[key] === genre_names)
-      conditions += ` AND genre_names LIKE "%${genre_names}%"`;
+      conditions += generateConditionPartsAnd('genre_names', req.body[key]);
   });
-  sql = 'SELECT * FROM v_all_info_produtions WHERE 1';
+
   console.log(sql + conditions);
   connection.query(sql + conditions, (err, data) => !err && res.json({ data }));
+};
+
+const generateConditionLike = (label: string, val: string) =>
+  ` AND ${label} LIKE "%${val}%"`;
+
+const generateConditionEq = (label: string, val: string) =>
+  ` AND ${label} = "${val}"`;
+
+const generateConditionParts = (label: string, val: string) => {
+  let part: string[] = val.split(',');
+
+  if (part.length === 1) return ` AND ${label} = ${val}`;
+  else if (part.length >= 2)
+    return ` AND ${label} BETWEEN ${part[0]} and ${part[1]}`;
+};
+
+const generateConditionPartsAnd = (label: string, val: string) => {
+  let part: string[] = val.split(',');
+  let str: string = '';
+
+  if (part.length === 1) return ` AND ${label} = ${val}`;
+  part.forEach((e) => (str += ` AND ${label} like "%${e}%"`));
+  return str;
 };

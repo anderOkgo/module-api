@@ -3,7 +3,8 @@ import connection from '../db/connection';
 
 export const getProductions = (req: Request, res: Response) => {
   let conditions: string = '';
-  let sql: string = 'SELECT * FROM v_all_info_produtions WHERE 1';
+  let select: string = 'SELECT * FROM v_all_info_produtions WHERE 1';
+  let query: string = '';
 
   const {
     pro_name,
@@ -12,25 +13,27 @@ export const getProductions = (req: Request, res: Response) => {
     YEAR,
     demo_names,
     genre_names,
+    limit,
   } = req.body;
 
   Object.keys(req.body).forEach((key) => {
-    if (req.body[key] === pro_name)
-      conditions += generateConditionLike('pro_name', req.body[key]);
-    if (req.body[key] === chapter_numer)
-      conditions += generateConditionParts('chapter_numer', req.body[key]);
-    if (req.body[key] === description)
-      conditions += generateConditionLike('description', req.body[key]);
-    if (req.body[key] === YEAR)
-      conditions += generateConditionParts('YEAR', req.body[key]);
-    if (req.body[key] === demo_names)
-      conditions += generateConditionEq('demo_names', req.body[key]);
-    if (req.body[key] === genre_names)
-      conditions += generateConditionPartsAnd('genre_names', req.body[key]);
+    if (key === 'pro_name')
+      conditions += generateConditionLike('pro_name', pro_name);
+    if (key === 'chapter_numer')
+      conditions += generateConditionParts('chapter_numer', chapter_numer);
+    if (key === 'description')
+      conditions += generateConditionLike('description', description);
+    if (key === 'YEAR') conditions += generateConditionParts('YEAR', YEAR);
+    if (key === 'demo_names')
+      conditions += generateConditionEq('demo_names', demo_names);
+    if (key === 'genre_names')
+      conditions += generateConditionPartsAnd('genre_names', genre_names);
   });
 
-  console.log(sql + conditions);
-  connection.query(sql + conditions, (err, data) => !err && res.json({ data }));
+  conditions += generateLimit('limit', limit);
+  query = select + conditions;
+  console.log(query);
+  connection.query(query, (err, data) => !err && res.json({ data }));
 };
 
 const generateConditionLike = (label: string, val: string) =>
@@ -48,10 +51,15 @@ const generateConditionParts = (label: string, val: string) => {
 };
 
 const generateConditionPartsAnd = (label: string, val: string) => {
-  let part: string[] = val.split(',');
+  let parts: string[] = val.split(',');
   let str: string = '';
 
-  if (part.length === 1) return ` AND ${label} = ${val}`;
-  part.forEach((e) => (str += ` AND ${label} like "%${e}%"`));
+  if (parts.length === 1) return ` AND ${label} = "${val}"`;
+  parts.forEach((elemet) => (str += ` AND ${label} like "%${elemet}%"`));
   return str;
 };
+
+const generateLimit = (label: string, val: string) =>
+  val === undefined || parseInt(val) > 1000
+    ? ` ${label} 100`
+    : ` ${label} ` + val;

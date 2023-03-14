@@ -11,8 +11,6 @@ const validateToken = (req: Request, res: Response, next: NextFunction) => {
         bearerToken,
         process.env.SECRET_KEY || 'pepito123'
       );
-      console.log(tokenValido);
-      console.log(process.env.SECRET_KEY);
       next();
     } catch (error) {
       res.status(400).json({

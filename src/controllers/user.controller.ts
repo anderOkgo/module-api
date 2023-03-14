@@ -49,7 +49,6 @@ export const loginUser = (req: Request, res: Response) => {
         } else {
           // Exist
           const userPassword = data[0].password;
-          console.log(password);
           // Comparing password
           bcrypt.compare(password, userPassword).then((result) => {
             if (result) {

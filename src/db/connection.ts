@@ -5,11 +5,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const connection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'animecream',
-  port: parseInt(process.env.MYPORT!) || 3307,
+  host: process.env.MYHOST,
+  user: process.env.MYUSER,
+  password: process.env.MYPASSWORD,
+  database: process.env.MYDATABASE,
+  port: parseInt(process.env.MYPORT!),
 });
 
 export default connection;

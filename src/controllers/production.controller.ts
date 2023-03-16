@@ -34,6 +34,11 @@ export const getProductions = (req: Request, res: Response) => {
   connection.query(full_query, (err, data) => !err && res.json({ data }));
 };
 
+export const getProductionYears = (req: Request, res: Response) => {
+  let full_query = 'SELECT * from view_all_years_productions';
+  connection.query(full_query, (err, data) => !err && res.json({ data }));
+};
+
 const generateLikeCondition = (label: string, val: string) => ` AND ${label} LIKE "%${val}%"`;
 const generateEqualCondition = (label: string, val: string) => ` AND ${label} = "${val}"`;
 const generateLimit = (label: string, val: string) =>

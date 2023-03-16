@@ -35,6 +35,7 @@ class server {
   routes() {
     this.app.use('/', routesDefault);
     this.app.use('/api/productions', routesProducto);
+    this.app.use('/api/productions/years', routesProducto);
     this.app.use('/api/user', routesUsuario);
   }
 

@@ -3,6 +3,7 @@ import connection from '../db/connection';
 import routesProducto from '../routes/production.routes';
 import routesDefault from '../routes/default.routes';
 import routesUsuario from '../routes/user.routes';
+import cors from 'cors';
 
 class server {
   private app: Application;
@@ -33,6 +34,11 @@ class server {
   }
 
   routes() {
+    this.app.use(
+      cors({
+        origin: '*',
+      })
+    );
     this.app.use('/', routesDefault);
     this.app.use('/api/productions', routesProducto);
     this.app.use('/api/productions/years', routesProducto);

@@ -4,7 +4,7 @@ import validateToken from './validate-token';
 
 const router = Router();
 
-router.get('/', validateToken, getProductions);
+router.get('/', getProductions);
 router.get('/years', validateToken, getProductionYears);
 
 export default router;

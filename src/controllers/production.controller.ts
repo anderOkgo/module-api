@@ -30,6 +30,7 @@ export const getProductions = (req: Request, res: Response) => {
     if (key == 'id') conditions += generateinCondition('id', id);
   });
 
+  conditions += ` order by production_ranking_number ASC`;
   conditions += generateLimit('limit', limit);
   full_query = initial_query + conditions;
   console.log(full_query);

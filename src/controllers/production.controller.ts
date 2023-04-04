@@ -7,6 +7,7 @@ export const getProductions = (req: Request, res: Response) => {
   let full_query: string = '';
   let initial_query: string = `select * FROM ${view_name} WHERE 1`;
   const {
+    id,
     production_name,
     production_number_chapters,
     production_description,
@@ -26,6 +27,7 @@ export const getProductions = (req: Request, res: Response) => {
     if (key === 'demographic_name')
       conditions += generateEqualCondition('demographic_name', demographic_name);
     if (key === 'genre_names') conditions += generateAndCondition('genre_names', genre_names);
+    if (key == 'id') conditions += generateinCondition('id', id);
   });
 
   conditions += generateLimit('limit', limit);
@@ -39,10 +41,11 @@ export const getProductionYears = (req: Request, res: Response) => {
   connection.query(full_query, (err, data) => !err && res.json({ data }));
 };
 
+const generateinCondition = (label: string, val: string) => ` AND ${label} IN (${val})`;
 const generateLikeCondition = (label: string, val: string) => ` AND ${label} LIKE "%${val}%"`;
 const generateEqualCondition = (label: string, val: string) => ` AND ${label} = "${val}"`;
 const generateLimit = (label: string, val: string) =>
-  val === undefined || parseInt(val) > 1000 ? ` ${label} 100` : ` ${label} ` + val;
+  val === undefined || parseInt(val) > 1000 ? ` ${label} 10` : ` ${label} ` + val;
 
 const generateBetweenCondition = (label: string, val: string) => {
   let parts: string[] = val.split(',');

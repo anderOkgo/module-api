@@ -15,11 +15,11 @@ export const cyfer = () => {
       li++;
       if (li > key.length - 1) li = 0;
     }
-    return Buffer.from(nc).toString('base64').replaceAll('O', '-');
+    return Buffer.from(nc).toString('base64');
   };
 
   const dcy = (str: string, key: string) => {
-    str = Buffer.from(str, 'base64').toString().replaceAll('-', 'O').split('').reverse().join('');
+    str = Buffer.from(str, 'base64').toString().split('').reverse().join('');
     for (let x = str.length; x >= 2; x -= 2) {
       p2 = str.charCodeAt(x - 1) & 15;
       p3 = str.charCodeAt(x - 2) & 15;

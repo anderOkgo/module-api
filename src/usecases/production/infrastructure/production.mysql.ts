@@ -1,7 +1,15 @@
 import { Request, Response } from 'express';
-import connection from '../db/connection';
+import connection from '../../../data/mysql/connection';
+import {
+  generateinCondition,
+  generateLikeCondition,
+  generateEqualCondition,
+  generateLimit,
+  generateBetweenCondition,
+  generateAndCondition,
+} from '../../../data/mysql/helper';
 
-export const getProductions = (req: Request, res: Response) => {
+export const getProductionsPersistence = (req: Request, res: Response) => {
   const view_name: string = 'view_all_info_produtions';
   let conditions: string = '';
   let full_query: string = '';
@@ -37,27 +45,7 @@ export const getProductions = (req: Request, res: Response) => {
   connection.query(full_query, (err, data) => !err && res.json({ data }));
 };
 
-export const getProductionYears = (req: Request, res: Response) => {
+export const getProductionYearsPersistence = (req: Request, res: Response) => {
   let full_query = 'SELECT * from view_all_years_productions';
   connection.query(full_query, (err, data) => !err && res.json({ data }));
-};
-
-const generateinCondition = (label: string, val: string) => ` AND ${label} IN (${val})`;
-const generateLikeCondition = (label: string, val: string) => ` AND ${label} LIKE "%${val}%"`;
-const generateEqualCondition = (label: string, val: string) => ` AND ${label} = "${val}"`;
-const generateLimit = (label: string, val: string) =>
-  val === undefined || parseInt(val) > 1000 ? ` ${label} 10` : ` ${label} ` + val;
-
-const generateBetweenCondition = (label: string, val: string) => {
-  let parts: string[] = val.split(',');
-  if (parts.length === 1) return ` AND ${label} = ${val}`;
-  else if (parts.length >= 2) return ` AND ${label} BETWEEN ${parts[0]} and ${parts[1]}`;
-};
-
-const generateAndCondition = (label: string, val: string) => {
-  let parts: string[] = val.split(',');
-  let str: string = '';
-  if (parts.length === 1) return ` AND ${label} = "${val}"`;
-  parts.forEach((e) => (str += ` AND ${label} like "%${e}%"`));
-  return str;
 };

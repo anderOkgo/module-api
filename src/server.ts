@@ -1,8 +1,8 @@
 import express, { Application } from 'express';
-import connection from '../db/connection';
-import routesProducto from '../routes/production.routes';
-import routesDefault from '../routes/default.routes';
-import routesUsuario from '../routes/user.routes';
+import connection from './data/mysql/connection';
+import routesProduction from './usecases/production/application/production.routes';
+import routesDefault from './usecases/default/application/default.routes';
+import routesUser from './usecases/auth/application/user.routes';
 import cors from 'cors';
 
 class server {
@@ -40,9 +40,9 @@ class server {
       })
     );
     this.app.use('/', routesDefault);
-    this.app.use('/api/productions', routesProducto);
-    this.app.use('/api/productions/years', routesProducto);
-    this.app.use('/api/user', routesUsuario);
+    this.app.use('/api/productions', routesProduction);
+    this.app.use('/api/productions/years', routesProduction);
+    this.app.use('/api/user', routesUser);
   }
 
   midlewares() {

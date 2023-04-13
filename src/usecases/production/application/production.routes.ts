@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { getProductions, getProductionYears } from '../controllers/production.controller';
-import validateToken from './validate-token';
+import { getProductions, getProductionYears } from './production.controller';
+//import validateToken from '../../auth/domain/validate-token';
 
 const router = Router();
 

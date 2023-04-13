@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import cyfer from '../helpers/cyfer.js';
+import cyfer from '..//../../helpers/cyfer';
 
 export const getDefault = (req: Request, res: Response) => {
   res.json({

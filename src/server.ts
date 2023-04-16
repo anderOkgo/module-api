@@ -1,8 +1,8 @@
 import express, { Application } from 'express';
 import connection from './data/mysql/connection';
-import routesProduction from './usecases/production/application/production.routes';
-import routesDefault from './usecases/default/application/default.routes';
-import routesUser from './usecases/auth/application/user.routes';
+import routesProduction from './app/production/application/production.routes';
+import routesDefault from './app/default/application/default.routes';
+import routesUser from './app/auth/application/user.routes';
 import cors from 'cors';
 
 class server {

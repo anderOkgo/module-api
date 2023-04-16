@@ -7,7 +7,7 @@ import {
   generateLimit,
   generateBetweenCondition,
   generateAndCondition,
-} from '../../../data/mysql/helper';
+} from '../../../helpers/mysql.helper';
 
 export const getProductionsPersistence = (req: Request, res: Response) => {
   const view_name: string = 'view_all_info_produtions';

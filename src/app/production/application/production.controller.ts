@@ -1,10 +1,36 @@
 import { Request, Response } from 'express';
-import { getProductionsRepository, getProductionYearsRepository } from '../domain/production.repository';
+import Production from '../domain/models/Prodution';
+import { getProduction, getProductionYears } from '../domain/services/index';
 
-export const getProductions = (req: Request, res: Response) => {
-  return getProductionsRepository(req, res);
+const getProductions = async (req: Request, res: Response) => {
+  const {
+    id,
+    production_name,
+    production_number_chapters,
+    production_description,
+    production_year,
+    demographic_name,
+    genre_names,
+    limit,
+  } = req.body;
+  const production: Production = {
+    id,
+    production_name,
+    production_number_chapters,
+    production_description,
+    production_year,
+    demographic_name,
+    genre_names,
+    limit,
+  };
+  const productions = await getProduction(production);
+  productions ? res.status(200).json(productions) : res.status(404).json({ error: 'Productions not found' });
 };
 
-export const getProductionYears = (req: Request, res: Response) => {
-  return getProductionYearsRepository(req, res);
+const getProductionYear = async (req: Request, res: Response) => {
+  const years = await getProductionYears();
+  years ? res.status(200).json(years) : res.status(404).json({ error: 'Productions not found' });
 };
+
+export { getProductions, getProductionYear };
+//

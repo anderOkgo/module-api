@@ -1,5 +1,5 @@
 import express, { Application } from 'express';
-import connection from './data/mysql/connection';
+import connection from './data/mysql/database';
 import routesProduction from './app/production/application/production.routes';
 import routesDefault from './app/default/application/default.routes';
 import routesUser from './app/auth/application/user.routes';
@@ -17,37 +17,22 @@ class server {
     this.midlewares();
     this.routes();
   }
-  listening() {
-    this.app.listen(this.port, () => {
-      console.log('app running port', this.port);
-    });
-  }
+  listening = () => this.app.listen(this.port, () => console.log('app running port', this.port));
 
   connectDB() {
-    connection.connect((err) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log('Database conneted successfull');
-      }
-    });
+    const con: any = new connection();
+    con.close();
   }
 
   routes() {
-    this.app.use(
-      cors({
-        origin: '*',
-      })
-    );
+    this.app.use(cors({ origin: '*' }));
     this.app.use('/', routesDefault);
     this.app.use('/api/productions', routesProduction);
     this.app.use('/api/productions/years', routesProduction);
     this.app.use('/api/user', routesUser);
   }
 
-  midlewares() {
-    this.app.use(express.json());
-  }
+  midlewares = () => this.app.use(express.json());
 }
 
 export default server;

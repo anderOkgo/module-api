@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import connection from '../../../data/mysql/connection';
+import connection from '../../../data/mysql/database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 

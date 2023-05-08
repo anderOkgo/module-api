@@ -1,4 +1,4 @@
-const generateinCondition = (label: string, val: string) => ` AND ${label} IN (${val})`;
+const generateInCondition = (label: string, val: string) => ` AND ${label} IN (${val})`;
 const generateLikeCondition = (label: string, val: string) => ` AND ${label} LIKE "%${val}%"`;
 const generateEqualCondition = (label: string, val: string) => ` AND ${label} = "${val}"`;
 const generateLimit = (label: string, val: string) =>
@@ -19,7 +19,7 @@ const generateAndCondition = (label: string, val: string) => {
 };
 
 export {
-  generateinCondition,
+  generateInCondition,
   generateLikeCondition,
   generateEqualCondition,
   generateLimit,

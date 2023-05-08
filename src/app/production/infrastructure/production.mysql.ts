@@ -3,7 +3,7 @@ import Year from '../../production/domain/models/Year';
 import { ProductionRepository } from '../domain/production.repository';
 import Database from '../../../data/mysql/database';
 import {
-  generateinCondition,
+  generateInCondition,
   generateLikeCondition,
   generateEqualCondition,
   generateLimit,
@@ -45,7 +45,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
       if (key === 'demographic_name')
         conditions += generateEqualCondition('demographic_name', demographic_name);
       if (key === 'genre_names') conditions += generateAndCondition('genre_names', genre_names);
-      if (key == 'id') conditions += generateinCondition('id', id);
+      if (key == 'id') conditions += generateInCondition('id', id);
     });
 
     conditions += ` order by production_ranking_number ASC`;

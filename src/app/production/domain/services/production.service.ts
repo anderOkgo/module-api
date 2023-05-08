@@ -1,5 +1,4 @@
 import { ProductionRepository } from '../production.repository';
-import { YearRepository } from '../year.repository';
 import Production from '../models/Prodution';
 import Year from '../models/Prodution';
 

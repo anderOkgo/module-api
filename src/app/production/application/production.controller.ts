@@ -33,4 +33,3 @@ const getProductionYear = async (req: Request, res: Response) => {
 };
 
 export { getProductions, getProductionYear };
-//

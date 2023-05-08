@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import connection from '../../../data/mysql/database';
+import connection2 from '../../../data/mysql/database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
@@ -8,7 +8,9 @@ export const addUserPersistence = async (req: Request, res: Response) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  connection.query(
+  const connection = new connection2();
+
+  /* connection.executeQuery(
     'INSERT INTO users set ?',
     {
       first_name: nombre,
@@ -30,12 +32,13 @@ export const addUserPersistence = async (req: Request, res: Response) => {
       }
     }
   );
+  */
 };
 
 export const loginUserPersistence = (req: Request, res: Response) => {
   const { nombre, password } = req.body;
 
-  connection.query('SELECT * FROM users WHERE first_name = ' + connection.escape(nombre), (err, data) => {
+  /*  connection.executeQuery('SELECT * FROM users WHERE first_name = ' + connection.escape(nombre), (err, data) => {
     if (err) {
       console.log(err);
     } else {
@@ -70,5 +73,5 @@ export const loginUserPersistence = (req: Request, res: Response) => {
         });
       }
     }
-  });
+  }); */
 };

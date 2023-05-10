@@ -1,5 +1,4 @@
 import Production from '../../production/domain/models/Prodution';
-import Year from '../../production/domain/models/Year';
 import { ProductionRepository } from '../domain/production.repository';
 import Database from '../../../data/mysql/database';
 import {
@@ -34,18 +33,22 @@ export class ProductionMysqlRepository implements ProductionRepository {
       limit,
     } = production;
 
-    Object.keys(production).forEach((key: string) => {
-      if (key === 'production_name') conditions += generateLikeCondition('production_name', production_name);
-      if (key === 'production_number_chapters')
+    console.log(production);
+
+    Object.keys(production).forEach((key: string, obj) => {
+      if (key === 'production_name' && production[key] !== undefined)
+        conditions += generateLikeCondition('production_name', production_name);
+      if (key === 'production_number_chapters' && production[key] !== undefined)
         conditions += generateBetweenCondition('production_number_chapters', production_number_chapters);
-      if (key === 'production_description')
+      if (key === 'production_description' && production[key] !== undefined)
         conditions += generateLikeCondition('production_description', production_description);
-      if (key === 'production_year')
+      if (key === 'production_year' && production[key] !== undefined)
         conditions += generateBetweenCondition('production_year', production_year);
-      if (key === 'demographic_name')
+      if (key === 'demographic_name' && production[key] !== undefined)
         conditions += generateEqualCondition('demographic_name', demographic_name);
-      if (key === 'genre_names') conditions += generateAndCondition('genre_names', genre_names);
-      if (key == 'id') conditions += generateInCondition('id', id);
+      if (key === 'genre_names' && production[key] !== undefined)
+        conditions += generateAndCondition('genre_names', genre_names);
+      if (key == 'id' && production[key] !== undefined) conditions += generateInCondition('id', id);
     });
 
     conditions += ` order by production_ranking_number ASC`;

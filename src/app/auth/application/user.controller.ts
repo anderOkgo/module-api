@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
-import { addUserRepository, loginUserRepository } from '../domain/user.repository';
+import { addUser, loginUser } from '../domain/services/index';
 
-export const addUser = async (req: Request, res: Response) => {
-  return addUserRepository(req, res);
+export const addUsers = async (req: Request, res: Response) => {
+  const user = await addUser(req.body);
+  user ? res.status(200).json(user) : res.status(404).json({ error: 'user error' });
 };
 
-export const loginUser = (req: Request, res: Response) => {
-  return loginUserRepository(req, res);
+export const loginUsers = async (req: Request, res: Response) => {
+  const login = await loginUser(req.body);
+  login ? res.status(200).json(login) : res.status(404).json({ error: 'User not found' });
 };

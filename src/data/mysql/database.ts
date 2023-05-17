@@ -45,7 +45,7 @@ class Database {
           if (err) {
             reject(new Error(`Error executing MySQL query: ${err.message}`));
           } else {
-            console.log(data.length);
+            //console.log(data.length);
             if (data.length > 0) {
               resolve(data[0].password);
             } else {

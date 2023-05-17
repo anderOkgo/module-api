@@ -1,41 +1,51 @@
-import { Request, Response } from 'express';
 import Database from '../../../data/mysql/database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { UserRepository } from '../domain/user.repository';
+import User from '../domain/models/User';
+import Login from '../domain/models/Login';
 
-export const addUserPersistence = async (req: Request, res: Response) => {
-  const { nombre, password } = req.body;
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const database = new Database();
-  const newUser = {
-    first_name: nombre,
-    last_name: '',
-    email: '',
-    role: 1,
-    password: hashedPassword,
-    active: 1,
-    created: '2018-01-18',
-    modified: '2018-01-18',
+export class userMysqlRepository implements UserRepository {
+  private connection: any;
+
+  constructor() {
+    this.connection = new Database();
+  }
+
+  public addUserRepository = async (user: User) => {
+    const { first_name, password } = user;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const database = new Database();
+    const newUser = {
+      first_name: first_name,
+      last_name: '',
+      email: '',
+      role: 1,
+      password: hashedPassword,
+      active: 1,
+      created: '2018-01-18',
+      modified: '2018-01-18',
+    };
+
+    const result = await database.executeQuery('INSERT INTO users SET ?', newUser);
+    return result.insertId;
   };
 
-  database.executeQuery('INSERT INTO users SET ?', newUser);
-};
+  public loginUserRepository = async (login: Login) => {
+    const { first_name, password } = login;
+    const database = new Database();
+    const userPassword = await database.loginUser(first_name);
 
-export const loginUserPersistence = async (req: Request, res: Response) => {
-  const { name, password } = req.body;
-  const database = new Database();
-  const userPassword = await database.loginUser(name);
-
-  if (userPassword) {
-    bcrypt.compare(password, userPassword).then((result) => {
+    if (userPassword) {
+      const result = await bcrypt.compare(password, userPassword);
       if (result) {
-        const token = jwt.sign({ name: name }, process.env.SECRET_KEY || 'enterkey');
-        res.json({ token });
+        const token = jwt.sign({ first_name: first_name }, process.env.SECRET_KEY || 'enterkey');
+        return { token };
       } else {
-        res.json({ msg: 'Wrong Password' });
+        return { msg: 'Wrong Password' };
       }
-    });
-  } else {
-    res.json({ msg: 'User does not exist' });
-  }
-};
+    } else {
+      return { msg: 'User does not exist' };
+    }
+  };
+}

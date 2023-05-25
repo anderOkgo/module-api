@@ -1,6 +1,6 @@
-import { addUserPersistence as x, loginUserPersistence as y } from './auth.service';
+import { addUserService, loginUserService } from './auth.service';
 import { userMysqlRepository } from '../../infrastructure/user.mysql';
 const userRepo = new userMysqlRepository();
-let addUser = x(userRepo);
-let loginUser = y(userRepo);
+let addUser = addUserService(userRepo);
+let loginUser = loginUserService(userRepo);
 export { addUser, loginUser };

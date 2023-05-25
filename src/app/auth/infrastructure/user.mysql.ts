@@ -1,7 +1,7 @@
 import Database from '../../../data/mysql/database';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { UserRepository } from '../domain/user.repository';
+import { UserRepository } from '../domain/repositories/user.repository';
 import User from '../domain/models/User';
 import Login from '../domain/models/Login';
 

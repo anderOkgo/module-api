@@ -1,5 +1,5 @@
 import Production from '../../production/domain/models/Prodution';
-import { ProductionRepository } from '../domain/production.repository';
+import { ProductionRepository } from '../domain/repositories/production.repository';
 import Database from '../../../data/mysql/database';
 import {
   generateInCondition,

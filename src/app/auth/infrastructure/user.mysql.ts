@@ -15,7 +15,6 @@ export class userMysqlRepository implements UserRepository {
   public addUserRepository = async (user: User) => {
     const { first_name, password } = user;
     const hashedPassword = await bcrypt.hash(password, 10);
-    const database = new Database();
     const newUser = {
       first_name: first_name,
       last_name: '',
@@ -27,14 +26,13 @@ export class userMysqlRepository implements UserRepository {
       modified: '2018-01-18',
     };
 
-    const result = await database.executeQuery('INSERT INTO users SET ?', newUser);
+    const result = await this.connection.executeQuery('INSERT INTO users SET ?', newUser);
     return result.insertId;
   };
 
   public loginUserRepository = async (login: Login) => {
     const { first_name, password } = login;
-    const database = new Database();
-    const userPassword = await database.loginUser(first_name);
+    const userPassword = await this.connection.loginUser(first_name);
 
     if (userPassword) {
       const result = await bcrypt.compare(password, userPassword);

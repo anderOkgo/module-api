@@ -17,7 +17,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     this.connection = new Database();
   }
 
-  public getProductions(production: Production) {
+  public async getProductions(production: Production) {
     const view_name: string = 'view_all_info_produtions';
     let conditions: string = '';
     let full_query: string = '';
@@ -54,18 +54,17 @@ export class ProductionMysqlRepository implements ProductionRepository {
     conditions += ` order by production_ranking_number ASC`;
     conditions += generateLimit('limit', limit);
     full_query = initial_query + conditions;
-    console.log(full_query);
     try {
-      return this.connection.executeQuery(full_query);
+      return await this.connection.executeQuery(full_query);
     } catch (e) {
       console.log(e);
     }
   }
 
-  public getProductionYears() {
+  public async getProductionYears() {
     let full_query = 'SELECT * from view_all_years_productions';
     try {
-      return this.connection.executeQuery(full_query);
+      return await this.connection.executeQuery(full_query);
     } catch (e) {
       console.log(e);
     }

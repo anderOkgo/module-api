@@ -20,8 +20,9 @@ class server {
   listening = () => this.app.listen(this.port, () => console.log('app running port', this.port));
 
   connectDB() {
-    const con: any = new connection();
-    con.close();
+    const database: any = new connection();
+    database.open();
+    database.close();
   }
 
   routes() {

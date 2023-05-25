@@ -59,8 +59,6 @@ export class ProductionMysqlRepository implements ProductionRepository {
       return this.connection.executeQuery(full_query);
     } catch (e) {
       console.log(e);
-    } finally {
-      //this.connection.close();
     }
   }
 
@@ -70,8 +68,6 @@ export class ProductionMysqlRepository implements ProductionRepository {
       return this.connection.executeQuery(full_query);
     } catch (e) {
       console.log(e);
-    } finally {
-      //this.connection.close();
     }
   }
 }

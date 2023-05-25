@@ -13,7 +13,6 @@ class Database {
       database: process.env.MYDATABASE,
       port: parseInt(process.env.MYPORT!),
     });
-    this.open();
   }
 
   open(): void {

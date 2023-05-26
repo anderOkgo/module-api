@@ -1,4 +1,4 @@
-export const cyfer = () => {
+const cyfer = () => {
   let p1: number;
   let p2: number;
   let p3: number;

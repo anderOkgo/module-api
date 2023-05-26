@@ -17,6 +17,7 @@ class server {
     this.midlewares();
     this.routes();
   }
+
   listening = () => this.app.listen(this.port, () => console.log('app running port', this.port));
 
   connectDB() {

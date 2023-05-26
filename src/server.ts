@@ -29,7 +29,6 @@ class server {
     this.app.use(cors({ origin: '*' }));
     this.app.use('/', routesDefault);
     this.app.use('/api/productions', routesProduction);
-    this.app.use('/api/productions/years', routesProduction);
     this.app.use('/api/user', routesUser);
   }
 

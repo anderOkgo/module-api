@@ -1,8 +1,8 @@
 import { getProductions, getProductionYears } from './production.service';
 import { ProductionMysqlRepository } from '../../infrastructure/production.mysql';
 
-const productionRepo = new ProductionMysqlRepository();
-const getProductionService = getProductions(productionRepo);
-const getProductionYearService = getProductionYears(productionRepo);
+const productionRepository = new ProductionMysqlRepository();
+const getProductionService = getProductions(productionRepository);
+const getProductionYearService = getProductionYears(productionRepository);
 
 export { getProductionService, getProductionYearService };

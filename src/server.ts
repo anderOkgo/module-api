@@ -2,7 +2,7 @@ import express, { Application } from 'express';
 import connection from './data/mysql/database';
 import routesProduction from './app/production/application/production.routes';
 import routesDefault from './app/default/application/default.routes';
-import routesUser from './app/auth/application/user.routes';
+import routesUser from './app/user/application/user.routes';
 import cors from 'cors';
 
 class server {
@@ -29,7 +29,7 @@ class server {
     this.app.use(cors({ origin: '*' }));
     this.app.use('/', routesDefault);
     this.app.use('/api/productions', routesProduction);
-    this.app.use('/api/user', routesUser);
+    this.app.use('/api/users', routesUser);
   }
 
   midlewares = () => this.app.use(express.json());

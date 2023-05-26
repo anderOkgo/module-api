@@ -24,7 +24,7 @@ class Database {
     });
   }
 
-  async executeQuery(query: string, params: object): Promise<any> {
+  async executeQuery(query: string, params: object = {}): Promise<any> {
     return new Promise((resolve, reject) => {
       this.connection.query(query, params, (err, result) => {
         if (err) {

@@ -1,15 +1,15 @@
-import Database from '../../../data/mysql/database';
 import bcrypt from 'bcrypt';
+import Database from '../../../data/mysql/database';
 import jwt from 'jsonwebtoken';
-import { UserRepository } from '../domain/repositories/user.repository';
-import User from '../domain/models/User';
 import Login from '../domain/models/Login';
+import User from '../domain/models/User';
+import { UserRepository } from '../domain/repositories/user.repository';
 
 export class userMysqlRepository implements UserRepository {
-  private connection: any;
+  private Database: Database;
 
   constructor() {
-    this.connection = new Database();
+    this.Database = new Database();
   }
 
   public addUserRepository = async (user: User) => {
@@ -26,13 +26,13 @@ export class userMysqlRepository implements UserRepository {
       modified: '2018-01-18',
     };
 
-    const result = await this.connection.executeQuery('INSERT INTO users SET ?', newUser);
+    const result = await this.Database.executeQuery('INSERT INTO users SET ?', newUser);
     return result.insertId;
   };
 
   public loginUserRepository = async (login: Login) => {
     const { first_name, password } = login;
-    const userPassword = await this.connection.loginUser(first_name);
+    const userPassword = await this.Database.loginUser(first_name);
 
     if (userPassword) {
       const result = await bcrypt.compare(password, userPassword);

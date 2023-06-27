@@ -1,4 +1,4 @@
-@ECHO On
+@ECHO Off
 SETLOCAL
 start "" https://nadim.dongee.com:2083/cpsess7273472010/frontend/jupiter/lveversion/nodejs-selector.html.tt#/applications/info.animecream.com
 IF EXIST setter.bat (CD.. & CALL com\setter.bat) ELSE ( CALL com\setter.bat )

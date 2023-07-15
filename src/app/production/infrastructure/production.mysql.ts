@@ -7,7 +7,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
   private Database: Database;
 
   constructor() {
-    this.Database = new Database();
+    this.Database = new Database('MYDATABASEANIME');
   }
 
   public async getProductions(production: Production) {

@@ -4,13 +4,13 @@ import dotenv from 'dotenv';
 class Database {
   private connection: mysql.Connection;
 
-  constructor() {
+  constructor(db_name: string) {
     dotenv.config();
     this.connection = mysql.createConnection({
       host: process.env.MYHOST,
       user: process.env.MYUSER,
       password: process.env.MYPASSWORD,
-      database: process.env.MYDATABASE,
+      database: process.env[db_name],
       port: parseInt(process.env.MYPORT!),
     });
   }

@@ -8,5 +8,5 @@ export const getProductions = async (req: Request, res: Response) => {
 
 export const getProductionYears = async (req: Request, res: Response) => {
   const years = await getProductionYearService();
-  years ? res.status(200).json(years) : res.status(404).json({ error: 'Productions not found' });
+  years ? res.status(200).json(years) : res.status(404).json({ error: 'Production years not found' });
 };

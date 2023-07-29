@@ -9,7 +9,7 @@ export class userMysqlRepository implements UserRepository {
   private Database: Database;
 
   constructor() {
-    this.Database = new Database();
+    this.Database = new Database('MYDATABASEANIME');
   }
 
   public addUserRepository = async (user: User) => {

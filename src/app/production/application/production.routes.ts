@@ -1,8 +1,6 @@
-import { Router } from 'express';
+import { router } from '../../../helpers/middle.helper';
 import { getProductions, getProductionYears } from './production.controller';
 //import validateToken from '../../auth/domain/validate-token';
-
-const router = Router();
 
 router.post('/', getProductions);
 router.get('/years', /*validateToken,*/ getProductionYears);

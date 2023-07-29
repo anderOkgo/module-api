@@ -1,20 +1,19 @@
-import bcrypt from 'bcrypt';
-import Database from '../../../data/mysql/database';
-import jwt from 'jsonwebtoken';
+import { crypt } from '../../../helpers/crypt.helper';
+import { Database } from '../../../helpers/database.helper';
+import { token } from '../../../helpers/token.helper';
 import Login from '../domain/models/Login';
 import User from '../domain/models/User';
 import { UserRepository } from '../domain/repositories/user.repository';
 
 export class userMysqlRepository implements UserRepository {
-  private Database: Database;
-
+  private Database: any;
   constructor() {
     this.Database = new Database('MYDATABASEANIME');
   }
 
   public addUserRepository = async (user: User) => {
     const { first_name, password } = user;
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await crypt.hash(password, 10);
     const newUser = {
       first_name: first_name,
       last_name: '',
@@ -35,10 +34,10 @@ export class userMysqlRepository implements UserRepository {
     const userPassword = await this.Database.loginUser(first_name);
 
     if (userPassword) {
-      const result = await bcrypt.compare(password, userPassword);
+      const result = await crypt.compare(password, userPassword);
       if (result) {
-        const token = jwt.sign({ first_name: first_name }, process.env.SECRET_KEY || 'enterkey');
-        return { token };
+        const token_ = token.sign({ first_name: first_name }, process.env.SECRET_KEY || 'enterkey');
+        return { token_ };
       } else {
         return { msg: 'Wrong Password' };
       }

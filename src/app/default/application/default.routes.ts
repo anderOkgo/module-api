@@ -1,7 +1,5 @@
-import { Router } from 'express';
+import { router } from '../../../helpers/middle.helper';
 import { getDefault } from './default.controller';
-
-const router = Router();
 
 router.get('/', getDefault);
 

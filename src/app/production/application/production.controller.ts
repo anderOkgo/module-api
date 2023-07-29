@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response } from '../../../helpers/middle.helper';
 import { getProductionService, getProductionYearService } from '../domain/services/index';
 
 export const getProductions = async (req: Request, res: Response) => {

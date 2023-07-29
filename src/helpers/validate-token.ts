@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { Request, Response, NextFunction } from './middle.helper';
+
+import { token } from './token.helper';
 
 const validateToken = (req: Request, res: Response, next: NextFunction) => {
   const headerToken = req.headers['authorization'];
@@ -7,10 +8,7 @@ const validateToken = (req: Request, res: Response, next: NextFunction) => {
   if (headerToken != undefined && headerToken.startsWith('Bearer ')) {
     const bearerToken = headerToken.slice(7);
     try {
-      const tokenValido = jwt.verify(
-        bearerToken,
-        process.env.SECRET_KEY || 'pepito123'
-      );
+      const tokenValido = token.verify(bearerToken, process.env.SECRET_KEY || 'pepito123');
       next();
     } catch (error) {
       res.status(400).json({

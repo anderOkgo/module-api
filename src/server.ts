@@ -1,5 +1,5 @@
 import express, { Application } from 'express';
-import connection from './data/mysql/database';
+import { Database } from './helpers/database.helper';
 import routesProduction from './app/production/application/production.routes';
 import routesDefault from './app/default/application/default.routes';
 import routesUser from './app/user/application/user.routes';
@@ -21,7 +21,7 @@ class server {
   listening = () => this.app.listen(this.port, () => console.log('app running port', this.port));
 
   connectDB() {
-    const database: any = new connection();
+    const database: any = new Database('MYDATABASEANIME');
     database.open();
     database.close();
   }

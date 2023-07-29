@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response } from '../../../helpers/middle.helper';
 import { addUser, loginUser } from '../domain/services/index';
 
 export const addUsers = async (req: Request, res: Response) => {

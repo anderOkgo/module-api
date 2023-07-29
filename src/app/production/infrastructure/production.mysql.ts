@@ -1,5 +1,4 @@
-import * as HDB from '../../../helpers/mysql.helper';
-import Database from '../../../data/mysql/database';
+import { Database, HDB } from '../../../helpers/database.helper';
 import Production from '../../production/domain/models/Prodution';
 import { ProductionRepository } from '../domain/repositories/production.repository';
 

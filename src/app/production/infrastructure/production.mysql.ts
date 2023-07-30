@@ -1,6 +1,6 @@
 import { Database, HDB } from '../../../helpers/database.helper';
 import Production from '../../production/domain/models/Prodution';
-import { ProductionRepository } from '../domain/repositories/production.repository';
+import { ProductionRepository } from './repositories/production.repository';
 
 export class ProductionMysqlRepository implements ProductionRepository {
   private Database: Database;

@@ -1,4 +1,4 @@
-import { ProductionRepository } from '../repositories/production.repository';
+import { ProductionRepository } from '../../infrastructure/repositories/production.repository';
 import Production from '../models/Prodution';
 
 const getProductions = (productionRepository: ProductionRepository) => (production: Production) =>

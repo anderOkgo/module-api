@@ -3,7 +3,7 @@ import { Database } from '../../../helpers/database.helper';
 import { token } from '../../../helpers/token.helper';
 import Login from '../domain/models/Login';
 import User from '../domain/models/User';
-import { UserRepository } from '../domain/repositories/user.repository';
+import { UserRepository } from './repositories/user.repository';
 
 export class userMysqlRepository implements UserRepository {
   private Database: any;

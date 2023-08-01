@@ -1,11 +1,11 @@
 // test.ts
 
-import Production from '../models/Prodution';
-import validateProduction from './validateProduction';
+import Production from '../../../src/app/production/domain/models/Prodution';
+import validateProduction from '../../../src/app/production/domain/validations/production.validation';
 
 describe('validateProduction', () => {
   it('should return true for a valid Production object', () => {
-    const production = {
+    const production: Production = {
       id: '1234567890',
       production_name: 'The Mandalorian',
       production_number_chapters: '8',
@@ -22,7 +22,7 @@ describe('validateProduction', () => {
   });
 
   it('should return false for an invalid Production object', () => {
-    const production = {
+    const production: Production = {
       id: '',
       production_name: '',
       production_number_chapters: '8',

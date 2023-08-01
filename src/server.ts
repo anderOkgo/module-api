@@ -3,6 +3,7 @@ import { Database } from './helpers/database.helper';
 import routesProduction from './app/production/application/production.routes';
 import routesDefault from './app/default/application/default.routes';
 import routesUser from './app/user/application/user.routes';
+import routesFinan from './app/finan/application/finan.routes';
 import cors from 'cors';
 
 class server {
@@ -31,6 +32,7 @@ class server {
     this.app.use('/', routesDefault);
     this.app.use('/api/productions', routesProduction);
     this.app.use('/api/users', routesUser);
+    this.app.use('/api/finan', routesFinan);
   }
 
   midlewares = () => this.app.use(express.json());

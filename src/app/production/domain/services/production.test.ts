@@ -1,0 +1,40 @@
+// test.ts
+
+import Production from '../models/Prodution';
+import validateProduction from './validateProduction';
+
+describe('validateProduction', () => {
+  it('should return true for a valid Production object', () => {
+    const production = {
+      id: '1234567890',
+      production_name: 'The Mandalorian',
+      production_number_chapters: '8',
+      production_description: 'A Star Wars story.',
+      production_year: '2019',
+      demographic_name: 'Action',
+      genre_names: 'Sci-Fi, Western',
+      limit: '10',
+    };
+
+    const result = validateProduction(production);
+
+    expect(result).toBe(true);
+  });
+
+  it('should return false for an invalid Production object', () => {
+    const production = {
+      id: '',
+      production_name: '',
+      production_number_chapters: '8',
+      production_description: 'A Star Wars story.',
+      production_year: '2019',
+      demographic_name: 'Action',
+      genre_names: 'Sci-Fi, Western',
+      limit: '10',
+    };
+
+    const result = validateProduction(production);
+
+    expect(result).toBe(false);
+  });
+});

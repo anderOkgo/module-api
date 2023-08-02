@@ -1,7 +1,15 @@
 import { Request, Response } from '../../../helpers/middle.helper';
-import { getTotalBankService } from '../domain/services/index';
+import { getTotalBankService, putMovimentService } from '../domain/services/index';
 
 export const getTotalBank = async (req: Request, res: Response) => {
   const TotalBank = await getTotalBankService();
   TotalBank ? res.status(200).json(TotalBank) : res.status(404).json({ error: 'TotalBank not found' });
+};
+
+export const putMoviment = async (req: Request, res: Response) => {
+  console.log(req.body);
+  const Moviment = await putMovimentService(req.body);
+  Moviment
+    ? res.status(200).json({ status: 'successful' })
+    : res.status(404).json({ error: 'Moviment not found' });
 };

@@ -1,6 +1,6 @@
 import { crypt } from '../../../helpers/crypt.helper';
 import { Database } from '../../../helpers/database.helper';
-import { token } from '../../../helpers/token.helper';
+import { token as _token } from '../../../helpers/token.helper';
 import Login from '../domain/models/Login';
 import User from '../domain/models/User';
 import { UserRepository } from './repositories/user.repository';
@@ -36,8 +36,8 @@ export class userMysqlRepository implements UserRepository {
     if (userPassword) {
       const result = await crypt.compare(password, userPassword);
       if (result) {
-        const token_ = token.sign({ first_name: first_name }, process.env.SECRET_KEY || 'enterkey');
-        return { token_ };
+        const token = _token.sign({ first_name: first_name }, process.env.SECRET_KEY || 'enterkey');
+        return { token };
       } else {
         return { msg: 'Wrong Password' };
       }

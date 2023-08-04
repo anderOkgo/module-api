@@ -19,7 +19,7 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async putMoviment(parameters: any) {
     const { name, val, type } = parameters;
-    let full_query = `CALL insert_moviment('${escape(name)}',${val},${type})`;
+    let full_query = `CALL insert_moviment(${this.Database.myScape(name)},${val},${type})`;
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {

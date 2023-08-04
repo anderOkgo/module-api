@@ -67,6 +67,11 @@ class Database {
   status(): string {
     return this.connection.state;
   }
+
+  myScape(str: string): string {
+    console.log(this.connection.escape(str));
+    return this.connection.escape(str);
+  }
 }
 
 export default Database;

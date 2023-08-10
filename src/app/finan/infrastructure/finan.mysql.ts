@@ -9,7 +9,7 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async getTotalBank() {
-    let full_query = 'SELECT * from total_bank';
+    let full_query = 'SELECT * from view_total_bank';
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {
@@ -19,9 +19,14 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async putMoviment(parameters: any) {
     const { name, val, datemov, type, tag } = parameters;
-    let full_query = `CALL insert_moviment(${this.Database.myScape(
-      name
-    )},${val},'${datemov}',${type},${this.Database.myScape(tag)})`;
+    let full_query = `CALL proc_insert_moviment(
+      ${this.Database.myScape(name)},
+      ${val},
+      '${datemov}',
+      ${type},
+      ${this.Database.myScape(tag)}
+      );`;
+    console.log(full_query);
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {

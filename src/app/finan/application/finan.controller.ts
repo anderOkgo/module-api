@@ -9,7 +9,5 @@ export const getTotalBank = async (req: Request, res: Response) => {
 export const putMoviment = async (req: Request, res: Response) => {
   console.log(req.body);
   const Moviment = await putMovimentService(req.body);
-  Moviment
-    ? res.status(200).json({ status: 'successful' })
-    : res.status(404).json({ error: 'Moviment not found' });
+  Moviment ? res.status(200).json({ status: 'successful' }) : res.status(404).json({ error: 'Moviment not done' });
 };

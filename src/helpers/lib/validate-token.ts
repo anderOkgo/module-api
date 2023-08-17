@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from './middle.helper';
-import { token } from './token.helper';
+import { Request, Response, NextFunction } from '../middle.helper';
+import { token } from '../token.helper';
 
 const validateToken = (req: Request, res: Response, next: NextFunction) => {
   const headerToken = req.headers['authorization'];

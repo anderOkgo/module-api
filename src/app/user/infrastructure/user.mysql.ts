@@ -8,7 +8,7 @@ import { UserRepository } from './repositories/user.repository';
 export class userMysqlRepository implements UserRepository {
   private Database: any;
   constructor() {
-    this.Database = new Database('MYDATABASEANIME');
+    this.Database = new Database('MYDATABASEAUTH');
   }
 
   public addUserRepository = async (user: User) => {

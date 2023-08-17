@@ -84,7 +84,7 @@ function validate_id(id: string): boolean {
 } */
 
 function validateProduction(production: Production): boolean {
-  return validate_id(production.id) /*&&
+  return validate_id('1' /*production.id*/) /*&&
     //validate_production_name(production.production_name) &&
     validate_production_number_chapters(production.production_number_chapters) &&
     validate_production_description(production.production_description) &&

@@ -1,4 +1,4 @@
-import { Database, HDB } from '../../../helpers/database.helper';
+import { Database, HDB } from '../../../helpers/my.database.helper';
 import { FinanRepository } from './repositories/finan.repository';
 
 export class FinanMysqlRepository implements FinanRepository {

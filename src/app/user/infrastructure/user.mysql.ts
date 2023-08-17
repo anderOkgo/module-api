@@ -1,5 +1,5 @@
 import { crypt } from '../../../helpers/crypt.helper';
-import { Database } from '../../../helpers/database.helper';
+import { Database } from '../../../helpers/my.database.helper';
 import { token as _token } from '../../../helpers/token.helper';
 import Login from '../domain/models/Login';
 import User from '../domain/models/User';

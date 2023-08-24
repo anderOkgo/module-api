@@ -1,5 +1,5 @@
-import { ProductionRepository } from '../../infrastructure/repositories/production.repository';
-import Production from '../models/Prodution';
+import { ProductionRepository } from '../../infrastructure/repositories/serie.repository';
+import Production from '../models/Series';
 
 const getProductions = (productionRepository: ProductionRepository) => (production: Production) =>
   productionRepository.getProductions(production);

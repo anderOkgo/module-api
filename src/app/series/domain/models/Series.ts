@@ -1,4 +1,4 @@
-export default interface Production {
+export default interface Series {
   id: string;
   production_name: string;
   production_number_chapters: string;

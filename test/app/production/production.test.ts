@@ -1,7 +1,7 @@
 // test.ts
 
 import Production from '../../../src/app/production/domain/models/Prodution';
-import validateProduction from '../../../src/app/production/domain/validations/production.validation';
+import validateProduction from '../../../src/app/production/domain/validations/serie.validation';
 
 describe('validateProduction', () => {
   it('should return true for a valid Production object', () => {

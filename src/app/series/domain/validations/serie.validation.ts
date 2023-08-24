@@ -1,4 +1,4 @@
-import Production from '../models/Prodution';
+import Production from '../models/Series';
 
 function validate_id(id: string): boolean {
   if (!id || id.length !== 10) {

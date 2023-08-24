@@ -1,3 +1,3 @@
-import { ProductionMysqlRepository } from './production.mysql';
+import { ProductionMysqlRepository } from './serie.mysql';
 const productionRepository = ProductionMysqlRepository;
 export { productionRepository };

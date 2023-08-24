@@ -1,4 +1,4 @@
-import { getProductions, getProductionYears } from './production.service';
+import { getProductions, getProductionYears } from './serie.service';
 import { productionRepository } from '../../infrastructure/index';
 
 const productionRepository_ = new productionRepository();

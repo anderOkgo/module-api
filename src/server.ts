@@ -1,6 +1,6 @@
 import express, { Application } from 'express';
 import { Database } from './helpers/my.database.helper';
-import routesProduction from './app/production/application/production.routes';
+import routesProduction from './app/series/application/production.routes';
 import routesDefault from './app/default/application/default.routes';
 import routesUser from './app/auth/application/user.routes';
 import routesFinan from './app/finan/application/finan.routes';
@@ -30,7 +30,7 @@ class server {
   routes() {
     this.app.use(cors({ origin: '*' }));
     this.app.use('/', routesDefault);
-    this.app.use('/api/productions', routesProduction);
+    this.app.use('/api/series', routesProduction);
     this.app.use('/api/users', routesUser);
     this.app.use('/api/finan', routesFinan);
   }

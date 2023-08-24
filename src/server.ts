@@ -1,6 +1,6 @@
 import express, { Application } from 'express';
 import { Database } from './helpers/my.database.helper';
-import routesProduction from './app/series/application/serie.routes';
+import routesProduction from './app/series/application/series.routes';
 import routesDefault from './app/default/application/default.routes';
 import routesUser from './app/auth/application/user.routes';
 import routesFinan from './app/finan/application/finan.routes';

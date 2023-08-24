@@ -1,5 +1,5 @@
 import { router } from '../../../helpers/middle.helper';
-import { getProductions, getProductionYears } from './serie.controller';
+import { getProductions, getProductionYears } from './series.controller';
 //import validateToken from '../../auth/domain/validate-token';
 
 router.post('/', getProductions);

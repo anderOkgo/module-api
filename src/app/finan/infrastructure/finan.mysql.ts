@@ -9,12 +9,15 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async getTotalBank() {
+    let moviments = await this.moviments();
     let balance = await this.balance();
-    let MovimentSources = await this.MovimentSources();
+    let movimentTag = await this.movimentTag();
+    let movimentSources = await this.movimentSources();
+
     let full_query = 'SELECT * from view_total_bank';
     try {
       let tota_bank = await this.Database.executeQuery(full_query);
-      return { balance, tota_bank, MovimentSources };
+      return { balance, tota_bank, movimentSources, movimentTag, moviments };
     } catch (e) {
       console.log(e);
     }
@@ -29,8 +32,26 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async MovimentSources() {
+  public async moviments() {
+    let full_query = 'SELECT * from view_moviments';
+    try {
+      return await this.Database.executeQuery(full_query);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  public async movimentSources() {
     let full_query = 'SELECT * from view_monthly_movements_order_by_source';
+    try {
+      return await this.Database.executeQuery(full_query);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  public async movimentTag() {
+    let full_query = 'SELECT * from view_monthly_movements_order_by_tag';
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {

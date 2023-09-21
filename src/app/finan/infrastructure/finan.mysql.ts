@@ -13,11 +13,21 @@ export class FinanMysqlRepository implements FinanRepository {
     let balance = await this.balance();
     let movimentTag = await this.movimentTag();
     let movimentSources = await this.movimentSources();
+    let totalDay = await this.totalDay();
 
     let full_query = 'SELECT * from view_total_bank';
     try {
       let tota_bank = await this.Database.executeQuery(full_query);
-      return { balance, tota_bank, movimentSources, movimentTag, moviments };
+      return { balance, tota_bank, movimentSources, movimentTag, moviments, totalDay };
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  public async totalDay() {
+    let full_query = 'SELECT * from view_tota_day';
+    try {
+      return await this.Database.executeQuery(full_query);
     } catch (e) {
       console.log(e);
     }

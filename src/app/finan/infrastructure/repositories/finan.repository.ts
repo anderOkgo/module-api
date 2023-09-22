@@ -1,4 +1,4 @@
 export interface FinanRepository {
-  getTotalBank(): Promise<any>;
+  getTotalBank(data: any): Promise<any>;
   putMoviment({}): Promise<any>;
 }

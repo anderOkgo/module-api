@@ -8,12 +8,12 @@ export class FinanMysqlRepository implements FinanRepository {
     this.Database = new Database('MYDATABASEFINAN');
   }
 
-  public async getTotalBank() {
+  public async getTotalBank(data: any) {
     let moviments = await this.moviments();
     let balance = await this.balance();
     let movimentTag = await this.movimentTag();
     let movimentSources = await this.movimentSources();
-    let totalDay = await this.totalDay();
+    let totalDay = await this.totalDay(data);
 
     let full_query = 'SELECT * from view_total_bank';
     try {
@@ -24,8 +24,8 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async totalDay() {
-    let full_query = 'SELECT * from view_tota_day';
+  public async totalDay(data: any) {
+    let full_query = `SELECT * from view_tota_day  WHERE DATE(date_moviment) = '${data}'`;
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {

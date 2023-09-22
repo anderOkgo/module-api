@@ -1,7 +1,8 @@
 import { FinanRepository } from '../../infrastructure/repositories/finan.repository';
 import Production from '../models/Prodution';
 
-const getTotalBank = (productionRepository: FinanRepository) => () => productionRepository.getTotalBank();
+const getTotalBank = (productionRepository: FinanRepository) => (data: any) =>
+  productionRepository.getTotalBank(data);
 const putMoviment = (productionRepository: FinanRepository) => (moviment: Production) =>
   productionRepository.putMoviment(moviment);
 

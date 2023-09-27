@@ -1,8 +1,8 @@
 import { router } from '../../../helpers/middle.helper';
-import { getProductions, getProductionYears } from './series.controller';
-//import validateToken from '../../auth/domain/validate-token';
+import { getProductions, getProductionYears, defaultSeries } from './series.controller';
 
-router.post('/', getProductions);
-router.get('/years', /*validateToken,*/ getProductionYears);
+router.get('/series', defaultSeries);
+router.post('/series', getProductions);
+router.get('/series/years', getProductionYears);
 
 export default router;

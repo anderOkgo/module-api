@@ -1,6 +1,10 @@
 import { Request, Response } from '../../../helpers/middle.helper';
 import { getProductionService, getProductionYearService } from '../domain/services/index';
 
+export const defaultSeries = async (req: Request, res: Response) => {
+  res.json({ msg: `API Series Working` });
+};
+
 export const getProductions = async (req: Request, res: Response) => {
   const productions = await getProductionService(req.body);
   productions ? res.status(200).json(productions) : res.status(404).json({ error: 'Productions not found' });

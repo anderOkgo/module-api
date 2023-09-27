@@ -34,7 +34,7 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async balance() {
-    let full_query = 'SELECT * from view_monthly_bills_incomes_order_row';
+    let full_query = 'SELECT * from view_monthly_bills_incomes_no_exchange_order_row';
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {

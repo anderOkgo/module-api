@@ -1,5 +1,5 @@
 {
-  "name": "animeapi",
+  "name": "monoapi",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,7 +9,7 @@
     "up": "call com/db-sync-FTP-both.bat"
   },
   "keywords": [],
-  "author": "",
+  "author": "Anderokgo",
   "license": "ISC",
   "dependencies": {
     "@babel/preset-env": "^7.22.9",

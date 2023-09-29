@@ -22,7 +22,7 @@ class server {
   listening = () => this.app.listen(this.port, () => console.log('app running port', this.port));
 
   connectDB() {
-    const database: any = new Database('MYDATABASEANIME');
+    const database: Database = new Database('MYDATABASEANIME');
     database.open();
     database.close();
   }

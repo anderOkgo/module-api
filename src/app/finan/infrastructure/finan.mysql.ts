@@ -78,7 +78,6 @@ export class FinanMysqlRepository implements FinanRepository {
       ${type},
       ${this.Database.myScape(tag)}
       );`;
-    console.log(full_query);
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {

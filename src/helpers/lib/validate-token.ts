@@ -3,7 +3,13 @@ import { token } from '../token.helper';
 
 const validateToken = (req: Request, res: Response, next: NextFunction) => {
   // Check if the 'authorization' header is present
-  const headerToken = req.headers?.authorization;
+  //const headerToken = req.headers?.authorization;
+  if (!req.headers || !req.headers['authorization']) {
+    return res.status(401).json({
+      error: 'Unauthorized: Missing or invalid token format',
+    });
+  }
+  const headerToken = req.headers['authorization'];
 
   if (!headerToken || !headerToken.startsWith('Bearer ')) {
     return res.status(401).json({

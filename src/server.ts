@@ -7,7 +7,7 @@ import routesFinan from './app/finan/application/finan.routes';
 import cors from 'cors';
 
 class server {
-  private app: Application;
+  public app: Application;
   private port: string;
 
   constructor() {

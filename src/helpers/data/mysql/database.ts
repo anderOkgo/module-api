@@ -69,7 +69,6 @@ class Database {
   }
 
   myScape(str: string): string {
-    console.log(this.connection.escape(str));
     return this.connection.escape(str);
   }
 }

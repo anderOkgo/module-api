@@ -1,4 +1,4 @@
-import cyfer from '../../../src/helpers/lib/cyfer';
+import { encryp } from '../../../src/helpers/cyfer.helper';
 
 // Test suite for encryption and decryption
 describe('Encryption and Decryption Tests', () => {
@@ -6,8 +6,8 @@ describe('Encryption and Decryption Tests', () => {
     // Test with the same key
     const originalString = 'Hello, World!';
     const key = 'MySecretKey';
-    const encryptedString = cyfer().cy(originalString, key);
-    const decryptedString = cyfer().dcy(encryptedString, key);
+    const encryptedString = encryp().cy(originalString, key);
+    const decryptedString = encryp().dcy(encryptedString, key);
     expect(decryptedString).toEqual(originalString);
   });
 
@@ -15,16 +15,16 @@ describe('Encryption and Decryption Tests', () => {
     // Test with empty string and empty key
     const emptyString = '';
     const emptyKey = '';
-    const encryptedEmptyString = cyfer().cy(emptyString, emptyKey);
-    const decryptedEmptyString = cyfer().dcy(encryptedEmptyString, emptyKey);
+    const encryptedEmptyString = encryp().cy(emptyString, emptyKey);
+    const decryptedEmptyString = encryp().dcy(encryptedEmptyString, emptyKey);
     expect(decryptedEmptyString).toEqual(emptyString);
 
     // Test with a different key
     const originalString = 'SensitiveData';
     const key1 = 'Key1';
     const key2 = 'Key2';
-    const encryptedString = cyfer().cy(originalString, key1);
-    const decryptedStringWithWrongKey = cyfer().dcy(encryptedString, key2);
+    const encryptedString = encryp().cy(originalString, key1);
+    const decryptedStringWithWrongKey = encryp().dcy(encryptedString, key2);
     expect(decryptedStringWithWrongKey).not.toEqual(originalString);
   });
 });

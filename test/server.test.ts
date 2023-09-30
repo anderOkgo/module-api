@@ -1,5 +1,5 @@
 import request from 'supertest';
-import server from '../src/server'; // Import your Express server
+import server from '../src/server';
 
 const app = new server().app;
 
@@ -16,5 +16,15 @@ describe('Express Server', () => {
     expect(response.status).toBe(200);
   });
 
-  // Add more tests for other routes, middleware, and functionality as needed
+  // Test /api/users route
+  it('should respond with status code 200 for /api/users', async () => {
+    const response = await request(app).get('/api/users');
+    expect(response.status).toBe(200);
+  });
+
+  // Test /api/finan route
+  it('should respond with status code 200 for /api/finan', async () => {
+    const response = await request(app).get('/api/finan');
+    expect(response.status).toBe(200);
+  });
 });

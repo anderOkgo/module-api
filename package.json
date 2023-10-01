@@ -1,7 +1,7 @@
 {
-  "name": "monoapi",
-  "version": "1.0.0",
-  "description": "",
+  "name": "modulapi",
+  "version": "2.0.9",
+  "description": "This API provides different services like modules.",
   "main": "index.js",
   "scripts": {
     "test": "jest",

@@ -1,4 +1,4 @@
-import validateToken from '../../../helpers/lib/validate-token';
+import validateToken from '../../../helpers/validate-token.helper';
 import { router } from '../../../helpers/middle.helper';
 import { getTotalBank, putMoviment, defaultFInan } from './finan.controller';
 

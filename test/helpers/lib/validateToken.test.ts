@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from '../../../src/helpers/middle.helper';
-import validateToken from '../../../src/helpers/lib/validate-token';
+import validateToken from '../../../src/helpers/validate-token.helper';
 import { token } from '../../../src/helpers/token.helper';
 
 describe('validateToken Middleware', () => {

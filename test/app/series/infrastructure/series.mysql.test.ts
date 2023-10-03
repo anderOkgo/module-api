@@ -17,12 +17,12 @@ describe('ProductionMysqlRepository', () => {
 
     const production = {
       production_name: 'Sample Production',
-      production_number_chapters: '10,20',
+      production_number_chapters: [10, 20],
       production_description: 'Sample Description',
-      production_year: '2000,2020',
+      production_year: [2000, 2020],
       demographic_name: 'Demographic Name',
-      genre_names: 'Genre 1,Genre 2',
-      id: '1,2,3',
+      genre_names: ['Genre 1'],
+      id: [1, 2, 3],
       limit: '10',
     };
 
@@ -36,7 +36,7 @@ describe('ProductionMysqlRepository', () => {
     );
     expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.stringContaining('WHERE'));
     expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining('order by production_ranking_number ASC')
+      expect.stringContaining('ORDER BY production_ranking_number ASC')
     );
   });
 

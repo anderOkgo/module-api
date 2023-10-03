@@ -5,6 +5,6 @@ export default interface Series {
   production_description: string;
   production_year: number[];
   demographic_name: string;
-  genre_names: number[];
+  genre_names: string[];
   limit: string;
 }

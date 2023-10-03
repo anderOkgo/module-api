@@ -49,6 +49,6 @@ describe('ProductionMysqlRepository', () => {
     expect(result).toEqual({});
 
     // Verify that the expected method is called
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * from view_all_years_productions');
+    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * FROM view_all_years_productions');
   });
 });

@@ -19,11 +19,11 @@ describe('Series Services', () => {
     const production: Production = {
       id: 'string',
       production_name: 'string',
-      production_number_chapters: 'string',
+      production_number_chapters: [1, 2],
       production_description: 'string',
-      production_year: 'string',
+      production_year: [1, 2],
       demographic_name: 'string',
-      genre_names: 'string',
+      genre_names: ['1', '2'],
       limit: 'string',
     };
 

@@ -1,53 +1,53 @@
 import { Database, HDB } from '../../../helpers/my.database.helper';
-import Production from '../domain/models/Series';
+import Series from '../domain/models/Series';
 import { ProductionRepository } from './repositories/series.repository';
 
 export class ProductionMysqlRepository implements ProductionRepository {
-  private Database: Database;
+  private database: Database;
 
   constructor() {
-    this.Database = new Database('MYDATABASEANIME');
+    this.database = new Database('MYDATABASEANIME');
   }
 
-  public async getProductions(production: Production) {
-    const view_name: string = 'view_all_info_produtions';
-    let conditions: string = '';
-    let full_query: string = '';
-    let initial_query: string = `select * FROM ${view_name} WHERE 1`;
-    const Pro = production;
+  public async getProductions(production: Series) {
+    const viewName = 'view_all_info_produtions';
+    const initialQuery = `SELECT * FROM ${viewName} WHERE 1`;
+    const conditions: string[] = [];
 
-    Object.keys(Pro).forEach((key: string, obj) => {
-      if (key === 'production_name' && Pro[key] !== undefined)
-        conditions += HDB.generateLikeCondition('production_name', Pro.production_name);
-      if (key === 'production_number_chapters' && Pro[key] !== undefined)
-        conditions += HDB.generateBetweenCondition('production_number_chapters', Pro.production_number_chapters);
-      if (key === 'production_description' && Pro[key] !== undefined)
-        conditions += HDB.generateLikeCondition('production_description', Pro.production_description);
-      if (key === 'production_year' && Pro[key] !== undefined)
-        conditions += HDB.generateBetweenCondition('production_year', Pro.production_year);
-      if (key === 'demographic_name' && Pro[key] !== undefined)
-        conditions += HDB.generateEqualCondition('demographic_name', Pro.demographic_name);
-      if (key === 'genre_names' && Pro[key] !== undefined)
-        conditions += HDB.generateAndCondition('genre_names', Pro.genre_names);
-      if (key == 'id' && Pro[key] !== undefined) conditions += HDB.generateInCondition('id', Pro.id);
-    });
+    const conditionMap: Record<string, (label: string, value: any) => string> = {
+      production_name: HDB.generateLikeCondition,
+      production_number_chapters: HDB.generateBetweenCondition,
+      production_description: HDB.generateLikeCondition,
+      production_year: HDB.generateBetweenCondition,
+      demographic_name: HDB.generateEqualCondition,
+      genre_names: HDB.generateAndCondition,
+      id: HDB.generateInCondition,
+    };
 
-    conditions += ` order by production_ranking_number ASC`;
-    conditions += HDB.generateLimit('limit', Pro.limit);
-    full_query = initial_query + conditions;
+    for (const [key, value] of Object.entries(production)) {
+      if (conditionMap[key]) {
+        conditions.push(conditionMap[key](key, value));
+      }
+    }
+
+    conditions.push('ORDER BY production_ranking_number ASC');
+    conditions.push(HDB.generateLimit('limit', production.limit));
+    const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
+
     try {
-      return await this.Database.executeQuery(full_query);
+      return await this.database.executeQuery(fullQuery);
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   }
 
   public async getProductionYears() {
-    let full_query = 'SELECT * from view_all_years_productions';
+    const fullQuery: string = 'SELECT * FROM view_all_years_productions';
+
     try {
-      return await this.Database.executeQuery(full_query);
+      return await this.database.executeQuery(fullQuery);
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   }
 }

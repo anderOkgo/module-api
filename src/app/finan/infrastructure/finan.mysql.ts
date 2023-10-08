@@ -84,4 +84,37 @@ export class FinanMysqlRepository implements FinanRepository {
       console.log(e);
     }
   }
+
+  public async updateMovimentById(id: number, parameters: any) {
+    const { name, value, datemov, type, tag } = parameters;
+    let full_query = `
+      UPDATE moviments
+      SET
+        name = ${this.Database.myScape(name)},
+        value = ${value},
+        date_moviment = '${datemov}',
+        type_source_id = ${type},
+        tag = ${this.Database.myScape(tag)}
+      WHERE
+        id = ${id};
+    `;
+    try {
+      return await this.Database.executeQuery(full_query);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  public async deleteMovimentById(id: number) {
+    let full_query = `
+      DELETE FROM moviments
+      WHERE
+        id = ${id};
+    `;
+    try {
+      return await this.Database.executeQuery(full_query);
+    } catch (e) {
+      console.log(e);
+    }
+  }
 }

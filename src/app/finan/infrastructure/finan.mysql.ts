@@ -86,12 +86,12 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async updateMovimentById(id: number, parameters: any) {
-    const { name, value, datemov, type, tag } = parameters;
+    const { name, val, datemov, type, tag } = parameters;
     let full_query = `
       UPDATE moviments
       SET
         name = ${this.Database.myScape(name)},
-        value = ${value},
+        value = ${val},
         date_moviment = '${datemov}',
         type_source_id = ${type},
         tag = ${this.Database.myScape(tag)}

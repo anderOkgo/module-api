@@ -6,6 +6,7 @@ import routesUser from './app/auth/application/user.routes';
 import routesFinan from './app/finan/application/finan.routes';
 import cors from 'cors';
 import cron from 'node-cron';
+import axios from 'axios';
 
 class server {
   public app: Application;
@@ -39,11 +40,13 @@ class server {
   }
 
   init() {
+    const urlToRequest = 'https://info.animecream.com';
     cron.schedule('*/5 * * * *', async () => {
       try {
-        console.log('Request successful');
+        const response = await axios.get(urlToRequest);
+        console.log(`Request to ${urlToRequest} successful. Response:`, response.data);
       } catch (error) {
-        console.error('Error message');
+        console.error(`Error making request to ${urlToRequest}:`, error);
       }
     });
   }

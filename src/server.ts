@@ -5,6 +5,7 @@ import routesDefault from './app/default/application/default.routes';
 import routesUser from './app/auth/application/user.routes';
 import routesFinan from './app/finan/application/finan.routes';
 import cors from 'cors';
+import cron from 'node-cron';
 
 class server {
   public app: Application;
@@ -17,6 +18,7 @@ class server {
     this.connectDB();
     this.midlewares();
     this.routes();
+    this.init();
   }
 
   listening = () => this.app.listen(this.port, () => console.log('app running port', this.port));
@@ -34,6 +36,16 @@ class server {
     this.app.use('/api/series', routesSeries);
     this.app.use('/api/users', routesUser);
     this.app.use('/api/finan', routesFinan);
+  }
+
+  init() {
+    cron.schedule('*/5 * * * *', async () => {
+      try {
+        console.log('Request successful');
+      } catch (error) {
+        console.error('error message');
+      }
+    });
   }
 
   midlewares = () => this.app.use(express.json());

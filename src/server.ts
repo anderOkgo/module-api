@@ -43,7 +43,7 @@ class server {
       try {
         console.log('Request successful');
       } catch (error) {
-        console.error('error message');
+        console.error('Error message');
       }
     });
   }

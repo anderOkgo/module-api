@@ -41,13 +41,14 @@ class server {
 
   init() {
     const urlToRequest = 'https://info.animecream.com';
-    cron.schedule('*/1 * * * *', async () => {
+    cron.schedule('*/3 * * * *', async () => {
       try {
         const response = await axios.get(urlToRequest);
         const fs = require('fs');
         const textToWrite = response.data.msg;
         const filePath = 'init.txt';
-        fs.writeFileSync(filePath, textToWrite);
+        //fs.writeFileSync(filePath, textToWrite);
+        fs.appendFileSync(filePath, textToWrite + '\n', 'utf-8');
         console.log(`Request to ${urlToRequest} successful. Response:`, response.data);
       } catch (error) {
         console.error(`Error making request to ${urlToRequest}:`, error);

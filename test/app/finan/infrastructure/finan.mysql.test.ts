@@ -107,7 +107,7 @@ describe('FinanMysqlRepository', () => {
 
   it('should put a moviment', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.myScape as jest.Mock).mockReturnValue("'test'");
+    (Database.prototype.myEscape as jest.Mock).mockReturnValue("'test'");
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
     const parameters = {
@@ -123,8 +123,8 @@ describe('FinanMysqlRepository', () => {
     expect(result).toEqual({});
 
     // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.myScape).toHaveBeenCalledWith('test');
-    expect(Database.prototype.myScape).toHaveBeenCalledWith('testtag');
+    expect(Database.prototype.myEscape).toHaveBeenCalledWith('test');
+    expect(Database.prototype.myEscape).toHaveBeenCalledWith('testtag');
     /* expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
       `proc_insert_moviment('test', 10, '2023-09-25', 1, 'test')`
     ); */

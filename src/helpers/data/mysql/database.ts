@@ -1,32 +1,36 @@
-import mysql from 'mysql';
+import mysql, { Connection, MysqlError } from 'mysql';
 import dotenv from 'dotenv';
 
 class Database {
-  private connection: mysql.Connection;
+  private connection: Connection;
 
-  constructor(db_name: string) {
+  constructor(dbName: string) {
     dotenv.config();
     this.connection = mysql.createConnection({
-      host: process.env.MYHOST,
-      user: process.env.MYUSER,
-      password: process.env.MYPASSWORD,
-      database: process.env[db_name],
-      port: parseInt(process.env.MYPORT!),
+      host: process.env.MYHOST!,
+      user: process.env.MYUSER!,
+      password: process.env.MYPASSWORD!,
+      database: process.env[dbName]!,
+      port: parseInt(process.env.MYPORT!, 10),
     });
   }
 
-  open(): void {
-    this.connection.connect((err) => {
-      if (err) {
-        throw new Error(`Error connecting to MySQL: ${err.message}`);
-      }
-      console.log('Connected to MySQL successfully!');
-    });
-  }
-
-  async executeQuery(query: string, params: object = {}): Promise<any> {
+  open(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.connection.query(query, params, (err, result) => {
+      this.connection.connect((err?: MysqlError) => {
+        if (err) {
+          reject(new Error(`Error connecting to MySQL: ${err.message}`));
+        } else {
+          console.log('Connected to MySQL successfully!');
+          resolve();
+        }
+      });
+    });
+  }
+
+  async executeQuery(query: string, params: any = {}): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.connection.query(query, params, (err: MysqlError | null, result: any) => {
         if (err) {
           reject(new Error(`Error executing MySQL query: ${err.message}`));
         } else {
@@ -36,31 +40,34 @@ class Database {
     });
   }
 
-  async loginUser(name: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.connection.query(
-        'SELECT * FROM users WHERE first_name = ' + this.connection.escape(name),
-        (err, data) => {
-          if (err) {
-            reject(new Error(`Error executing MySQL query: ${err.message}`));
-          } else {
-            if (data.length > 0) {
-              resolve(data[0].password);
-            } else {
-              resolve(false);
-            }
-          }
-        }
-      );
-    });
+  async loginUser(name: string): Promise<string | false> {
+    try {
+      const data = await this.executeQuery('SELECT * FROM users WHERE first_name = ?', [name]);
+      if (data.length > 0) {
+        return data[0].password;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Error executing MySQL query: ${error.message}`);
+      } else {
+        throw new Error(`An unknown error occurred: ${String(error)}`);
+      }
+    }
   }
 
-  close(): void {
-    this.connection.end((err) => {
-      if (err) {
-        console.error(`Error closing MySQL connection: ${err.message}`);
-      }
-      console.log('MySQL connection closed successfully!');
+  close(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.connection.end((err?: MysqlError) => {
+        if (err) {
+          console.error(`Error closing MySQL connection: ${err.message}`);
+          reject(err);
+        } else {
+          console.log('MySQL connection closed successfully!');
+          resolve();
+        }
+      });
     });
   }
 
@@ -68,7 +75,7 @@ class Database {
     return this.connection.state;
   }
 
-  myScape(str: string): string {
+  myEscape(str: string): string {
     return this.connection.escape(str);
   }
 }

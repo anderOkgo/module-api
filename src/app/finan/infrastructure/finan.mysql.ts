@@ -82,11 +82,11 @@ export class FinanMysqlRepository implements FinanRepository {
   public async putMoviment(parameters: any) {
     const { name, val, datemov, type, tag } = parameters;
     let full_query = `CALL proc_insert_moviment(
-      ${this.Database.myScape(name)},
+      ${this.Database.myEscape(name)},
       ${val},
       '${datemov}',
       ${type},
-      ${this.Database.myScape(tag)}
+      ${this.Database.myEscape(tag)}
       );`;
     try {
       return await this.Database.executeQuery(full_query);
@@ -100,11 +100,11 @@ export class FinanMysqlRepository implements FinanRepository {
     let full_query = `
       UPDATE moviments
       SET
-        name = ${this.Database.myScape(name)},
+        name = ${this.Database.myEscape(name)},
         value = ${val},
         date_moviment = '${datemov}',
         type_source_id = ${type},
-        tag = ${this.Database.myScape(tag)}
+        tag = ${this.Database.myEscape(tag)}
       WHERE
         id = ${id};
     `;

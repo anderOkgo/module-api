@@ -47,8 +47,8 @@ class server {
         const fs = require('fs');
         const textToWrite = response.data.msg;
         const filePath = 'init.txt';
-        //fs.writeFileSync(filePath, textToWrite);
-        fs.appendFileSync(filePath, textToWrite + '\n', 'utf-8');
+        fs.writeFileSync(filePath, textToWrite);
+        //fs.appendFileSync(filePath, textToWrite + '\n', 'utf-8');
         console.log(`Request to ${urlToRequest} successful. Response:`, response.data);
       } catch (error) {
         console.error(`Error making request to ${urlToRequest}:`, error);

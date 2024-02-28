@@ -1,4 +1,4 @@
-# animeapi
+# module-api
 
 Hexagonal Architecture, TypeScript, Node.js, JavaScript, Clean Code, and SOLID principles
 This repository contains a sample application that demonstrates the use of Hexagonal Architecture, TypeScript, Node.js, JavaScript, Clean Code, and SOLID principles.

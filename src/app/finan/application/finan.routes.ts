@@ -6,6 +6,6 @@ router.get('/finan', defaultFInan);
 router.post('/finan/totalbank', validateToken, getTotalBank);
 router.post('/finan/insert', validateToken, putMoviment);
 router.put('/finan/update/:id', validateToken, updateMoviment);
-router.delete('/finan/delete/:id', validateToken, deleteMoviment); // Delete route
+router.delete('/finan/delete/:id', validateToken, deleteMoviment);
 
 export default router;

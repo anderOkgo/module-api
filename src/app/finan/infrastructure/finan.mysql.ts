@@ -16,11 +16,22 @@ export class FinanMysqlRepository implements FinanRepository {
     let totalDay = await this.totalDay(data);
     let generalInfo = await this.generalInfo();
     let tripInfo = await this.tripInfo();
+    let balanceUntilDate = await this.balanceUntilDate();
     let full_query = 'SELECT * from view_total_bank';
 
     try {
       let tota_bank = await this.Database.executeQuery(full_query);
-      return { balance, tota_bank, movimentSources, movimentTag, moviments, totalDay, generalInfo, tripInfo };
+      return {
+        balance,
+        tota_bank,
+        movimentSources,
+        movimentTag,
+        moviments,
+        totalDay,
+        generalInfo,
+        tripInfo,
+        balanceUntilDate,
+      };
     } catch (e) {
       console.log(e);
     }
@@ -73,6 +84,15 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async generalInfo() {
     let full_query = 'SELECT * from view_general_info';
+    try {
+      return await this.Database.executeQuery(full_query);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  public async balanceUntilDate() {
+    let full_query = 'SELECT * from view_balance_until_date ORDER BY Date_moviment DESC LIMIT 100';
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {

@@ -1,6 +1,6 @@
 export interface FinanRepository {
   getTotalBank(data: any): Promise<any>;
-  putMoviment(parameters: any): Promise<any>;
-  updateMovimentById(id: number, parameters: any): Promise<any>;
-  deleteMovimentById(id: number): Promise<any>;
+  putMovement(parameters: any): Promise<any>;
+  updateMovementById(id: number, parameters: any): Promise<any>;
+  deleteMovementById(id: number): Promise<any>;
 }

@@ -1,11 +1,11 @@
 import { FinanRepository } from '../../../../../src/app/finan/infrastructure/repositories/finan.repository';
-import { getTotalBank, putMoviment } from '../../../../../src/app/finan/domain/services/finan.service';
+import { getTotalBank, putMovement } from '../../../../../src/app/finan/domain/services/finan.service';
 import Production from '../../../../../src/app/finan/domain/models/Prodution';
 
 // Manually mock FinanRepository
 const mockFinanRepository: FinanRepository = {
   getTotalBank: jest.fn(),
-  putMoviment: jest.fn(),
+  putMovement: jest.fn(),
 };
 
 describe('Finan Services', () => {
@@ -23,16 +23,16 @@ describe('Finan Services', () => {
     expect(mockFinanRepository.getTotalBank).toHaveBeenCalledWith(data);
   });
 
-  it('should call putMoviment when putMovimentService is called', () => {
-    const movimentService = putMoviment(mockFinanRepository);
-    const moviment: Production = {
+  it('should call putMovement when putMovementService is called', () => {
+    const movementService = putMovement(mockFinanRepository);
+    const movement: Production = {
       name: 'string',
       val: 'string',
       type: 'string',
     };
 
-    movimentService(moviment);
+    movementService(movement);
 
-    expect(mockFinanRepository.putMoviment).toHaveBeenCalledWith(moviment);
+    expect(mockFinanRepository.putMovement).toHaveBeenCalledWith(movement);
   });
 });

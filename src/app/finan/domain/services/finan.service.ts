@@ -4,12 +4,12 @@ import Production from '../models/Prodution';
 export const getTotalBank = (productionRepository: FinanRepository) => (data: any) =>
   productionRepository.getTotalBank(data);
 
-export const putMoviment = (productionRepository: FinanRepository) => (moviment: Production) =>
-  productionRepository.putMoviment(moviment);
+export const putMovement = (productionRepository: FinanRepository) => (movement: Production) =>
+  productionRepository.putMovement(movement);
 
-export const updateMoviment =
-  (productionRepository: FinanRepository) => (id: number, updatedMoviment: Production) =>
-    productionRepository.updateMovimentById(id, updatedMoviment);
+export const updateMovement =
+  (productionRepository: FinanRepository) => (id: number, updatedMovement: Production) =>
+    productionRepository.updateMovementById(id, updatedMovement);
 
-export const deleteMoviment = (productionRepository: FinanRepository) => (id: number) =>
-  productionRepository.deleteMovimentById(id);
+export const deleteMovement = (productionRepository: FinanRepository) => (id: number) =>
+  productionRepository.deleteMovementById(id);

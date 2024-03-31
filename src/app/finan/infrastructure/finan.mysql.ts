@@ -9,10 +9,10 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async getTotalBank(data: any) {
-    let moviments = await this.moviments();
+    let movements = await this.movements();
     let balance = await this.balance();
-    let movimentTag = await this.movimentTag();
-    let movimentSources = await this.movimentSources();
+    let movementTag = await this.movementTag();
+    let movementSources = await this.movementSources();
     let totalDay = await this.totalDay(data);
     let generalInfo = await this.generalInfo();
     let tripInfo = await this.tripInfo();
@@ -24,9 +24,9 @@ export class FinanMysqlRepository implements FinanRepository {
       return {
         balance,
         tota_bank,
-        movimentSources,
-        movimentTag,
-        moviments,
+        movementSources,
+        movementTag,
+        movements,
         totalDay,
         generalInfo,
         tripInfo,
@@ -38,7 +38,7 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async totalDay(data: any) {
-    let full_query = `SELECT * from view_tota_day  WHERE DATE(date_moviment) = '${data}'`;
+    let full_query = `SELECT * from view_tota_day  WHERE DATE(date_movement) = '${data}'`;
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {
@@ -55,8 +55,8 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async moviments() {
-    let full_query = 'SELECT * from view_moviments';
+  public async movements() {
+    let full_query = 'SELECT * from view_movements';
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {
@@ -64,7 +64,7 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async movimentSources() {
+  public async movementSources() {
     let full_query = 'SELECT * from view_monthly_movements_order_by_source';
     try {
       return await this.Database.executeQuery(full_query);
@@ -73,7 +73,7 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async movimentTag() {
+  public async movementTag() {
     let full_query = 'SELECT * from view_monthly_movements_order_by_tag';
     try {
       return await this.Database.executeQuery(full_query);
@@ -92,7 +92,7 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async balanceUntilDate() {
-    let full_query = 'SELECT * from view_balance_until_date ORDER BY Date_moviment DESC LIMIT 100';
+    let full_query = 'SELECT * from view_balance_until_date ORDER BY Date_movement DESC LIMIT 100';
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {
@@ -109,9 +109,9 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async putMoviment(parameters: any) {
+  public async putMovement(parameters: any) {
     const { name, val, datemov, type, tag } = parameters;
-    let full_query = `CALL proc_insert_moviment(
+    let full_query = `CALL proc_insert_movement(
       ${this.Database.myEscape(name)},
       ${val},
       '${datemov}',
@@ -125,14 +125,14 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async updateMovimentById(id: number, parameters: any) {
+  public async updateMovementById(id: number, parameters: any) {
     const { name, val, datemov, type, tag } = parameters;
     let full_query = `
-      UPDATE moviments
+      UPDATE movements
       SET
         name = ${this.Database.myEscape(name)},
         value = ${val},
-        date_moviment = '${datemov}',
+        date_movement = '${datemov}',
         type_source_id = ${type},
         tag = ${this.Database.myEscape(tag)}
       WHERE
@@ -145,9 +145,9 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async deleteMovimentById(id: number) {
+  public async deleteMovementById(id: number) {
     let full_query = `
-      DELETE FROM moviments
+      DELETE FROM movements
       WHERE
         id = ${id};
     `;

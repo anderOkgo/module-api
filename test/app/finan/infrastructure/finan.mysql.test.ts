@@ -21,17 +21,17 @@ describe('FinanMysqlRepository', () => {
     expect(result).toEqual({
       balance: ['balance'],
       tota_bank: {},
-      movimentSources: ['movimentSources'],
-      movimentTag: ['movimentTag'],
-      moviments: ['moviments'],
+      movementSources: ['movementSources'],
+      movementTag: ['movementTag'],
+      movements: ['movements'],
       totalDay: ['totalDay'],
     }); */
 
     // Verify that the expected methods are called with the correct parameters
-    /* expect(finanRepository.moviments).toHaveBeenCalled();
+    /* expect(finanRepository.movements).toHaveBeenCalled();
     expect(finanRepository.balance).toHaveBeenCalled();
-    expect(finanRepository.movimentTag).toHaveBeenCalled();
-    expect(finanRepository.movimentSources).toHaveBeenCalled();
+    expect(finanRepository.movementTag).toHaveBeenCalled();
+    expect(finanRepository.movementSources).toHaveBeenCalled();
     expect(finanRepository.totalDay).toHaveBeenCalledWith(data);
     expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * from view_total_bank'); */
   });
@@ -47,7 +47,7 @@ describe('FinanMysqlRepository', () => {
 
     // Verify that the expected method is called with the correct parameters
     expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      `SELECT * from view_tota_day  WHERE DATE(date_moviment) = '${data}'`
+      `SELECT * from view_tota_day  WHERE DATE(date_movement) = '${data}'`
     );
   });
 
@@ -65,23 +65,23 @@ describe('FinanMysqlRepository', () => {
     );
   });
 
-  it('should get moviments data', async () => {
+  it('should get movements data', async () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const result = await finanRepository.moviments();
+    const result = await finanRepository.movements();
 
     expect(result).toEqual({});
 
     // Verify that the expected method is called
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * from view_moviments');
+    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * from view_movements');
   });
 
-  it('should get moviment sources data', async () => {
+  it('should get movement sources data', async () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const result = await finanRepository.movimentSources();
+    const result = await finanRepository.movementSources();
 
     expect(result).toEqual({});
 
@@ -91,11 +91,11 @@ describe('FinanMysqlRepository', () => {
     );
   });
 
-  it('should get moviment tag data', async () => {
+  it('should get movement tag data', async () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const result = await finanRepository.movimentTag();
+    const result = await finanRepository.movementTag();
 
     expect(result).toEqual({});
 
@@ -105,7 +105,7 @@ describe('FinanMysqlRepository', () => {
     );
   });
 
-  it('should put a moviment', async () => {
+  it('should put a movement', async () => {
     // Mock the behavior of dependencies
     (Database.prototype.myEscape as jest.Mock).mockReturnValue("'test'");
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
@@ -118,7 +118,7 @@ describe('FinanMysqlRepository', () => {
       tag: 'testtag',
     };
 
-    const result = await finanRepository.putMoviment(parameters);
+    const result = await finanRepository.putMovement(parameters);
 
     expect(result).toEqual({});
 
@@ -126,7 +126,7 @@ describe('FinanMysqlRepository', () => {
     expect(Database.prototype.myEscape).toHaveBeenCalledWith('test');
     expect(Database.prototype.myEscape).toHaveBeenCalledWith('testtag');
     /* expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      `proc_insert_moviment('test', 10, '2023-09-25', 1, 'test')`
+      `proc_insert_movement('test', 10, '2023-09-25', 1, 'test')`
     ); */
   });
 });

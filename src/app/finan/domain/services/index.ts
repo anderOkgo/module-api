@@ -1,9 +1,9 @@
-import { getTotalBank, putMoviment, updateMoviment, deleteMoviment } from './finan.service';
+import { getTotalBank, putMovement, updateMovement, deleteMovement } from './finan.service';
 import { finanRepository } from '../../infrastructure/index';
 
 const FinanRepository = new finanRepository();
 
 export const getTotalBankService = getTotalBank(FinanRepository);
-export const putMovimentService = putMoviment(FinanRepository);
-export const updateMovimentService = updateMoviment(FinanRepository);
-export const deleteMovimentService = deleteMoviment(FinanRepository);
+export const putMovementService = putMovement(FinanRepository);
+export const updateMovementService = updateMovement(FinanRepository);
+export const deleteMovementService = deleteMovement(FinanRepository);

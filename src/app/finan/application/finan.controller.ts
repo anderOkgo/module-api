@@ -1,9 +1,9 @@
 import { Request, Response } from '../../../helpers/middle.helper';
 import {
   getTotalBankService,
-  putMovimentService,
-  updateMovimentService,
-  deleteMovimentService,
+  putMovementService,
+  updateMovementService,
+  deleteMovementService,
 } from '../domain/services/index';
 
 export const defaultFInan = async (req: Request, res: Response) => {
@@ -15,32 +15,32 @@ export const getTotalBank = async (req: Request, res: Response) => {
   TotalBank ? res.status(200).json(TotalBank) : res.status(404).json({ error: 'TotalBank not found' });
 };
 
-export const putMoviment = async (req: Request, res: Response) => {
-  const Moviment = await putMovimentService(req.body);
-  Moviment ? res.status(200).json({ status: 'successful' }) : res.status(404).json({ error: 'Moviment not done' });
+export const putMovement = async (req: Request, res: Response) => {
+  const Movement = await putMovementService(req.body);
+  Movement ? res.status(200).json({ status: 'successful' }) : res.status(404).json({ error: 'Movement not done' });
 };
 
-export const updateMoviment = async (req: Request, res: Response) => {
+export const updateMovement = async (req: Request, res: Response) => {
   const { id } = req.params;
   console.log(id);
-  const movimentId = parseInt(id, 10); // Convert id to a number using parseInt
-  const updatedMoviment = await updateMovimentService(movimentId, req.body);
+  const movementId = parseInt(id, 10); // Convert id to a number using parseInt
+  const updatedMovement = await updateMovementService(movementId, req.body);
 
-  if (updatedMoviment) {
+  if (updatedMovement) {
     res.status(200).json({ status: 'successful' });
   } else {
-    res.status(404).json({ error: 'Moviment not updated' });
+    res.status(404).json({ error: 'Movement not updated' });
   }
 };
 
-export const deleteMoviment = async (req: Request, res: Response) => {
+export const deleteMovement = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const movimentId = parseInt(id, 10); // Convert id to a number using parseInt
-  const deletedMoviment = await deleteMovimentService(movimentId);
+  const movementId = parseInt(id, 10); // Convert id to a number using parseInt
+  const deletedMovement = await deleteMovementService(movementId);
 
-  if (deletedMoviment) {
+  if (deletedMovement) {
     res.status(200).json({ status: 'successful' });
   } else {
-    res.status(404).json({ error: 'Moviment not deleted' });
+    res.status(404).json({ error: 'Movement not deleted' });
   }
 };

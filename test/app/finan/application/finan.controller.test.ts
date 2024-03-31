@@ -1,6 +1,6 @@
 import { Request, Response } from '../../../../src/helpers/middle.helper';
-import { defaultFInan, getTotalBank, putMoviment } from '../../../../src/app/finan/application/finan.controller';
-import { getTotalBankService, putMovimentService } from '../../../../src/app/finan/domain/services/index';
+import { defaultFInan, getTotalBank, putMovement } from '../../../../src/app/finan/application/finan.controller';
+import { getTotalBankService, putMovementService } from '../../../../src/app/finan/domain/services/index';
 
 jest.mock('../../../../src/app/finan/domain/services/index'); // Mock the services
 
@@ -53,31 +53,31 @@ describe('Finan Controller', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'TotalBank not found' });
   });
 
-  it('should respond with a successful message for putMoviment when Moviment is successful', async () => {
-    // Mock the putMovimentService function to resolve with success
-    (putMovimentService as jest.Mock).mockResolvedValue(true);
+  it('should respond with a successful message for putMovement when Movement is successful', async () => {
+    // Mock the putMovementService function to resolve with success
+    (putMovementService as jest.Mock).mockResolvedValue(true);
 
-    // Simulate a request with a Moviment object in the request body
+    // Simulate a request with a Movement object in the request body
     req.body = { amount: 100, description: 'Deposit' };
 
-    await putMoviment(req as Request, res as Response);
+    await putMovement(req as Request, res as Response);
 
     // Check if the response status and JSON have been called correctly
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({ status: 'successful' });
   });
 
-  it('should respond with a 404 error for putMoviment when Moviment is not successful', async () => {
-    // Mock the putMovimentService function to resolve with false (Moviment not successful)
-    (putMovimentService as jest.Mock).mockResolvedValue(false);
+  it('should respond with a 404 error for putMovement when Movement is not successful', async () => {
+    // Mock the putMovementService function to resolve with false (Movement not successful)
+    (putMovementService as jest.Mock).mockResolvedValue(false);
 
-    // Simulate a request with a Moviment object in the request body
+    // Simulate a request with a Movement object in the request body
     req.body = { amount: 100, description: 'Withdrawal' };
 
-    await putMoviment(req as Request, res as Response);
+    await putMovement(req as Request, res as Response);
 
     // Check if the response status and JSON have been called correctly for error
     expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Moviment not done' });
+    expect(res.json).toHaveBeenCalledWith({ error: 'Movement not done' });
   });
 });

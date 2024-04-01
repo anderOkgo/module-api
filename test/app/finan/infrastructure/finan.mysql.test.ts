@@ -20,7 +20,7 @@ describe('FinanMysqlRepository', () => {
 
     expect(result).toEqual({
       balance: ['balance'],
-      tota_bank: {},
+      total_bank: {},
       movementSources: ['movementSources'],
       movementTag: ['movementTag'],
       movements: ['movements'],
@@ -47,7 +47,7 @@ describe('FinanMysqlRepository', () => {
 
     // Verify that the expected method is called with the correct parameters
     expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      `SELECT * from view_tota_day  WHERE DATE(date_movement) = '${data}'`
+      `SELECT * from view_total_day  WHERE DATE(date_movement) = '${data}'`
     );
   });
 

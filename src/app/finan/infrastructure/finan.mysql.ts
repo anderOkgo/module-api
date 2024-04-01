@@ -19,7 +19,7 @@ export class FinanMysqlRepository implements FinanRepository {
     let balanceUntilDate = await this.balanceUntilDate(data.currency);
     let full_query = `SELECT * from view_total_bank  where currency = '${data.currency}' `;
     try {
-      let tota_bank = await this.Database.executeQuery(full_query);
+      let totalBank = await this.Database.executeQuery(full_query);
       return {
         movements,
         balance,
@@ -29,7 +29,7 @@ export class FinanMysqlRepository implements FinanRepository {
         generalInfo,
         tripInfo,
         balanceUntilDate,
-        tota_bank,
+        totalBank,
       };
     } catch (e) {
       console.log(e);
@@ -37,7 +37,7 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async totalDay(data: any) {
-    let full_query = `SELECT * from view_tota_day  WHERE DATE(date_movement) = '${data.date}' AND currency = '${data.currency}' `;
+    let full_query = `SELECT * from view_total_day  WHERE DATE(date_movement) = '${data.date}' AND currency = '${data.currency}' `;
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {

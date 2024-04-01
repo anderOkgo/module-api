@@ -11,7 +11,7 @@ export const defaultFInan = async (req: Request, res: Response) => {
 };
 
 export const getTotalBank = async (req: Request, res: Response) => {
-  const TotalBank = await getTotalBankService(req.body.date);
+  const TotalBank = await getTotalBankService(req.body);
   TotalBank ? res.status(200).json(TotalBank) : res.status(404).json({ error: 'TotalBank not found' });
 };
 

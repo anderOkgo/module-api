@@ -17,8 +17,11 @@ export class FinanMysqlRepository implements FinanRepository {
     let generalInfo = await this.generalInfo();
     let tripInfo = await this.tripInfo(data.currency);
     let balanceUntilDate = await this.balanceUntilDate(data.currency);
-    let full_query = `SELECT * from view_total_bank  where currency = '${data.currency}' `;
     try {
+      let full_query = `SELECT * from view_total_bank where 1=1
+                      ${HDB.generateEqualCondition('currency', data.currency)}
+                      ${HDB.generateLimit('10000')}
+                      `;
       let totalBank = await this.Database.executeQuery(full_query);
       return {
         movements,
@@ -37,7 +40,11 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async totalDay(data: any) {
-    let full_query = `SELECT * from view_total_day  WHERE DATE(date_movement) = '${data.date}' AND currency = '${data.currency}' `;
+    let full_query = `SELECT * from view_total_day WHERE 1=1
+                      ${HDB.generateEqualCondition('DATE(Date_movement)', data.date)}
+                      ${HDB.generateEqualCondition('currency', data.currency)}
+                      ${HDB.generateLimit('10000')}
+                      `;
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {
@@ -46,7 +53,10 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async balance(currency: string) {
-    let full_query = `SELECT * from view_monthly_bills_incomes_no_exchange_order_row where currency = '${currency}' `;
+    let full_query = `SELECT * from view_monthly_bills_incomes_no_exchange_order_row where 1=1
+                      ${HDB.generateEqualCondition('currency', currency)}
+                      ${HDB.generateLimit('10000')}
+                      `;
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {
@@ -55,7 +65,11 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async movements(currency: string) {
-    let full_query = `SELECT * from view_movements where currency = '${currency}' `;
+    let full_query = `SELECT * from view_movements where 1=1
+                      ${HDB.generateEqualCondition('currency', currency)}
+                      ${HDB.generateLimit('10000')}
+                      `;
+
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {
@@ -64,7 +78,10 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async movementSources(currency: string) {
-    let full_query = `SELECT * from view_monthly_movements_order_by_source where currency = '${currency}' `;
+    let full_query = `SELECT * from view_monthly_movements_order_by_source where 1=1
+                      ${HDB.generateEqualCondition('currency', currency)}
+                      ${HDB.generateLimit('10000')}
+                      `;
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {
@@ -73,7 +90,10 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async movementTag(currency: string) {
-    let full_query = `SELECT * from view_monthly_movements_order_by_tag where currency = '${currency}' `;
+    let full_query = `SELECT * from view_monthly_movements_order_by_tag where 1=1
+                      ${HDB.generateEqualCondition('currency', currency)}
+                      ${HDB.generateLimit('10000')}
+                      `;
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {
@@ -91,7 +111,11 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async balanceUntilDate(currency: string) {
-    let full_query = `SELECT * from view_balance_until_date  where currency = '${currency}' ORDER BY Date_movement DESC LIMIT 100`;
+    let full_query = `SELECT * from view_balance_until_date  where 1=1
+                      ${HDB.generateEqualCondition('currency', currency)}
+                      ${HDB.generateOrderBy('Date_movement', 'DESC')}
+                      ${HDB.generateLimit('10000')}
+                      `;
     try {
       return await this.Database.executeQuery(full_query);
     } catch (e) {

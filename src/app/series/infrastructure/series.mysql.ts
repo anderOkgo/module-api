@@ -31,7 +31,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     }
 
     conditions.push('ORDER BY production_ranking_number ASC');
-    conditions.push(HDB.generateLimit('limit', production.limit));
+    conditions.push(HDB.generateLimit(production.limit));
     const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
 
     try {

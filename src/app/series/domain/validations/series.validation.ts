@@ -101,7 +101,7 @@ export const validateProduction = (input: any): ValidationResult => {
 
   // Set default for 'limit' and ensure it doesn't exceed 10,000
   if (!result.limit && result.limit !== 0) {
-    result.limit = 100;
+    result.limit = 10000;
   } else if (result.limit > 10000) {
     errors.limit = 'Limit cannot exceed 10,000.';
   }

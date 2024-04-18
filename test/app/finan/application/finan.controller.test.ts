@@ -1,6 +1,6 @@
 import { Request, Response } from '../../../../src/helpers/middle.helper';
-import { defaultFInan, getTotalBank, putMovement } from '../../../../src/app/finan/application/finan.controller';
-import { getTotalBankService, putMovementService } from '../../../../src/app/finan/domain/services/index';
+import { defaultFInan, getInitialLoad, putMovement } from '../../../../src/app/finan/application/finan.controller';
+import { getInitialLoadService, putMovementService } from '../../../../src/app/finan/domain/services/index';
 
 jest.mock('../../../../src/app/finan/domain/services/index'); // Mock the services
 
@@ -22,31 +22,31 @@ describe('Finan Controller', () => {
     expect(res.json).toHaveBeenCalledWith({ msg: 'API Finan Working' });
   });
 
-  it('should respond with TotalBank when getTotalBankService succeeds', async () => {
+  it('should respond with TotalBank when getInitialLoadService succeeds', async () => {
     // Define a sample TotalBank object for testing
     const TotalBank = { balance: 1000 };
 
-    // Mock the getTotalBankService function to resolve with TotalBank
-    (getTotalBankService as jest.Mock).mockResolvedValue(TotalBank);
+    // Mock the getInitialLoadService function to resolve with TotalBank
+    (getInitialLoadService as jest.Mock).mockResolvedValue(TotalBank);
 
     // Simulate a request with a date in the request body
     req.body = { date: '2023-01-01' };
 
-    await getTotalBank(req as Request, res as Response);
+    await getInitialLoad(req as Request, res as Response);
 
     // Check if the response status and JSON have been called correctly
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(TotalBank);
   });
 
-  it('should respond with a 404 error for getTotalBank when TotalBank is not found', async () => {
-    // Mock the getTotalBankService function to resolve with null (TotalBank not found)
-    (getTotalBankService as jest.Mock).mockResolvedValue(null);
+  it('should respond with a 404 error for getInitialLoad when TotalBank is not found', async () => {
+    // Mock the getInitialLoadService function to resolve with null (TotalBank not found)
+    (getInitialLoadService as jest.Mock).mockResolvedValue(null);
 
     // Simulate a request with a date in the request body
     req.body = { date: '2023-01-01' };
 
-    await getTotalBank(req as Request, res as Response);
+    await getInitialLoad(req as Request, res as Response);
 
     // Check if the response status and JSON have been called correctly for error
     expect(res.status).toHaveBeenCalledWith(404);

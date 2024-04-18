@@ -1,8 +1,8 @@
 import { FinanRepository } from '../../infrastructure/repositories/finan.repository';
 import Production from '../models/Prodution';
 
-export const getTotalBank = (productionRepository: FinanRepository) => (data: any) =>
-  productionRepository.getTotalBank(data);
+export const getInitialLoad = (productionRepository: FinanRepository) => (data: any) =>
+  productionRepository.getInitialLoad(data);
 
 export const putMovement = (productionRepository: FinanRepository) => (movement: Production) =>
   productionRepository.putMovement(movement);

@@ -1,9 +1,16 @@
-export const generateInCondition = (label: string, val: string) => ` AND ${label} IN (${val})`;
-export const generateLikeCondition = (label: string, val: string) => ` AND ${label} LIKE "%${val}%"`;
-export const generateEqualCondition = (label: string, val: string) => ` AND ${label} = "${val}"`;
-export const generateLimit = (val: string) => ` LIMIT ${val}`;
-export const generateOrderBy = (label: string, val: string) => ` ORDER BY ${label} ${val}`;
+export const generateInCondition = (label: string, val: string[]) =>
+  ` AND ${label} IN (${val.map(() => '?').join(', ')})`;
+
+export const generateLikeCondition = (label: string) => ` AND ${label} LIKE CONCAT('%', ?, '%')`;
+
+export const generateEqualCondition = (label: string) => ` AND ${label} = ?`;
+
+export const generateLimit = () => ` LIMIT ?`;
+
+export const generateOrderBy = (label: string, direction: string) => ` ORDER BY ${label} ${direction}`;
+
 export const generateBetweenCondition = (label: string, val: number[]) =>
-  val.length >= 2 ? ` AND ${label} BETWEEN ${val[0]} and ${val[1]}` : '';
+  val.length >= 2 ? ` AND ${label} BETWEEN ? and ?` : '';
+
 export const generateAndCondition = (label: string, val: number[]) =>
-  val.map((e) => ` AND ${label} LIKE "%${e}%"`).join('');
+  val.map(() => ` AND ${label} LIKE CONCAT('%', ?, '%')`).join('');

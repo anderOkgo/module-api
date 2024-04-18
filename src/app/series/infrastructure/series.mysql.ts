@@ -13,6 +13,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     const viewName = 'view_all_info_produtions';
     const initialQuery = `SELECT * FROM ${viewName} WHERE 1`;
     const conditions: string[] = [];
+    const conditionsVals: any[] = [];
 
     const conditionMap: Record<string, (label: string, value: any) => string> = {
       production_name: HDB.generateLikeCondition,
@@ -27,15 +28,18 @@ export class ProductionMysqlRepository implements ProductionRepository {
     for (const [key, value] of Object.entries(production)) {
       if (conditionMap[key]) {
         conditions.push(conditionMap[key](key, value));
+        conditionsVals.push(value);
       }
     }
 
-    conditions.push('ORDER BY production_ranking_number ASC');
-    conditions.push(HDB.generateLimit(production.limit));
+    // Removed unnecessary ORDER BY clause from conditions array
+    conditions.push(HDB.generateOrderBy('production_ranking_number', 'ASC'));
+    conditions.push(HDB.generateLimit()); // Pass limit parameter to generateLimit function
     const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
+    conditionsVals.push(parseInt(production.limit));
 
     try {
-      return await this.database.executeQuery(fullQuery);
+      return await this.database.executeQuery(fullQuery, conditionsVals); // Pass limit value here
     } catch (e) {
       console.error(e);
     }

@@ -16,7 +16,7 @@ describe('FinanMysqlRepository', () => {
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
     const data = '2023-09-25';
-    /* const result = await finanRepository.getTotalBank(data);
+    /* const result = await finanRepository.getInitialLoad(data);
 
     expect(result).toEqual({
       balance: ['balance'],

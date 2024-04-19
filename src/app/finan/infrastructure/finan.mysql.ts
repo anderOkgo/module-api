@@ -10,24 +10,24 @@ export class FinanMysqlRepository implements FinanRepository {
     this.Limit = 1000;
   }
 
-  public async getInitialLoad(data: any) {
+  public async getInitialLoadRepository(data: any) {
     try {
-      const movements = await this.movements(data.currency);
-      const balance = await this.balance(data.currency);
-      const movementTag = await this.movementTag(data.currency);
-      const movementSources = await this.movementSources(data.currency);
-      const totalDay = await this.totalDay(data);
-      const generalInfo = await this.generalInfo();
-      const tripInfo = await this.tripInfo(data.currency);
-      const balanceUntilDate = await this.balanceUntilDate(data.currency);
+      const movement = await this.movementRepository(data.currency);
+      const balance = await this.balanceRepository(data.currency);
+      const movementTag = await this.movementTagRepository(data.currency);
+      const movementSources = await this.movementSourcesRepository(data.currency);
+      const totalDay = await this.totalDayRepository(data);
+      const generalInfo = await this.generalInfoRepository();
+      const tripInfo = await this.tripInfoRepository(data.currency);
+      const balanceUntilDate = await this.balanceUntilDateRepository(data.currency);
 
-      const full_query = `SELECT * FROM view_total_bank WHERE 1=1
+      const full_query = `SELECT * FROM view_total_bank WHERE 1
                           ${HDB.generateEqualCondition('currency')}
                           ${HDB.generateLimit()}`;
       const totalBank = await this.Database.executeQuery(full_query, [data.currency, this.Limit]);
 
       return {
-        movements,
+        movement,
         balance,
         movementTag,
         movementSources,
@@ -42,9 +42,9 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async totalDay(data: any) {
+  public async totalDayRepository(data: any) {
     try {
-      const full_query = `SELECT * FROM view_total_day WHERE 1=1
+      const full_query = `SELECT * FROM view_total_day WHERE 1
                           ${HDB.generateEqualCondition('DATE(Date_movement)')}
                           ${HDB.generateEqualCondition('currency')}
                           ${HDB.generateLimit()}`;
@@ -54,9 +54,9 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async balance(currency: string) {
+  public async balanceRepository(currency: string) {
     try {
-      const full_query = `SELECT * FROM view_monthly_bills_incomes_no_exchange_order_row WHERE 1=1
+      const full_query = `SELECT * FROM view_monthly_bills_incomes_no_exchange_order_row WHERE 1
                           ${HDB.generateEqualCondition('currency')}
                           ${HDB.generateLimit()}`;
       return await this.Database.executeQuery(full_query, [currency, this.Limit]);
@@ -65,9 +65,9 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async movements(currency: string) {
+  public async movementRepository(currency: string) {
     try {
-      const full_query = `SELECT * FROM view_movements WHERE 1=1
+      const full_query = `SELECT * FROM view_movements WHERE 1
                           ${HDB.generateEqualCondition('currency')}
                           ${HDB.generateLimit()}`;
       return await this.Database.executeQuery(full_query, [currency, this.Limit]);
@@ -76,9 +76,9 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async movementSources(currency: string) {
+  public async movementSourcesRepository(currency: string) {
     try {
-      const full_query = `SELECT * FROM view_monthly_movements_order_by_source WHERE 1=1
+      const full_query = `SELECT * FROM view_monthly_movements_order_by_source WHERE 1
                           ${HDB.generateEqualCondition('currency')}
                           ${HDB.generateLimit()}`;
       return await this.Database.executeQuery(full_query, [currency, this.Limit]);
@@ -87,9 +87,9 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async movementTag(currency: string) {
+  public async movementTagRepository(currency: string) {
     try {
-      const full_query = `SELECT * FROM view_monthly_movements_order_by_tag WHERE 1=1
+      const full_query = `SELECT * FROM view_monthly_movements_order_by_tag WHERE 1
                           ${HDB.generateEqualCondition('currency')}
                           ${HDB.generateLimit()}`;
       return await this.Database.executeQuery(full_query, [currency, this.Limit]);
@@ -98,7 +98,7 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async generalInfo() {
+  public async generalInfoRepository() {
     try {
       const full_query = `SELECT * FROM view_general_info`;
       return await this.Database.executeQuery(full_query);
@@ -107,9 +107,9 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async balanceUntilDate(currency: string) {
+  public async balanceUntilDateRepository(currency: string) {
     try {
-      const full_query = `SELECT * FROM view_balance_until_date WHERE 1=1
+      const full_query = `SELECT * FROM view_balance_until_date WHERE 1
                           ${HDB.generateEqualCondition('currency')}
                           ${HDB.generateOrderBy('Date_movement', 'DESC')}
                           ${HDB.generateLimit()}`;
@@ -119,7 +119,7 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async tripInfo(currency: string) {
+  public async tripInfoRepository(currency: string) {
     try {
       const full_query = `SELECT * FROM view_final_trip_info`;
       return await this.Database.executeQuery(full_query);
@@ -128,7 +128,7 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async putMovement(parameters: any) {
+  public async putMovementRepository(parameters: any) {
     try {
       const { name, val, datemov, type, tag, currency } = parameters;
       const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?)`;
@@ -138,7 +138,7 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async updateMovementById(id: number, parameters: any) {
+  public async updateMovementByIdRepository(id: number, parameters: any) {
     try {
       const { name, val, datemov, type, tag, currency } = parameters;
       const full_query = `
@@ -158,7 +158,7 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  public async deleteMovementById(id: number) {
+  public async deleteMovementByIdRepository(id: number) {
     try {
       const full_query = `DELETE FROM movements WHERE id = ?`;
       return await this.Database.executeQuery(full_query, [id]);

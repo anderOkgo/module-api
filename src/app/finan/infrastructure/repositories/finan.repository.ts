@@ -1,6 +1,6 @@
 export interface FinanRepository {
-  getInitialLoad(data: any): Promise<any>;
-  putMovement(parameters: any): Promise<any>;
-  updateMovementById(id: number, parameters: any): Promise<any>;
-  deleteMovementById(id: number): Promise<any>;
+  getInitialLoadRepository(data: any): Promise<any>;
+  putMovementRepository(parameters: any): Promise<any>;
+  updateMovementByIdRepository(id: number, parameters: any): Promise<any>;
+  deleteMovementByIdRepository(id: number): Promise<any>;
 }

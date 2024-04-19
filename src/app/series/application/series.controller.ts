@@ -1,5 +1,5 @@
 import { Request, Response } from '../../../helpers/middle.helper';
-import { getProductionService, getProductionYearService } from '../domain/services/index';
+import { getProduction, getProductionYear } from '../domain/services/index';
 import { validateProduction } from '../domain/validations/series.validation';
 
 export const defaultSeries = async (req: Request, res: Response) => {
@@ -10,7 +10,7 @@ export const getProductions = async (req: Request, res: Response) => {
   try {
     const validationResult = validateProduction(req.body);
     if (!validationResult.valid) return res.status(400).json({ error: validationResult.errors });
-    const productions = await getProductionService(validationResult.result);
+    const productions = await getProduction(validationResult.result);
 
     if (productions) {
       res.status(200).json(productions);
@@ -25,7 +25,7 @@ export const getProductions = async (req: Request, res: Response) => {
 
 export const getProductionYears = async (req: Request, res: Response) => {
   try {
-    const years = await getProductionYearService();
+    const years = await getProductionYear();
 
     if (years) {
       res.status(200).json(years);

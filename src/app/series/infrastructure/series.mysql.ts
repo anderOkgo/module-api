@@ -9,7 +9,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     this.database = new Database('MYDATABASEANIME');
   }
 
-  public async getProductions(production: Series) {
+  public async getProductionRepository(production: Series) {
     const viewName = 'view_all_info_produtions';
     const initialQuery = `SELECT * FROM ${viewName} WHERE 1`;
     const conditions: string[] = [];
@@ -32,9 +32,8 @@ export class ProductionMysqlRepository implements ProductionRepository {
       }
     }
 
-    // Removed unnecessary ORDER BY clause from conditions array
     conditions.push(HDB.generateOrderBy('production_ranking_number', 'ASC'));
-    conditions.push(HDB.generateLimit()); // Pass limit parameter to generateLimit function
+    conditions.push(HDB.generateLimit());
     const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
     conditionsVals.push(parseInt(production.limit));
 
@@ -45,7 +44,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     }
   }
 
-  public async getProductionYears() {
+  public async getProductionYearRepository() {
     const fullQuery: string = 'SELECT * FROM view_all_years_productions';
 
     try {

@@ -1,14 +1,15 @@
 import { FinanRepository } from '../../infrastructure/repositories/finan.repository';
 import Movement from '../models/Movement';
 
-export const getInitialLoad = (finanRepository: FinanRepository) => (data: any) =>
-  finanRepository.getInitialLoad(data);
+export const getInitialLoadService = (finanRepository: FinanRepository) => (data: any) =>
+  finanRepository.getInitialLoadRepository(data);
 
-export const putMovement = (finanRepository: FinanRepository) => (movement: Movement) =>
-  finanRepository.putMovement(movement);
+export const putMovementService = (finanRepository: FinanRepository) => (movement: Movement) =>
+  finanRepository.putMovementRepository(movement);
 
-export const updateMovement = (finanRepository: FinanRepository) => (id: number, updatedMovement: Movement) =>
-  finanRepository.updateMovementById(id, updatedMovement);
+export const updateMovementService =
+  (finanRepository: FinanRepository) => (id: number, updatedMovement: Movement) =>
+    finanRepository.updateMovementByIdRepository(id, updatedMovement);
 
-export const deleteMovement = (finanRepository: FinanRepository) => (id: number) =>
-  finanRepository.deleteMovementById(id);
+export const deleteMovementService = (finanRepository: FinanRepository) => (id: number) =>
+  finanRepository.deleteMovementByIdRepository(id);

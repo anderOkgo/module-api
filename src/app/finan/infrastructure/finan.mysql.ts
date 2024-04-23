@@ -150,18 +150,8 @@ export class FinanMysqlRepository implements FinanRepository {
   public async updateMovementByIdRepository(id: number, parameters: any) {
     try {
       const { name, val, datemov, type, tag, currency } = parameters;
-      const full_query = `
-        UPDATE movements
-        SET
-          name = ?,
-          value = ?,
-          date_movement = ?,
-          type_source_id = ?,
-          tag = ?,
-          currency = ?
-        WHERE
-          id = ?`;
-      return await this.Database.executeQuery(full_query, [name, val, datemov, type, tag, currency, id]);
+      const full_query = `CALL proc_update_movement(?, ?, ?, ?, ?, ?, ?)`;
+      return await this.Database.executeQuery(full_query, [id, name, val, datemov, type, tag, currency]);
     } catch (e) {
       console.log(e);
     }
@@ -169,7 +159,7 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async deleteMovementByIdRepository(id: number) {
     try {
-      const full_query = `DELETE FROM movements WHERE id = ?`;
+      const full_query = `CALL proc_delete_movement(?)`;
       return await this.Database.executeQuery(full_query, [id]);
     } catch (e) {
       console.log(e);

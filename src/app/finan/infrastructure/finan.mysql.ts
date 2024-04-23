@@ -11,7 +11,7 @@ export class FinanMysqlRepository implements FinanRepository {
 
   constructor() {
     this.Database = new Database('MYDATABASEFINAN');
-    this.Limit = 1000;
+    this.Limit = 10000;
   }
 
   public async getInitialLoadRepository(data: DataParams) {

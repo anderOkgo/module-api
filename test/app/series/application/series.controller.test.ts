@@ -4,7 +4,7 @@ import {
   getProductions,
   getProductionYears,
 } from '../../../../src/app/series/application/series.controller';
-import { getProductionService, getProductionYearService } from '../../../../src/app/series/domain/services/index';
+import { getProduction, getProductionYear } from '../../../../src/app/series/domain/services/index';
 
 jest.mock('../../../../src/app/series/domain/services/index'); // Mock the services
 
@@ -26,12 +26,12 @@ describe('Series Controller', () => {
     expect(res.json).toHaveBeenCalledWith({ msg: 'API Series Working' });
   });
 
-  it('should respond with productions when getProductionService succeeds', async () => {
+  it('should respond with productions when getProduction succeeds', async () => {
     // Define a sample productions object for testing
     const productions = [{ title: 'Series 1' }, { title: 'Series 2' }];
 
-    // Mock the getProductionService function to resolve with productions
-    (getProductionService as jest.Mock).mockResolvedValue(productions);
+    // Mock the getProduction function to resolve with productions
+    (getProduction as jest.Mock).mockResolvedValue(productions);
 
     // Simulate a request with a request body (e.g., filters)
     req.body = { category: 'Action' };
@@ -44,8 +44,8 @@ describe('Series Controller', () => {
   });
 
   it('should respond with a 404 error for getProductions when productions are not found', async () => {
-    // Mock the getProductionService function to resolve with null (productions not found)
-    (getProductionService as jest.Mock).mockResolvedValue(null);
+    // Mock the getProduction function to resolve with null (productions not found)
+    (getProduction as jest.Mock).mockResolvedValue(null);
 
     // Simulate a request with a request body (e.g., filters)
     req.body = { category: 'Drama' };
@@ -57,12 +57,12 @@ describe('Series Controller', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Productions not found' });
   });
 
-  it('should respond with production years when getProductionYearService succeeds', async () => {
+  it('should respond with production years when getProductionYear succeeds', async () => {
     // Define a sample years array for testing
     const years = [2020, 2021, 2022];
 
-    // Mock the getProductionYearService function to resolve with years
-    (getProductionYearService as jest.Mock).mockResolvedValue(years);
+    // Mock the getProductionYear function to resolve with years
+    (getProductionYear as jest.Mock).mockResolvedValue(years);
 
     // Simulate a request without a request body (e.g., no filters)
     req.body = {};
@@ -75,8 +75,8 @@ describe('Series Controller', () => {
   });
 
   it('should respond with a 404 error for getProductionYears when production years are not found', async () => {
-    // Mock the getProductionYearService function to resolve with null (production years not found)
-    (getProductionYearService as jest.Mock).mockResolvedValue(null);
+    // Mock the getProductionYear function to resolve with null (production years not found)
+    (getProductionYear as jest.Mock).mockResolvedValue(null);
 
     // Simulate a request without a request body (e.g., no filters)
     req.body = {};

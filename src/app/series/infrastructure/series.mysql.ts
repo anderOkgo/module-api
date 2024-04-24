@@ -35,10 +35,19 @@ export class ProductionMysqlRepository implements ProductionRepository {
     conditions.push(HDB.generateOrderBy('production_ranking_number', 'ASC'));
     conditions.push(HDB.generateLimit());
     const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
+    console.log(fullQuery);
     conditionsVals.push(parseInt(production.limit));
+    const mergedArray: any[] = [];
+    conditionsVals.forEach((element) => {
+      if (Array.isArray(element)) {
+        mergedArray.push(...element);
+      } else {
+        mergedArray.push(element);
+      }
+    });
 
     try {
-      return await this.database.executeQuery(fullQuery, conditionsVals); // Pass limit value here
+      return await this.database.executeQuery(fullQuery, mergedArray); // Pass limit value here
     } catch (e) {
       console.error(e);
     }

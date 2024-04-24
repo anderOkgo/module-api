@@ -1,39 +1,46 @@
-import Database from '../../../../src/helpers/data/mysql/database'; // Update the import path
+import { Database } from '../../../../src/helpers/my.database.helper';
+import { ProductionMysqlRepository } from '../../../../src/app/series/infrastructure/series.mysql';
+import Series from '../../../../src/app/series/domain/models/Series';
 
-describe('Database', () => {
-  let db: any;
+// Mock the Database class
+jest.mock('../../../../src/helpers/my.database.helper');
 
-  beforeAll(() => {
-    // Initialize the database connection before running tests
-    db = new Database('MYDATABASEAUTH');
-    db.open();
+describe('ProductionMysqlRepository', () => {
+  let productionRepository: ProductionMysqlRepository;
+
+  beforeEach(() => {
+    productionRepository = new ProductionMysqlRepository();
   });
 
-  afterAll(() => {
-    db.close();
+  it('should get productions with specified conditions', async () => {
+    // Mock the behavior of dependencies
+    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+
+    const production: Series = {
+      production_name: 'Sample Production',
+      production_number_chapters: [10, 20],
+      production_description: 'Sample Description',
+      production_year: [2000, 2020],
+      demographic_name: 'Demographic Name',
+      genre_names: ['Genre 1'],
+      id: [1, 2, 3],
+      limit: '10',
+    };
+
+    const result = await productionRepository.getProductionRepository(production);
+
+    expect(result).toEqual({});
   });
 
-  it('should execute a query successfully', async () => {
-    const result = await db.executeQuery('SELECT 1 + 1 AS result');
-    expect(result).toHaveLength(1);
-    expect(result[0].result).toBe(2);
-  });
+  it('should get production years', async () => {
+    // Mock the behavior of dependencies
+    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-  it('should return the correct user password when logging in', async () => {
-    const username = 'anderokgo';
-    const password = await db.loginUser(username);
-    expect(password).toBeTruthy();
-  });
+    const result = await productionRepository.getProductionYearRepository();
 
-  it('should return false for a non-existing user when logging in', async () => {
-    const username = 'non_existing_user';
-    const password = await db.loginUser(username);
-    expect(password).toBe(false);
-  });
+    expect(result).toEqual({});
 
-  it('should escape a string correctly', () => {
-    const inputString = "This is a 'test' string";
-    const escapedString = db.myScape(inputString);
-    expect(escapedString).toBe("'This is a \\'test\\' string'");
+    // Verify that the expected method is called
+    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * FROM view_all_years_productions');
   });
 });

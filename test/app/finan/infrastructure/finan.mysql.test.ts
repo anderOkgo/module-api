@@ -2,7 +2,7 @@ import { FinanMysqlRepository } from '../../../../src/app/finan/infrastructure/f
 import { Database } from '../../../../src/helpers/my.database.helper';
 
 // Mock the Database class
-jest.mock('../../../../src/helpers/my.database.helper');
+jest.mock('../../../../src//helpers/my.database.helper');
 
 describe('FinanMysqlRepository', () => {
   let finanRepository: FinanMysqlRepository;
@@ -15,99 +15,82 @@ describe('FinanMysqlRepository', () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const data = '2023-09-25';
-    /* const result = await finanRepository.getInitialLoad(data);
+    const data = { currency: 'USD' };
+    const result = await finanRepository.totalBankRepository(data);
 
-    expect(result).toEqual({
-      balance: ['balance'],
-      total_bank: {},
-      movementSources: ['movementSources'],
-      movementTag: ['movementTag'],
-      movements: ['movements'],
-      totalDay: ['totalDay'],
-    }); */
+    expect(result).toEqual({});
 
-    // Verify that the expected methods are called with the correct parameters
-    /* expect(finanRepository.movements).toHaveBeenCalled();
-    expect(finanRepository.balance).toHaveBeenCalled();
-    expect(finanRepository.movementTag).toHaveBeenCalled();
-    expect(finanRepository.movementSources).toHaveBeenCalled();
-    expect(finanRepository.totalDay).toHaveBeenCalledWith(data);
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * from view_total_bank'); */
+    // Verify that the expected method is called with the correct parameters
+    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['USD', 10000]);
   });
 
   it('should get total day data', async () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const data = '2023-09-25';
-    const result = await finanRepository.totalDay(data);
+    const data = { currency: 'USD', date: '2023-09-25' };
+    const result = await finanRepository.totalDayRepository(data);
 
     expect(result).toEqual({});
 
     // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      `SELECT * from view_total_day  WHERE DATE(date_movement) = '${data}'`
-    );
+    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['2023-09-25', 'USD', 10000]);
   });
 
   it('should get balance data', async () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const result = await finanRepository.balance();
+    const data = { currency: 'USD' };
+    const result = await finanRepository.balanceRepository(data);
 
     expect(result).toEqual({});
 
-    // Verify that the expected method is called
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      'SELECT * from view_monthly_bills_incomes_no_exchange_order_row'
-    );
+    // Verify that the expected method is called with the correct parameters
+    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['USD', 10000]);
   });
 
   it('should get movements data', async () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const result = await finanRepository.movements();
+    const data = { currency: 'USD' };
+    const result = await finanRepository.movementRepository(data);
 
     expect(result).toEqual({});
 
-    // Verify that the expected method is called
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * from view_movements');
+    // Verify that the expected method is called with the correct parameters
+    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['USD', 10000]);
   });
 
   it('should get movement sources data', async () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const result = await finanRepository.movementSources();
+    const data = { currency: 'USD' };
+    const result = await finanRepository.movementSourcesRepository(data);
 
     expect(result).toEqual({});
 
-    // Verify that the expected method is called
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      'SELECT * from view_monthly_movements_order_by_source'
-    );
+    // Verify that the expected method is called with the correct parameters
+    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['USD', 10000]);
   });
 
   it('should get movement tag data', async () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const result = await finanRepository.movementTag();
+    const data = { currency: 'USD' };
+    const result = await finanRepository.movementTagRepository(data);
 
     expect(result).toEqual({});
 
-    // Verify that the expected method is called
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      'SELECT * from view_monthly_movements_order_by_tag'
-    );
+    // Verify that the expected method is called with the correct parameters
+    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['USD', 10000]);
   });
 
   it('should put a movement', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.myEscape as jest.Mock).mockReturnValue("'test'");
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
     const parameters = {
@@ -116,17 +99,21 @@ describe('FinanMysqlRepository', () => {
       datemov: '2023-09-25',
       type: 1,
       tag: 'testtag',
+      currency: 'USD',
     };
 
-    const result = await finanRepository.putMovement(parameters);
+    const result = await finanRepository.putMovementRepository(parameters);
 
     expect(result).toEqual({});
 
     // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.myEscape).toHaveBeenCalledWith('test');
-    expect(Database.prototype.myEscape).toHaveBeenCalledWith('testtag');
-    /* expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      `proc_insert_movement('test', 10, '2023-09-25', 1, 'test')`
-    ); */
+    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), [
+      'test',
+      '10',
+      '2023-09-25',
+      1,
+      'testtag',
+      'USD',
+    ]);
   });
 });

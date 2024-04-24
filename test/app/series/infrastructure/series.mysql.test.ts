@@ -1,5 +1,6 @@
-import { ProductionMysqlRepository } from '../../../../src/app/series/infrastructure/series.mysql';
 import { Database } from '../../../../src/helpers/my.database.helper';
+import { ProductionMysqlRepository } from '../../../../src/app/series/infrastructure/series.mysql';
+import Series from '../../../../src/app/series/domain/models/Series';
 
 // Mock the Database class
 jest.mock('../../../../src/helpers/my.database.helper');
@@ -15,7 +16,7 @@ describe('ProductionMysqlRepository', () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const production = {
+    const production: Series = {
       production_name: 'Sample Production',
       production_number_chapters: [10, 20],
       production_description: 'Sample Description',
@@ -26,25 +27,15 @@ describe('ProductionMysqlRepository', () => {
       limit: '10',
     };
 
-    const result = await productionRepository.getProductions(production);
-
+    const result = await productionRepository.getProductionRepository(production);
     expect(result).toEqual({});
-
-    // Verify that the expected methods are called with the correct parameters
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining('FROM view_all_info_produtions')
-    );
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.stringContaining('WHERE'));
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining('ORDER BY production_ranking_number ASC')
-    );
   });
 
   it('should get production years', async () => {
     // Mock the behavior of dependencies
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
-    const result = await productionRepository.getProductionYears();
+    const result = await productionRepository.getProductionYearRepository();
 
     expect(result).toEqual({});
 

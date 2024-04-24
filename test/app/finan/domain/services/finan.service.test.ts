@@ -1,11 +1,16 @@
 import { FinanRepository } from '../../../../../src/app/finan/infrastructure/repositories/finan.repository';
-import { getInitialLoad, putMovement } from '../../../../../src/app/finan/domain/services/finan.service';
-import Production from '../../../../../src/app/finan/domain/models/Prodution';
+import {
+  getInitialLoadService,
+  putMovementService,
+} from '../../../../../src/app/finan/domain/services/finan.service';
+import Movement from '../../../../../src/app/finan/domain/models/Movement';
 
 // Manually mock FinanRepository
 const mockFinanRepository: FinanRepository = {
-  getInitialLoad: jest.fn(),
-  putMovement: jest.fn(),
+  getInitialLoadRepository: jest.fn(),
+  putMovementRepository: jest.fn(),
+  updateMovementByIdRepository: jest.fn(),
+  deleteMovementByIdRepository: jest.fn(),
 };
 
 describe('Finan Services', () => {
@@ -14,25 +19,27 @@ describe('Finan Services', () => {
     jest.clearAllMocks();
   });
 
-  it('should call getInitialLoad when getInitialLoadService is called', () => {
-    const totalBankService = getInitialLoad(mockFinanRepository);
+  it('should call getInitialLoadRepository when getInitialLoadService is called', () => {
+    const totalBankService = getInitialLoadService(mockFinanRepository);
     const data: any = { data: 1 };
 
     totalBankService(data);
 
-    expect(mockFinanRepository.getInitialLoad).toHaveBeenCalledWith(data);
+    expect(mockFinanRepository.getInitialLoadRepository).toHaveBeenCalledWith(data);
   });
 
-  it('should call putMovement when putMovementService is called', () => {
-    const movementService = putMovement(mockFinanRepository);
-    const movement: Production = {
+  it('should call putMovementRepository when putMovement is called', () => {
+    const movementService = putMovementService(mockFinanRepository);
+    const movement: Movement = {
       name: 'string',
       val: 'string',
       type: 'string',
+      date: 'string',
+      tag: 'string',
     };
 
     movementService(movement);
 
-    expect(mockFinanRepository.putMovement).toHaveBeenCalledWith(movement);
+    expect(mockFinanRepository.putMovementRepository).toHaveBeenCalledWith(movement);
   });
 });

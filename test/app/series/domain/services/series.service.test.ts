@@ -1,11 +1,14 @@
 import { ProductionRepository } from '../../../../../src/app/series/infrastructure/repositories/series.repository';
-import { getProductions, getProductionYears } from '../../../../../src/app/series/domain/services/series.service';
+import {
+  getProductionService,
+  getProductionYearService,
+} from '../../../../../src/app/series/domain/services/series.service';
 import Production from '../../../../../src/app/series/domain/models/Series';
 
 // Manually mock ProductionRepository
 const mockProductionRepository: ProductionRepository = {
-  getProductions: jest.fn(),
-  getProductionYears: jest.fn(),
+  getProductionRepository: jest.fn(),
+  getProductionYearRepository: jest.fn(),
 };
 
 describe('Series Services', () => {
@@ -14,8 +17,8 @@ describe('Series Services', () => {
     jest.clearAllMocks();
   });
 
-  it('should call getProductions when getProductionService is called', () => {
-    const productionService = getProductions(mockProductionRepository);
+  it('should call getProductionService when getProductionService is called', () => {
+    const productionService = getProductionService(mockProductionRepository);
     const production: Production = {
       id: 'string',
       production_name: 'string',
@@ -29,14 +32,14 @@ describe('Series Services', () => {
 
     productionService(production);
 
-    expect(mockProductionRepository.getProductions).toHaveBeenCalledWith(production);
+    expect(mockProductionRepository.getProductionRepository).toHaveBeenCalledWith(production);
   });
 
-  it('should call getProductionYears when getProductionYearsService is called', () => {
-    const yearsService = getProductionYears(mockProductionRepository);
+  it('should call getProductionYearService when getProductionYearsService is called', () => {
+    const yearsService = getProductionYearService(mockProductionRepository);
 
     yearsService();
 
-    expect(mockProductionRepository.getProductionYears).toHaveBeenCalled();
+    expect(mockProductionRepository.getProductionYearRepository).toHaveBeenCalled();
   });
 });

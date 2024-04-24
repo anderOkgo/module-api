@@ -1,13 +1,20 @@
-import { HDB } from '../../../../src/helpers/my.database.helper';
+import {
+  generateInCondition,
+  generateLikeCondition,
+  generateEqualCondition,
+  generateLimit,
+  generateBetweenCondition,
+  generateAndCondition,
+} from '../../../../src/helpers/data/mysql/mysql.helper';
 
 describe('MySQL Helper Functions', () => {
   describe('generateInCondition', () => {
     it('should generate the IN condition', () => {
       const label = 'column';
-      const values = 'value1, value2, value3';
-      const result = HDB.generateInCondition(label, values);
+      const values = ['value1', 'value2', 'value3'];
+      const result = generateInCondition(label, values);
 
-      expect(result).toEqual(` AND ${label} IN (${values})`);
+      expect(result).toEqual(` AND ${label} IN (?, ?, ?)`);
     });
   });
 
@@ -15,29 +22,26 @@ describe('MySQL Helper Functions', () => {
     it('should generate the LIKE condition', () => {
       const label = 'column';
       const value = 'searchValue';
-      const result = HDB.generateLikeCondition(label, value);
+      const result = generateLikeCondition(label);
 
-      expect(result).toEqual(` AND ${label} LIKE "%${value}%"`);
+      expect(result).toEqual(` AND ${label} LIKE CONCAT('%', ?, '%')`);
     });
   });
 
   describe('generateEqualCondition', () => {
     it('should generate the EQUAL condition', () => {
       const label = 'column';
-      const value = 'exactValue';
-      const result = HDB.generateEqualCondition(label, value);
+      const result = generateEqualCondition(label);
 
-      expect(result).toEqual(` AND ${label} = "${value}"`);
+      expect(result).toEqual(` AND ${label} = ?`);
     });
   });
 
   describe('generateLimit', () => {
     it('should generate the LIMIT condition', () => {
-      const label = 'limit';
-      const value = '10';
-      const result = HDB.generateLimit(label, value);
+      const result = generateLimit();
 
-      expect(result).toEqual(` ${label} ${value}`);
+      expect(result).toEqual(` LIMIT ?`);
     });
   });
 
@@ -45,15 +49,15 @@ describe('MySQL Helper Functions', () => {
     it('should generate the BETWEEN condition for an array with two values', () => {
       const label = 'column';
       const values = [5, 10];
-      const result = HDB.generateBetweenCondition(label, values);
+      const result = generateBetweenCondition(label, values);
 
-      expect(result).toEqual(` AND ${label} BETWEEN ${values[0]} and ${values[1]}`);
+      expect(result).toEqual(` AND ${label} BETWEEN ? and ?`);
     });
 
     it('should return an empty string for an array with less than two values', () => {
       const label = 'column';
       const values = [5];
-      const result = HDB.generateBetweenCondition(label, values);
+      const result = generateBetweenCondition(label, values);
 
       expect(result).toEqual('');
     });
@@ -63,16 +67,16 @@ describe('MySQL Helper Functions', () => {
     it('should generate the AND condition for an array of values', () => {
       const label = 'column';
       const values = [1, 2, 3];
-      const result = HDB.generateAndCondition(label, values);
+      const result = generateAndCondition(label, values);
 
-      const expected = values.map((e) => ` AND ${label} LIKE "%${e}%"`).join('');
+      const expected = values.map(() => ` AND ${label} LIKE CONCAT('%', ?, '%')`).join('');
       expect(result).toEqual(expected);
     });
 
     it('should return an empty string for an empty array', () => {
       const label = 'column';
       const values: number[] = [];
-      const result = HDB.generateAndCondition(label, values);
+      const result = generateAndCondition(label, values);
 
       expect(result).toEqual('');
     });

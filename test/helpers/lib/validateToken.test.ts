@@ -47,7 +47,6 @@ describe('validateToken Middleware', () => {
     req.headers = {};
 
     validateToken(req as Request, res as Response, next as NextFunction);
-    console.log(res.status);
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({
       error: 'Unauthorized: Missing or invalid token format',

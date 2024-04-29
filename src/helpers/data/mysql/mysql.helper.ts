@@ -10,7 +10,7 @@ export const generateLimit = () => ` LIMIT ?`;
 export const generateOrderBy = (label: string, direction: string) => ` ORDER BY ${label} ${direction}`;
 
 export const generateBetweenCondition = (label: string, val: number[]) =>
-  val.length >= 2 ? ` AND ${label} BETWEEN ? and ?` : '';
+  val.length >= 2 ? ` AND ${label} BETWEEN ? and ?` : ` AND ${label} = ?`;
 
 export const generateAndCondition = (label: string, val: number[]) =>
   val.map(() => ` AND ${label} LIKE CONCAT('%', ?, '%')`).join('');

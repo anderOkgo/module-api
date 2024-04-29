@@ -8,6 +8,7 @@ export const defaultSeries = async (req: Request, res: Response) => {
 
 export const getProductions = async (req: Request, res: Response) => {
   try {
+    console.log(req.body);
     const validationResult = validateProduction(req.body);
     if (!validationResult.valid) return res.status(400).json({ error: validationResult.errors });
     const productions = await getProduction(validationResult.result);

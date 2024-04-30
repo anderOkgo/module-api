@@ -139,9 +139,16 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async putMovementRepository(parameters: any) {
     try {
-      const { name, val, datemov, type, tag, currency } = parameters;
+      const { movement_name, movement_val, movement_date, movement_type, movement_tag, currency } = parameters;
       const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?)`;
-      return await this.Database.executeQuery(full_query, [name, val, datemov, type, tag, currency]);
+      return await this.Database.executeQuery(full_query, [
+        movement_name,
+        movement_val,
+        movement_date,
+        movement_type,
+        movement_tag,
+        currency,
+      ]);
     } catch (e) {
       console.log(e);
     }
@@ -149,9 +156,17 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async updateMovementByIdRepository(id: number, parameters: any) {
     try {
-      const { name, val, datemov, type, tag, currency } = parameters;
+      const { movement_name, movement_val, movement_date, movement_type, movement_tag, currency } = parameters;
       const full_query = `CALL proc_update_movement(?, ?, ?, ?, ?, ?, ?)`;
-      return await this.Database.executeQuery(full_query, [id, name, val, datemov, type, tag, currency]);
+      return await this.Database.executeQuery(full_query, [
+        id,
+        movement_name,
+        movement_val,
+        movement_date,
+        movement_type,
+        movement_tag,
+        currency,
+      ]);
     } catch (e) {
       console.log(e);
     }

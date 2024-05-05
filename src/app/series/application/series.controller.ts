@@ -1,6 +1,6 @@
 import { Request, Response } from '../../../helpers/middle.helper';
 import { getProduction, getProductionYear } from '../domain/services/index';
-import { validateProduction } from '../domain/validations/series.validation';
+import { validateProduction } from './series.validation';
 
 export const defaultSeries = async (req: Request, res: Response) => {
   res.json({ msg: `API Series Working` });

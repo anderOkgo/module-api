@@ -49,7 +49,11 @@ export const validateProduction = (input: any): ValidationResult => {
     if (chapterValues.some((value: number) => isNaN(value))) {
       errors.production_number_chapters = 'Production chapters must contain valid numbers separated by commas.';
     } else {
-      result.production_number_chapters = chapterValues;
+      if (chapterValues.length === 2 && chapterValues[0] > chapterValues[1]) {
+        errors.production_number_chapters = 'The first chapter number cannot be higher than the second one.';
+      } else {
+        result.production_number_chapters = chapterValues;
+      }
     }
   } else {
     delete result.production_number_chapters;
@@ -71,7 +75,11 @@ export const validateProduction = (input: any): ValidationResult => {
     if (yearValues.some((value: number) => isNaN(value))) {
       errors.production_year = 'Production years must contain valid numbers separated by commas.';
     } else {
-      result.production_year = yearValues;
+      if (yearValues.length === 2 && yearValues[0] > yearValues[1]) {
+        errors.production_year = 'The first year cannot be higher than the second one.';
+      } else {
+        result.production_year = yearValues;
+      }
     }
   } else {
     delete result.production_year;

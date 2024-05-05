@@ -32,7 +32,7 @@ describe('validateToken Middleware', () => {
   it('should pass when a valid token is provided', () => {
     // Mock a valid token
     const validToken =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmaXJzdF9uYW1lIjoiYW5kZXJva2dvIiwiaWF0IjoxNjk1OTUxNDI0fQ.SoTWdkQ40V7cxg9nmfGajbBsvoCw-MKT7weVvYJNbDU';
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmaXJzdF9uYW1lIjoiYW5kZXJva2dvIiwiaWF0IjoxNzE0OTMwNjU2fQ.Q28Pel7h5VcIo8B3tTF6Rpf-TIZTSrY8CWeVllaq08k';
 
     // Set the Authorization header with the valid token
     req.headers = { authorization: `Bearer ${validToken}` };

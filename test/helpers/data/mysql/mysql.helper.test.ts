@@ -59,7 +59,7 @@ describe('MySQL Helper Functions', () => {
       const values = [5];
       const result = generateBetweenCondition(label, values);
 
-      expect(result).toEqual('');
+      expect(result).toEqual(` AND ${label} = ?`);
     });
   });
 

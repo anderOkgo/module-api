@@ -1,14 +1,19 @@
 import { FinanMysqlRepository } from '../../../../src/app/finan/infrastructure/finan.mysql';
 import { Database } from '../../../../src/helpers/my.database.helper';
+//import { HDB } from '../../../../src/helpers/data/mysql/database';
 
 // Mock the Database class
-jest.mock('../../../../src//helpers/my.database.helper');
+jest.mock('../../../../src/helpers/data/mysql/database');
 
 describe('FinanMysqlRepository', () => {
   let finanRepository: FinanMysqlRepository;
 
   beforeEach(() => {
     finanRepository = new FinanMysqlRepository();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('should get total bank data', async () => {
@@ -94,11 +99,11 @@ describe('FinanMysqlRepository', () => {
     (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
 
     const parameters = {
-      name: 'test',
-      val: '10',
-      datemov: '2023-09-25',
-      type: 1,
-      tag: 'testtag',
+      movement_name: 'test',
+      movement_val: 10,
+      movement_date: '2023-09-25',
+      movement_type: 1,
+      movement_tag: 'testtag',
       currency: 'USD',
     };
 
@@ -109,7 +114,7 @@ describe('FinanMysqlRepository', () => {
     // Verify that the expected method is called with the correct parameters
     expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), [
       'test',
-      '10',
+      10,
       '2023-09-25',
       1,
       'testtag',

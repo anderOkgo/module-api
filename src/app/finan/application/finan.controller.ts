@@ -8,7 +8,7 @@ import {
   ValidationResult,
 } from './finan.validations';
 
-export const defaultFInan = async (req: Request, res: Response) => res.json({ msg: `API Finan WWorking` });
+export const defaultFInan = async (req: Request, res: Response) => res.json({ msg: `API Finan Working` });
 
 export const getInitialLoads = async (req: Request, res: Response, next: NextFunction) => {
   const validation = validateGetInitialLoads(req.body);

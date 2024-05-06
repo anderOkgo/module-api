@@ -1,4 +1,4 @@
-import { validateProduction } from '../../../../../src/app/series/domain/validations/series.validation';
+import { validateProduction } from '../../../../../src/app/series/application/series.validation';
 
 describe('validateProduction', () => {
   it('should return valid result when input is valid', () => {

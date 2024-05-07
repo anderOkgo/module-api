@@ -7,7 +7,7 @@ export const defaultUsers = async (req: Request, res: Response) => {
 
 export const addUsers = async (req: Request, res: Response) => {
   const user = await addUser(req.body);
-  !user.error ? res.status(200).json({ message: user.message }) : res.status(404).json({ errors: user.errors });
+  !user.error ? res.status(200).json(user) : res.status(404).json(user);
 };
 
 export const loginUsers = async (req: Request, res: Response) => {

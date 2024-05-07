@@ -4,7 +4,7 @@ import { token as _token } from '../../../helpers/token.helper';
 import Login from '../domain/models/Login';
 import User from '../domain/models/User';
 import { UserRepository } from './repositories/user.repository';
-import { handleSystemErrors, systemErrors } from './errorHandler'; // Importing system errors and error handler
+import sendEmail from '../../../helpers/lib/email';
 
 export class userMysqlRepository implements UserRepository {
   private Database: any;
@@ -14,84 +14,51 @@ export class userMysqlRepository implements UserRepository {
   }
 
   public addUserRepository = async (user: User) => {
-    // Check if user object is empty
     if (Object.keys(user).length === 0) {
       return { error: true, errors: ['User object is empty'] };
     }
 
     const { first_name, password, email, verificationCode } = user;
     const errors: string[] = [];
-
-    // Check if email exists in the database
     const existingEmail = await this.Database.executeQuery('SELECT * FROM users WHERE email = ?', [email]);
-    if (existingEmail.error) {
-      // Check if an error occurred
-      systemErrors.push(existingEmail.message); // Accumulate system errors
-    }
-    if (existingEmail.result.length > 0) {
-      errors.push('Email already exists');
-    }
+    if (existingEmail.error) return { error: true, message: 'Internal server error' };
+    if (existingEmail.result.length > 0) errors.push('Email already exists');
 
-    // Check if user exists in the database
     const existingUser = await this.Database.executeQuery('SELECT * FROM users WHERE first_name = ?', [
       first_name,
     ]);
-    if (existingUser.error) {
-      // Check if an error occurred
-      systemErrors.push(existingUser.message); // Accumulate system errors
-    }
-    if (existingUser.result.length > 0) {
-      errors.push('User already exists');
-    }
+    if (existingUser.error) return { error: true, message: 'Internal server error' };
+    if (existingUser.result.length > 0) errors.push('User already exists');
 
-    // If verification code is provided, verify its existence
     if (verificationCode) {
       const verificationCodeExists = await this.verifyVerificationCodeExists(email, verificationCode);
-      if (!verificationCodeExists) {
-        errors.push('Invalid verification code');
-      }
+      if (!verificationCodeExists) errors.push('Invalid verification code');
     }
 
-    // If there are any errors, return them
-    if (errors.length > 0) {
-      return { error: true, errors };
-    }
+    if (errors.length > 0) return { error: true, errors };
 
-    // If verification code is not provided, validate email, generate verification code, and send
     if (!verificationCode) {
-      // Check if email is valid
       if (!this.isValidEmail(email)) {
         errors.push('Invalid email');
       }
 
-      // Generate a random verification code
-      const generatedVerificationCode = Math.floor(100000 + Math.random() * 900000); // Generates a random 6-digit number
+      const generatedVerificationCode = Math.floor(100000 + Math.random() * 900000);
 
-      // Store the verification code in the database
-      const verificationCodeInsertResult = await this.Database.executeQuery(
+      const isDelete = await this.Database.executeQuery(
         'INSERT INTO email_verification (email, verification_code) VALUES (?, ?)',
         [email, generatedVerificationCode]
       );
-      if (verificationCodeInsertResult.error) {
-        // Check if an error occurred
-        systemErrors.push(verificationCodeInsertResult.message); // Accumulate system errors
-      }
+      if (isDelete.error) return { error: true, message: 'Internal server error' };
 
-      // Send the verification code to the provided email address
-      //sendEmail(email, 'Verification Code', `Your verification code is: ${generatedVerificationCode}`);
+      sendEmail(email, 'Verification Code', `Your verification code is: ${generatedVerificationCode}`);
       console.log(generatedVerificationCode);
 
-      // If there are any errors, return them
-      if (errors.length > 0) {
-        return { error: true, errors };
-      }
+      if (errors.length > 0) return { error: true, errors };
 
       return { error: false, message: 'Verification code sent' };
     } else {
-      // Hash the password
       const hashedPassword = await crypt.hash(password, 10);
 
-      // Prepare user object for insertion
       const newUser = {
         first_name: first_name,
         last_name: '',
@@ -99,36 +66,20 @@ export class userMysqlRepository implements UserRepository {
         role: 1,
         password: hashedPassword,
         active: 1,
-        created: new Date().toISOString().replace('T', ' ').replace('Z', ''), // Correctly format the datetime value
-        modified: new Date().toISOString().replace('T', ' ').replace('Z', ''), // Correctly format the datetime value
+        created: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+        modified: new Date().toISOString().replace('T', ' ').replace('Z', ''),
       };
 
       // Delete the verification code from the database
-      const deleteVerificationCodeResult = await this.Database.executeQuery(
-        'DELETE FROM email_verification WHERE email = ?',
-        [email]
-      );
-      if (deleteVerificationCodeResult.error) {
-        // Check if an error occurred
-        systemErrors.push(deleteVerificationCodeResult.message); // Accumulate system errors
-      }
+      const isDelete = await this.Database.executeQuery('DELETE FROM email_verification WHERE email = ?', [email]);
+      if (isDelete.error) return { error: true, message: 'Internal server error' };
 
-      // Insert new user into the database
       const insertUserResult = await this.Database.executeQuery('INSERT INTO users SET ?', newUser);
-      if (insertUserResult.error) {
-        // Check if an error occurred
-        systemErrors.push(insertUserResult.message); // Accumulate system errors
-      }
+      if (insertUserResult.error) return { error: true, message: 'Internal server error' };
 
-      if (systemErrors.length > 0) {
-        handleSystemErrors();
-        return { error: false, message: 'Internal server error' };
-      }
-
-      // Return the response after processing all steps
       return insertUserResult.result.insertId
-        ? { error: false, message: 'Insert successful' }
-        : { error: true, errors: ['Insert error'] };
+        ? { error: false, message: ['User created successful'] }
+        : { error: true, errors: ['User creation error'] };
     }
   };
 
@@ -140,23 +91,18 @@ export class userMysqlRepository implements UserRepository {
   }
 
   // Function to verify if the verification code exists in the database
-  private async verifyVerificationCodeExists(email: string, verificationCode: number): Promise<boolean> {
+  private async verifyVerificationCodeExists(email: string, verificationCode: number): Promise<any> {
     const result = await this.Database.executeQuery(
       'SELECT * FROM email_verification WHERE email = ? AND verification_code = ?',
       [email, verificationCode]
     );
-    return result.error ? false : result.result.length > 0;
+    if (result.error) return { error: true, message: 'Internal server error' };
+    return result.result.length > 0;
   }
 
   public loginUserRepository = async (login: Login) => {
     const { first_name, password } = login;
     const userPassword = await this.Database.loginUser(first_name);
-
-    if (userPassword.error) {
-      // Check if an error occurred
-      systemErrors.push(userPassword.message); // Accumulate system errors
-      return { error: true, message: 'Internal server error' };
-    }
 
     if (userPassword.result) {
       const result = await crypt.compare(password, userPassword.result);

@@ -1,5 +1,6 @@
 import mysql, { Connection, MysqlError } from 'mysql';
 import dotenv from 'dotenv';
+import sendEmail from '../../../helpers/lib/email';
 
 class Database {
   private connection: Connection;
@@ -32,6 +33,9 @@ class Database {
     return new Promise((resolve, reject) => {
       this.connection.query(query, params, (err: MysqlError | null, result: any) => {
         if (err) {
+          const emailAddress = process.env.EMAILERRORS ?? 'default@example.com';
+          const errorMessage = err ?? 'No error message provided';
+          sendEmail(emailAddress, 'system Errors', `The following errors have occurred: ${errorMessage}`);
           resolve({ error: true, message: `Error executing MySQL query: ${err.message}` });
         } else {
           resolve({ error: false, result: result });

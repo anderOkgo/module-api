@@ -58,7 +58,12 @@ class server {
   midlewares() {
     this.app.use(express.json());
     this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-      res.status(500).json({ error: `Request Error: ${err.name}` });
+      if (err instanceof SyntaxError && 'body' in err) {
+        // Handle JSON parse errors (e.g., invalid JSON in request body)
+        return res.status(400).json({ error: 'Bad Request: Invalid JSON' });
+      }
+      // Handle other bad requests or validation errors
+      return res.status(400).json({ error: 'Bad Request' });
     });
   }
 }

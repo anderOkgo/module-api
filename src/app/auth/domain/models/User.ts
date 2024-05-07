@@ -7,4 +7,5 @@ export default interface User {
   active: number;
   created: string;
   modified: string;
+  verificationCode: number;
 }

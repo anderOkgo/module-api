@@ -1,4 +1,4 @@
-import express, { Application } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import { Database } from './helpers/my.database.helper';
 import routesSeries from './app/series/application/series.routes';
 import routesDefault from './app/default/application/default.routes';
@@ -48,7 +48,6 @@ class server {
         const textToWrite = response.data.msg;
         const filePath = 'init.txt';
         fs.writeFileSync(filePath, textToWrite);
-        //fs.appendFileSync(filePath, textToWrite + '\n', 'utf-8');
         console.log(`Request to ${urlToRequest} successful. Response:`, response.data);
       } catch (error) {
         console.error(`Error making request to ${urlToRequest}:`, error);
@@ -56,7 +55,13 @@ class server {
     });
   }
 
-  midlewares = () => this.app.use(express.json());
+  midlewares = () {
+    this.app.use(express.json());
+    this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+      res.status(500).json({ error: `Request Error: ${err.name}` });
+    });
+  }
+
 }
 
 export default server;

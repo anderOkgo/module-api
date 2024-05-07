@@ -32,9 +32,9 @@ class Database {
     return new Promise((resolve, reject) => {
       this.connection.query(query, params, (err: MysqlError | null, result: any) => {
         if (err) {
-          reject(new Error(`Error executing MySQL query: ${err.message}`));
+          resolve({ error: true, message: `Error executing MySQL query: ${err.message}` });
         } else {
-          resolve(result);
+          resolve({ error: false, result: result });
         }
       });
     });

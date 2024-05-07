@@ -8,7 +8,7 @@ import cors from 'cors';
 import cron from 'node-cron';
 import axios from 'axios';
 
-class server {
+class Server {
   public app: Application;
   private port: string;
 
@@ -17,20 +17,22 @@ class server {
     this.port = process.env.PORT || '3000';
     this.listening();
     this.connectDB();
-    this.midlewares();
+    this.middlewares();
     this.routes();
     this.init();
   }
 
-  listening = () => this.app.listen(this.port, () => console.log('app running port', this.port));
+  private listening() {
+    this.app.listen(this.port, () => console.log('app running port', this.port));
+  }
 
-  connectDB() {
+  private connectDB() {
     const database: Database = new Database('MYDATABASEANIME');
     database.open();
     database.close();
   }
 
-  routes() {
+  private routes() {
     this.app.use(cors({ origin: '*' }));
     this.app.use('/', routesDefault);
     this.app.use('/api', routesDefault);
@@ -39,7 +41,7 @@ class server {
     this.app.use('/api/finan', routesFinan);
   }
 
-  init() {
+  private init() {
     const urlToRequest = 'https://info.animecream.com';
     cron.schedule('*/3 * * * *', async () => {
       try {
@@ -55,17 +57,30 @@ class server {
     });
   }
 
-  midlewares() {
+  private middlewares() {
     this.app.use(express.json());
-    this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-      if (err instanceof SyntaxError && 'body' in err) {
-        // Handle JSON parse errors (e.g., invalid JSON in request body)
-        return res.status(400).json({ error: 'Bad Request: Invalid JSON' });
-      }
-      // Handle other bad requests or validation errors
+    this.app.use(this.errorHandlerMiddleware);
+  }
+
+  private errorHandlerMiddleware(err: Error, req: Request, res: Response, next: NextFunction) {
+    if (err instanceof SyntaxError && 'body' in err) {
+      // Handle JSON parse errors (e.g., invalid JSON in request body)
+      return res.status(400).json({ error: 'Bad Request: Invalid JSON' });
+    }
+    // Route not found (404)
+    if (err instanceof Error && err.message === 'Not Found') {
+      res.status(404).json({ error: 'Not Found' });
+    }
+    // Method not allowed (405)
+    else if (err instanceof Error && err.message === 'Method Not Allowed') {
+      res.status(405).json({ error: 'Method Not Allowed' });
+    }
+    // Internal server error (500)
+    else {
+      console.error('Internal Server Error:', err);
       return res.status(400).json({ error: 'Bad Request' });
-    });
+    }
   }
 }
 
-export default server;
+export default Server;

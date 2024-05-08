@@ -77,8 +77,8 @@ export class userMysqlRepository implements UserRepository {
     const { first_name, password } = login;
     const userPassword = await this.Database.loginUser(first_name);
 
-    if (userPassword.result) {
-      const result = await crypt.compare(password, userPassword.result);
+    if (userPassword) {
+      const result = await crypt.compare(password, userPassword);
       if (result) {
         const token = _token.sign({ first_name: first_name }, process.env.SECRET_KEY || 'enterkey');
         return { token };

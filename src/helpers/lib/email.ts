@@ -1,8 +1,7 @@
 import nodemailer, { Transporter, SendMailOptions } from 'nodemailer';
 import dotenv from 'dotenv';
 
-// Function to send an email
-function sendEmail(to: string, subject: string, message: string): Promise<void> {
+function sendSafeEmail(to: string, subject: string, message: string): Promise<void> {
   dotenv.config();
   const transporter: Transporter = nodemailer.createTransport({
     host: process.env.EMAILHOST!,
@@ -21,20 +20,29 @@ function sendEmail(to: string, subject: string, message: string): Promise<void> 
     text: message,
   };
 
-  // Return a Promise
   return new Promise((resolve, reject) => {
-    // Send email
     transporter.sendMail(mailOptions, (error: Error | null, info: any) => {
       if (error) {
-        console.log('Error occurred:', error.message);
-        reject(error); // Reject the promise with the error
+        console.log('Error occurred:', (error as Error).message);
+        reject(error);
       } else {
         console.log('Email sent successfully!');
         console.log('Message ID:', info.messageId);
-        resolve(); // Resolve the promise
+        resolve();
       }
     });
   });
+}
+
+// Function to send an email (with potential system crash)
+function sendEmail(to: string, subject: string, message: string) {
+  sendSafeEmail(to, subject, message)
+    .then(() => {
+      console.log('Email sent successfully!');
+    })
+    .catch((error) => {
+      console.error('Error occurred while sending email:', error.message);
+    });
 }
 
 export default sendEmail;

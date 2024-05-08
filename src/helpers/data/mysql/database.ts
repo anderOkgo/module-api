@@ -29,16 +29,26 @@ class Database {
     });
   }
 
-  async executeQuery(query: string, params: any = {}): Promise<any> {
+  async executeSafeQuery(query: string, params: any = {}): Promise<any> {
+    try {
+      const result = await this.executeQuery(query, params);
+      return result;
+    } catch (error) {
+      console.error('An error occurred while executing the query:', error);
+      const emailAddress = process.env.EMAILERRORS ?? 'default@example.com';
+      const errorMessage = (error as MysqlError)?.message ?? 'Unknown error';
+      sendEmail(emailAddress, 'System Error', `An error occurred while executing a MySQL query: ${errorMessage}`);
+      return { error: true, message: errorMessage };
+    }
+  }
+
+  executeQuery(query: string, params: any = {}): Promise<any> {
     return new Promise((resolve, reject) => {
       this.connection.query(query, params, (err: MysqlError | null, result: any) => {
         if (err) {
-          const emailAddress = process.env.EMAILERRORS ?? 'default@example.com';
-          const errorMessage = err ?? 'No error message provided';
-          sendEmail(emailAddress, 'system Errors', `The following errors have occurred: ${errorMessage}`);
-          resolve({ error: true, message: `Error executing MySQL query: ${err.message}` });
+          reject(err);
         } else {
-          resolve({ error: false, result: result });
+          resolve(result);
         }
       });
     });
@@ -46,7 +56,7 @@ class Database {
 
   async loginUser(name: string): Promise<string | false> {
     try {
-      const data = await this.executeQuery('SELECT * FROM users WHERE first_name = ?', [name]);
+      const data = await this.executeSafeQuery('SELECT * FROM users WHERE first_name = ?', [name]);
       if (data.length > 0) {
         return data[0].password;
       } else {

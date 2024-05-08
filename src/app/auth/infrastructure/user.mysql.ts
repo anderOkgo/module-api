@@ -4,7 +4,7 @@ import { token as _token } from '../../../helpers/token.helper';
 import Login from '../domain/models/Login';
 import User from '../domain/models/User';
 import { UserRepository } from './repositories/user.repository';
-import sendEmail from '../../../helpers/lib/email';
+import sendEmail from '../../../helpers/email.helper';
 
 export class userMysqlRepository implements UserRepository {
   private Database: any;
@@ -23,30 +23,45 @@ export class userMysqlRepository implements UserRepository {
     const sqlInsUser = `INSERT INTO users SET ?`;
     const sqlEmailVerification = `SELECT * FROM email_verification WHERE email = ? AND verification_code = ?`;
 
-    const existingEmail = await this.Database.executeSafeQuery(sqlEmail, [email]);
-    if (existingEmail.error) return { error: true, message: 'Internal server error' };
-    if (existingEmail.length > 0) errors.push('Email already exists');
+    try {
+      const existingEmail = await this.Database.executeQuery(sqlEmail, [email]);
+      if (existingEmail.length > 0) errors.push('Email already exists');
+    } catch (error) {
+      console.error('Error executing SQL query for existingEmail:', error);
+      return { error: true, message: 'Internal server error' };
+    }
 
-    const existingUser = await this.Database.executeSafeQuery(sqluser, [first_name]);
-    if (existingUser.error) return { error: true, message: 'Internal server error' };
-    if (existingUser.length > 0) errors.push('User already exists');
+    try {
+      const existingUser = await this.Database.executeQuery(sqluser, [first_name]);
+      if (existingUser.length > 0) errors.push('User already exists');
+    } catch (error) {
+      console.error('Error executing SQL query for existingUser:', error);
+      return { error: true, message: 'Internal server error' };
+    }
 
     if (verificationCode) {
-      const result = await this.Database.executeSafeQuery(sqlEmailVerification, [email, verificationCode]);
-      if (result.error) return { error: true, message: 'Internal server error' };
-      if (!(result.length > 0)) errors.push('Invalid verification code');
+      try {
+        const result = await this.Database.executeQuery(sqlEmailVerification, [email, verificationCode]);
+        if (!(result.length > 0)) errors.push('Invalid verification code');
+      } catch (error) {
+        console.error('Error executing SQL query for verificationCode:', error);
+        return { error: true, message: 'Internal server error' };
+      }
     }
 
     if (errors.length > 0) return { error: true, errors };
 
     if (!verificationCode) {
-      const generatedVerificationCode = Math.floor(100000 + Math.random() * 900000);
-      const verifyArray = [email, generatedVerificationCode];
-      const isDelete = await this.Database.executeSafeQuery(sqlInsEmailVerification, verifyArray);
-      if (isDelete.error) return { error: true, message: 'Internal server error' };
-
-      sendEmail(email, 'Verification Code', `Your verification code is: ${generatedVerificationCode}`);
-      console.log(generatedVerificationCode);
+      try {
+        const generatedVerificationCode = Math.floor(100000 + Math.random() * 900000);
+        const verifyArray = [email, generatedVerificationCode];
+        const isDelete = await this.Database.executeQuery(sqlInsEmailVerification, verifyArray);
+        sendEmail(email, 'Verification Code', `Your verification code is: ${generatedVerificationCode}`);
+        console.log(generatedVerificationCode);
+      } catch (error) {
+        console.error('Error executing SQL query for sending verification email:', error);
+        return { error: true, message: 'Internal server error' };
+      }
 
       if (errors.length > 0) return { error: true, errors };
 
@@ -63,13 +78,14 @@ export class userMysqlRepository implements UserRepository {
         modified: new Date().toISOString().replace('T', ' ').replace('Z', ''),
       };
 
-      const isDelete = await this.Database.executeSafeQuery(sqlDelEmailVerification, [email]);
-      if (isDelete.error) return { error: true, message: 'Internal server error' };
-
-      const insertUserResult = await this.Database.executeSafeQuery(sqlInsUser, newUser);
-      if (insertUserResult.error) return { error: true, message: 'Internal server error' };
-
-      if (insertUserResult.insertId) return { error: false, message: ['User created successful'] };
+      try {
+        const isDelete = await this.Database.executeQuery(sqlDelEmailVerification, [email]);
+        const insertUserResult = await this.Database.executeQuery(sqlInsUser, newUser);
+        if (insertUserResult.insertId) return { error: false, message: ['User created successful'] };
+      } catch (error) {
+        console.error('Error executing SQL query for creating new user:', error);
+        return { error: true, message: 'Internal server error' };
+      }
     }
   };
 
@@ -78,12 +94,17 @@ export class userMysqlRepository implements UserRepository {
     const userPassword = await this.Database.loginUser(first_name);
 
     if (userPassword) {
-      const result = await crypt.compare(password, userPassword);
-      if (result) {
-        const token = _token.sign({ first_name: first_name }, process.env.SECRET_KEY || 'enterkey');
-        return { token };
-      } else {
-        return { msg: 'Wrong Password' };
+      try {
+        const result = await crypt.compare(password, userPassword);
+        if (result) {
+          const token = _token.sign({ first_name: first_name }, process.env.SECRET_KEY || 'enterkey');
+          return { token };
+        } else {
+          return { msg: 'Wrong Password' };
+        }
+      } catch (error) {
+        console.error('Error comparing passwords:', error);
+        return { error: true, message: 'Internal server error' };
       }
     } else {
       return { msg: 'User does not exist' };

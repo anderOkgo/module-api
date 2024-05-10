@@ -9,7 +9,7 @@ interface RequestBody {
 }
 
 export interface ValidationResult {
-  isValid: boolean;
+  error: boolean;
   errors: string[];
 }
 
@@ -34,7 +34,7 @@ export const validateGetInitialLoads = (body: RequestBody): ValidationResult => 
   if (isEmpty(body.currency)) {
     errors.push('Currency cannot be empty');
   }
-  return { isValid: errors.length === 0, errors };
+  return { error: errors.length > 0, errors };
 };
 
 const isValidDate = (dateString: any) => {
@@ -69,7 +69,7 @@ export const validatePutMovements = (body: RequestBody): ValidationResult => {
   if (isEmpty(body.currency)) {
     errors.push('Currency cannot be empty');
   }
-  return { isValid: errors.length === 0, errors };
+  return { error: errors.length > 0, errors };
 };
 
 // Function to validate the request body for updateMovements endpoint
@@ -99,7 +99,7 @@ export const validateUpdateMovements = (body: RequestBody, id: any): ValidationR
   if (isEmpty(body.currency)) {
     errors.push('Currency cannot be empty');
   }
-  return { isValid: errors.length === 0, errors };
+  return { error: errors.length > 0, errors };
 };
 
 // Function to validate the request body for deleteMovements endpoint
@@ -108,5 +108,5 @@ export const validateDeleteMovements = (id: any): ValidationResult => {
   if (!isNumber(id)) {
     errors.push('ID is invalid');
   }
-  return { isValid: errors.length === 0, errors };
+  return { error: errors.length > 0, errors };
 };

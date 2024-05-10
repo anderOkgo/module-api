@@ -29,41 +29,29 @@ class Database {
     });
   }
 
+  async executeSafeQuery(query: string, params: any = {}): Promise<any> {
+    try {
+      const result = await this.executeQuery(query, params);
+      return result;
+    } catch (err) {
+      const emailAddress = process.env.EMAILERRORS!;
+      const errorMessage = (err as MysqlError).message;
+      sendEmail(emailAddress, 'System Error', `An error occurred while executing a MySQL query: ${errorMessage}`);
+      console.error('An error occurred while executing the query:', err);
+      return { error: true, message: errorMessage };
+    }
+  }
+
   executeQuery(query: string, params: any = {}): Promise<any> {
     return new Promise((resolve, reject) => {
       this.connection.query(query, params, (err: MysqlError | null, result: any) => {
         if (err) {
-          console.error('An error occurred while executing the query:', err);
-          const emailAddress = process.env.EMAILERRORS!;
-          const errorMessage = (err as MysqlError).message;
-          sendEmail(
-            emailAddress,
-            'System Error',
-            `An error occurred while executing a MySQL query: ${errorMessage}`
-          );
           reject(err);
         } else {
           resolve(result);
         }
       });
     });
-  }
-
-  async loginUser(name: string): Promise<string | false> {
-    try {
-      const data = await this.executeQuery('SELECT * FROM users WHERE username = ?', [name]);
-      if (data.length > 0) {
-        return data[0].password;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Error executing MySQL query: ${error.message}`);
-      } else {
-        throw new Error(`An unknown error occurred: ${String(error)}`);
-      }
-    }
   }
 
   close(): Promise<void> {

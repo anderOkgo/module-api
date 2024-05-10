@@ -14,16 +14,16 @@ export const getInitialLoads = async (req: Request, res: Response, next: NextFun
   const validation = validateGetInitialLoads(req.body);
   if (validation.error) return res.status(400).json(validation);
   const resp = await getInitialLoad(req.body);
-  if (resp?.errorSys) res.status(500).json({ error: true, message: 'Internal server error' });
-  resp?.error ? res.status(404).json(resp) : res.status(200).json(resp);
+  if (resp.errorSys) res.status(500).json({ error: true, message: 'Internal server error' });
+  resp.error ? res.status(404).json(resp) : res.status(200).json(resp);
 };
 
 export const putMovements = async (req: Request, res: Response, next: NextFunction) => {
   const validation = validatePutMovements(req.body);
   if (validation.error) return res.status(400).json(validation);
   const resp = await putMovement(req.body);
-  if (resp?.errorSys) res.status(500).json({ error: true, message: 'Internal server error' });
-  resp?.error ? res.status(404).json(resp) : res.status(200).json(resp);
+  if (resp.errorSys) res.status(500).json({ error: true, message: 'Internal server error' });
+  resp.error ? res.status(404).json(resp) : res.status(200).json(resp);
 };
 
 export const updateMovements = async (req: Request, res: Response, next: NextFunction) => {
@@ -31,8 +31,8 @@ export const updateMovements = async (req: Request, res: Response, next: NextFun
   const validation: ValidationResult = validateUpdateMovements(req.body, id);
   if (validation.error) return res.status(400).json(validation);
   const resp = await updateMovement(id, req.body);
-  if (resp?.errorSys) res.status(500).json({ error: true, message: 'Internal server error' });
-  resp?.error ? res.status(404).json(resp) : res.status(200).json(resp);
+  if (resp.errorSys) res.status(500).json({ error: true, message: 'Internal server error' });
+  resp.error ? res.status(404).json(resp) : res.status(200).json(resp);
 };
 
 export const deleteMovements = async (req: Request, res: Response, next: NextFunction) => {
@@ -40,8 +40,8 @@ export const deleteMovements = async (req: Request, res: Response, next: NextFun
   const validation: ValidationResult = validateDeleteMovements(id);
   if (validation.error) return res.status(400).json(validation);
   const resp = await deleteMovement(id);
-  if (resp?.errorSys) res.status(500).json({ error: true, message: 'Internal server error' });
-  resp?.error ? res.status(404).json(resp) : res.status(200).json(resp);
+  if (resp.errorSys) res.status(500).json({ error: true, message: 'Internal server error' });
+  resp.error ? res.status(404).json(resp) : res.status(200).json(resp);
 };
 
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {

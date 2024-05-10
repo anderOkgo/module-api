@@ -33,11 +33,11 @@ export const validateVerificationCode = async (email: string, verificationCode: 
   }
 };
 
-export const userInfo = async(name: string, Database: any): Promise<any | false> {
+export const userInfo = async (name: string, Database: any): Promise<any | false> => {
   try {
     const data = await Database.executeQuery('SELECT * FROM users WHERE username = ?', [name]);
     if (data.length > 0) {
-      return data[0]
+      return data[0];
     } else {
       return false;
     }
@@ -48,4 +48,4 @@ export const userInfo = async(name: string, Database: any): Promise<any | false>
       throw new Error(`An unknown error occurred: ${String(error)}`);
     }
   }
-}
+};

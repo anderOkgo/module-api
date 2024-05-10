@@ -34,8 +34,8 @@ class Database {
       this.connection.query(query, params, (err: MysqlError | null, result: any) => {
         if (err) {
           console.error('An error occurred while executing the query:', err);
-          const emailAddress = process.env.EMAILERRORS ?? 'default@example.com';
-          const errorMessage = (err as MysqlError)?.message ?? 'Unknown error';
+          const emailAddress = process.env.EMAILERRORS!;
+          const errorMessage = (err as MysqlError).message;
           sendEmail(
             emailAddress,
             'System Error',

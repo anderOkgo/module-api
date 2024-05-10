@@ -28,7 +28,16 @@ const validateToken = (req: Request, res: Response, next: NextFunction) => {
           error: 'Unauthorized: Invalid token',
         });
       }
-      // Token is valid, proceed to the next middleware
+
+      if (decoded && typeof decoded === 'object' && 'username' in decoded) {
+        req.body.username = decoded.username;
+      } else {
+        console.error('Invalid token payload:', decoded);
+        return res.status(401).json({
+          error: 'Unauthorized: Invalid token payload',
+        });
+      }
+
       next();
     });
   } catch (error) {

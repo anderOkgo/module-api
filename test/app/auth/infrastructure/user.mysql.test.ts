@@ -21,6 +21,7 @@ describe('userMysqlRepository', () => {
     const user: User = {
       first_name: 'testuser',
       last_name: 'string',
+      username: 'string',
       email: 'string',
       role: 1,
       password: 'string',
@@ -39,6 +40,7 @@ describe('userMysqlRepository', () => {
     expect(Database.prototype.executeQuery).toHaveBeenCalledWith('INSERT INTO users SET ?', {
       first_name: 'testuser',
       last_name: '',
+      username: '',
       email: '',
       role: 1,
       password: 'hashedpassword',
@@ -50,7 +52,7 @@ describe('userMysqlRepository', () => {
 
   it('should log in a user', async () => {
     const login: Login = {
-      first_name: 'testuser',
+      username: 'testuser',
       password: 'testpassword',
     };
 
@@ -64,12 +66,12 @@ describe('userMysqlRepository', () => {
     expect(result).toEqual({ token: 'testtoken' });
     expect(Database.prototype.loginUser).toHaveBeenCalledWith('testuser');
     expect(crypt.compare).toHaveBeenCalledWith('testpassword', 'hashedpassword');
-    expect(token.sign).toHaveBeenCalledWith({ first_name: 'testuser' }, 'enterkey');
+    expect(token.sign).toHaveBeenCalledWith({ username: 'testuser' }, 'enterkey');
   });
 
   it('should handle login failure due to wrong password', async () => {
     const login: Login = {
-      first_name: 'testuser',
+      username: 'testuser',
       password: 'testpassword',
     };
 
@@ -84,7 +86,7 @@ describe('userMysqlRepository', () => {
 
   it('should handle login failure due to user not existing', async () => {
     const login: Login = {
-      first_name: 'nonexistentuser',
+      username: 'nonexistentuser',
       password: 'testpassword',
     };
 

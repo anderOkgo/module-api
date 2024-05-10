@@ -51,7 +51,7 @@ class Database {
 
   async loginUser(name: string): Promise<string | false> {
     try {
-      const data = await this.executeQuery('SELECT * FROM users WHERE first_name = ?', [name]);
+      const data = await this.executeQuery('SELECT * FROM users WHERE username = ?', [name]);
       if (data.length > 0) {
         return data[0].password;
       } else {

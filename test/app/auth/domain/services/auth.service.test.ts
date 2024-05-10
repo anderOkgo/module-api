@@ -20,6 +20,7 @@ describe('User Services', () => {
     const user: User = {
       first_name: 'string',
       last_name: 'string',
+      username: 'string',
       email: 'string',
       role: 1,
       password: 'string',
@@ -36,7 +37,7 @@ describe('User Services', () => {
   it('should call loginUserRepository when loginUserService is called', () => {
     const userService = loginUserService(mockUserRepository);
     const login: Login = {
-      first_name: 'anderokg',
+      username: 'anderokg',
       password: '123',
     };
 

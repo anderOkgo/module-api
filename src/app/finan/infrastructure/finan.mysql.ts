@@ -4,6 +4,7 @@ import { FinanRepository } from './repositories/finan.repository';
 interface DataParams {
   currency: string;
   date?: string;
+  username?: string;
 }
 export class FinanMysqlRepository implements FinanRepository {
   private Database: Database;
@@ -42,6 +43,7 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async totalBankRepository(data: DataParams) {
     try {
+      console.log(data.username);
       const full_query = `SELECT * FROM view_total_bank WHERE 1
                           ${HDB.generateEqualCondition('currency')}
                           ${HDB.generateLimit()}`;

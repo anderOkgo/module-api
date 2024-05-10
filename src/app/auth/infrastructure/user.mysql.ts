@@ -14,10 +14,10 @@ export class userMysqlRepository implements UserRepository {
   }
 
   public addUserRepository = async (user: User) => {
-    const { first_name, password, email, verificationCode } = user;
+    const { username, password, email, verificationCode } = user;
     const errors: string[] = [];
     const sqlEmail = `SELECT * FROM users WHERE 1 ${HDB.generateEqualCondition('email')}`;
-    const sqluser = `SELECT * FROM users WHERE 1 ${HDB.generateEqualCondition('first_name')}`;
+    const sqluser = `SELECT * FROM users WHERE 1 ${HDB.generateEqualCondition('username')}`;
     const sqlInsEmailVerification = `INSERT INTO email_verification (email, verification_code) VALUES (?, ?)`;
     const sqlDelEmailVerification = `DELETE FROM email_verification WHERE email = ?`;
     const sqlInsUser = `INSERT INTO users SET ?`;
@@ -32,7 +32,7 @@ export class userMysqlRepository implements UserRepository {
     }
 
     try {
-      const existingUser = await this.Database.executeQuery(sqluser, [first_name]);
+      const existingUser = await this.Database.executeQuery(sqluser, [username]);
       if (existingUser.length > 0) errors.push('User already exists');
     } catch (error) {
       console.error('Error executing SQL query for existingUser:', error);
@@ -68,8 +68,9 @@ export class userMysqlRepository implements UserRepository {
       return { error: false, message: 'Verification code sent' };
     } else {
       const newUser = {
-        first_name: first_name,
+        first_name: '',
         last_name: '',
+        username: username,
         email: email,
         role: 1,
         password: await crypt.hash(password, 10),
@@ -90,14 +91,14 @@ export class userMysqlRepository implements UserRepository {
   };
 
   public loginUserRepository = async (login: Login) => {
-    const { first_name, password } = login;
-    const userPassword = await this.Database.loginUser(first_name);
+    const { username, password } = login;
+    const userPassword = await this.Database.loginUser(username);
 
     if (userPassword) {
       try {
         const result = await crypt.compare(password, userPassword);
         if (result) {
-          const token = _token.sign({ first_name: first_name }, process.env.SECRET_KEY || 'enterkey');
+          const token = _token.sign({ username: username }, process.env.SECRET_KEY || 'enterkey');
           return { token };
         } else {
           return { msg: 'Wrong Password' };

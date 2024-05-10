@@ -20,7 +20,7 @@ export const validateUser = (data: any): { error: boolean; data?: User; message?
 // Validation function for user login
 export const validateLogin = (data: any): { error: boolean; data?: Login; message?: string } => {
   // Perform validation checks here
-  if (!data || !data.first_name || !data.password) {
+  if (!data || !data.username || !data.password) {
     return { error: true, message: 'Incomplete login data' };
   }
 

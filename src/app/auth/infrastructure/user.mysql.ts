@@ -42,7 +42,7 @@ export class userMysqlRepository implements UserRepository {
         console.log(generatedVerificationCode);
       } catch (error) {
         console.error('Error executing SQL query for sending verification email:', error);
-        return { error: true, message: 'Internal server error' };
+        return { errorSys: true };
       }
       return { error: false, message: 'Verification code sent' };
     } else {
@@ -61,10 +61,10 @@ export class userMysqlRepository implements UserRepository {
       try {
         const isDelete = await this.Database.executeQuery(sqlDelEmailVerification, [email]);
         const insertUserResult = await this.Database.executeQuery(sqlInsUser, newUser);
-        if (insertUserResult.insertId) return { error: false, message: 'User created successful' };
+        if (insertUserResult.insertId) return { error: false, message: 'User created successfully' };
       } catch (error) {
         console.error('Error executing SQL query for creating new user:', error);
-        return { error: true, message: 'Internal server error' };
+        return { errorSys: true };
       }
     }
   };
@@ -77,14 +77,17 @@ export class userMysqlRepository implements UserRepository {
       try {
         const result = await crypt.compare(password, user.password);
         return result
-          ? { token: token.sign({ username: username, role: user.role }, process.env.SECRET_KEY || 'enterkey') }
-          : { msg: 'Wrong Password' };
+          ? {
+              error: false,
+              token: token.sign({ username: username, role: user.role }, process.env.SECRET_KEY || 'enterkey'),
+            }
+          : { error: true, message: 'Wrong Password' };
       } catch (error) {
         console.error('Error comparing passwords:', error);
-        return { error: true, message: 'Internal server error' };
+        return { errorSys: true };
       }
     } else {
-      return { msg: 'User does not exist' };
+      return { error: true, message: 'User does not exist' };
     }
   };
 }

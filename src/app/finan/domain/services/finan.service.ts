@@ -11,5 +11,5 @@ export const updateMovementService =
   (finanRepository: FinanRepository) => (id: number, updatedMovement: Movement) =>
     finanRepository.updateMovementByIdRepository(id, updatedMovement);
 
-export const deleteMovementService = (finanRepository: FinanRepository) => (id: number) =>
-  finanRepository.deleteMovementByIdRepository(id);
+export const deleteMovementService = (finanRepository: FinanRepository) => (id: number, username: string) =>
+  finanRepository.deleteMovementByIdRepository(id, username);

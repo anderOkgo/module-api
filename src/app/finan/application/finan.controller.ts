@@ -37,9 +37,10 @@ export const updateMovements = async (req: Request, res: Response, next: NextFun
 
 export const deleteMovements = async (req: Request, res: Response, next: NextFunction) => {
   const id = parseInt(req.params.id, 10);
+  const username = req.body.username;
   const validation: ValidationResult = validateDeleteMovements(id);
   if (validation.error) return res.status(400).json(validation);
-  const resp = await deleteMovement(id);
+  const resp = await deleteMovement(id, username);
   if (resp.errorSys) res.status(500).json({ error: true, message: 'Internal server error' });
   resp.error ? res.status(404).json(resp) : res.status(200).json(resp);
 };

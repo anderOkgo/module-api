@@ -62,7 +62,7 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async balanceRepository(data: DataParams) {
-    const full_query = `CALL proc_view_monthly_bills_incomes_order_row(?, ?, ?)`;
+    const full_query = `CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?)`;
     const resp = await this.Database.executeSafeQuery(full_query, [data.username, data.currency, this.Limit]);
 
     return resp.message[0];

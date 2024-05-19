@@ -31,13 +31,12 @@ class Database {
 
   async executeSafeQuery(query: string, params: any = {}): Promise<any> {
     try {
-      const result = await this.executeQuery(query, params);
-      return { error: false, message: result };
+      return await this.executeQuery(query, params);
     } catch (err) {
       const emailAddress = process.env.EMAILERRORS!;
       const errorMessage = (err as MysqlError).message;
-      sendEmail(emailAddress, 'System Error', `An error occurred while executing a MySQL query: ${errorMessage}`);
-      console.error('An error occurred while executing the query:', err);
+      sendEmail(emailAddress, 'System Error', `An error occurred executing a MySQL query: ${errorMessage}`);
+      console.error('An error occurred executing the query:', err);
       return { errorSys: true };
     }
   }

@@ -34,16 +34,12 @@ export class userMysqlRepository implements UserRepository {
     const sqlInsUser = `INSERT INTO users SET ?`;
 
     if (!verificationCode) {
-      try {
-        const generatedVerificationCode = Math.floor(100000 + Math.random() * 900000);
-        const verifyArray = [email, generatedVerificationCode];
-        const isInsert = await this.Database.executeQuery(sqlInsEmailVerification, verifyArray);
-        sendEmail(email, 'Verification Code', `Your verification code is: ${generatedVerificationCode}`);
-        console.log(generatedVerificationCode);
-      } catch (error) {
-        console.error('Error executing SQL query for sending verification email:', error);
-        return { errorSys: true, message: 'Intenal Server Error' };
-      }
+      const generatedVerificationCode = Math.floor(100000 + Math.random() * 900000);
+      const verifyArray = [email, generatedVerificationCode];
+      const isInsert = await this.Database.executeSafeQuery(sqlInsEmailVerification, verifyArray);
+      sendEmail(email, 'Verification Code', `Your verification code is: ${generatedVerificationCode}`);
+      console.log(generatedVerificationCode);
+
       return { error: false, message: 'Verification code sent' };
     } else {
       const newUser = {
@@ -58,14 +54,9 @@ export class userMysqlRepository implements UserRepository {
         modified: new Date().toISOString().replace('T', ' ').replace('Z', ''),
       };
 
-      try {
-        const isDelete = await this.Database.executeQuery(sqlDelEmailVerification, [email]);
-        const insertUserResult = await this.Database.executeQuery(sqlInsUser, newUser);
-        if (insertUserResult.insertId) return { error: false, message: 'User created successfully' };
-      } catch (error) {
-        console.error('Error executing SQL query for creating new user:', error);
-        return { errorSys: true, message: 'Intenal Server Error' };
-      }
+      const isDelete = await this.Database.executeSafeQuery(sqlDelEmailVerification, [email]);
+      const insertUserResult = await this.Database.executeSafeQuery(sqlInsUser, newUser);
+      if (insertUserResult.insertId) return { error: false, message: 'User created successfully' };
     }
   };
 

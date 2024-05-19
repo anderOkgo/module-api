@@ -42,7 +42,7 @@ export class userMysqlRepository implements UserRepository {
         console.log(generatedVerificationCode);
       } catch (error) {
         console.error('Error executing SQL query for sending verification email:', error);
-        return { errorSys: true };
+        return { errorSys: true, message: 'Intenal Server Error' };
       }
       return { error: false, message: 'Verification code sent' };
     } else {
@@ -64,7 +64,7 @@ export class userMysqlRepository implements UserRepository {
         if (insertUserResult.insertId) return { error: false, message: 'User created successfully' };
       } catch (error) {
         console.error('Error executing SQL query for creating new user:', error);
-        return { errorSys: true };
+        return { errorSys: true, message: 'Intenal Server Error' };
       }
     }
   };
@@ -84,7 +84,7 @@ export class userMysqlRepository implements UserRepository {
           : { error: true, message: 'Wrong Password' };
       } catch (error) {
         console.error('Error comparing passwords:', error);
-        return { errorSys: true };
+        return { errorSys: true, message: 'Intenal Server Error' };
       }
     } else {
       return { error: true, message: 'User does not exist' };

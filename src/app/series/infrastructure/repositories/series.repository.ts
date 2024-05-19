@@ -1,6 +1,6 @@
 import Serie from '../../domain/models/Series';
 import Year from '../../domain/models/Year';
 export interface ProductionRepository {
-  getProductionRepository(production: Serie): Promise<Serie>;
-  getProductionYearRepository(): Promise<Year>;
+  getProductionRepository(production: Serie): Promise<Serie | any>;
+  getProductionYearRepository(): Promise<Year | any>;
 }

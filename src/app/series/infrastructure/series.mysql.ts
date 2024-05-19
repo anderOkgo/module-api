@@ -46,9 +46,9 @@ export class ProductionMysqlRepository implements ProductionRepository {
     });
 
     try {
-      return await this.database.executeQuery(fullQuery, mergedArray); // Pass limit value here
+      return await this.database.executeQuery(fullQuery, mergedArray);
     } catch (e) {
-      console.error(e);
+      return { errorSys: true, message: 'Intenal Server Error' };
     }
   }
 
@@ -58,7 +58,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     try {
       return await this.database.executeQuery(fullQuery);
     } catch (e) {
-      console.error(e);
+      return { errorSys: true, message: 'Intenal Server Error' };
     }
   }
 }

@@ -32,20 +32,20 @@ class Database {
   async executeSafeQuery(query: string, params: any = {}): Promise<any> {
     try {
       return await this.executeQuery(query, params);
-    } catch (err) {
+    } catch (error) {
       const emailAddress = process.env.EMAILERRORS!;
-      const errorMessage = (err as MysqlError).message;
+      const errorMessage = (error as MysqlError).message;
       sendEmail(emailAddress, 'System Error', `An error occurred executing a MySQL query: ${errorMessage}`);
-      console.error('An error occurred executing the query:', err);
-      return { errorSys: true };
+      console.error('An error occurred executing the query:', error);
+      return { errorSys: true, message: 'Intenal Server Error' };
     }
   }
 
   executeQuery(query: string, params: any = {}): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.connection.query(query, params, (err: MysqlError | null, result: any) => {
-        if (err) {
-          reject(err);
+      this.connection.query(query, params, (error: MysqlError | null, result: any) => {
+        if (error) {
+          reject(error);
         } else {
           resolve(result);
         }

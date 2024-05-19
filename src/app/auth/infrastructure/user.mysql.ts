@@ -27,7 +27,7 @@ export class userMysqlRepository implements UserRepository {
     const verificationCodeError = await validateVerificationCode(email, verificationCode || 0, this.Database);
     if (verificationCodeError) errors.push(verificationCodeError);
 
-    if (errors.length > 0) return { error: true, errors };
+    if (errors.length > 0) return { error: true, message: errors };
 
     const sqlInsEmailVerification = `INSERT INTO email_verification (email, verification_code) VALUES (?, ?)`;
     const sqlDelEmailVerification = `DELETE FROM email_verification WHERE email = ?`;

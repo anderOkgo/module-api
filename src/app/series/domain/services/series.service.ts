@@ -1,8 +1,9 @@
 import { ProductionRepository } from '../../infrastructure/repositories/series.repository';
 import Production from '../models/Series';
 
-export const getProductionService = (productionRepository: ProductionRepository) => (production: Production) =>
-  productionRepository.getProductionRepository(production);
+const getProductions = (productionRepo: ProductionRepository) => (production: Production) =>
+  productionRepo.getProduction(production);
 
-export const getProductionYearService = (productionRepository: ProductionRepository) => () =>
-  productionRepository.getProductionYearRepository();
+const getProductionYears = (productionRepo: ProductionRepository) => () => productionRepo.getProductionYears();
+
+export { getProductions, getProductionYears };

@@ -7,7 +7,7 @@ export const isPositiveNumber = (num: number | undefined): boolean => {
 };
 
 // Function to validate the request body for getInitialLoads endpoint
-export const validateGetInitialLoads = (body: RequestBody): ValidationResult => {
+export const validateGetInitialLoad = (body: RequestBody): ValidationResult => {
   const errors: string[] = [];
   if (isEmpty(body.currency)) {
     errors.push('Currency cannot be empty');
@@ -16,7 +16,7 @@ export const validateGetInitialLoads = (body: RequestBody): ValidationResult => 
 };
 
 // Function to validate the request body for putMovements endpoint
-export const validatePutMovements = (body: RequestBody): ValidationResult => {
+export const validatePutMovement = (body: RequestBody): ValidationResult => {
   const errors: string[] = [];
   if (isEmpty(body.movement_name)) {
     errors.push('Movement name cannot be empty');
@@ -76,7 +76,7 @@ export const validateUpdateMovements = (body: RequestBody, id: any): ValidationR
 };
 
 // Function to validate the request body for deleteMovements endpoint
-export const validateDeleteMovements = (id: any): ValidationResult => {
+export const validateDeleteMovement = (id: any): ValidationResult => {
   const errors: string[] = [];
   if (!isNumber(id)) {
     errors.push('ID is invalid');

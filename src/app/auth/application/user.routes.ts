@@ -1,8 +1,8 @@
 import { router } from '../../../helpers/middle.helper';
-import { addUsers, loginUsers, defaultUsers } from './user.controller';
+import { addUser, loginUser, defaultUser } from './user.controller';
 
-router.get('/users', defaultUsers);
-router.post('/users/add', addUsers);
-router.post('/users/login', loginUsers);
+router.get('/users', defaultUser);
+router.post('/users/add', addUser);
+router.post('/users/login', loginUser);
 
 export default router;

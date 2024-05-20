@@ -14,7 +14,7 @@ export class userMysqlRepository implements UserRepository {
     this.Database = new Database('MYDATABASEAUTH');
   }
 
-  public addUserRepository = async (user: User) => {
+  public addUser = async (user: User) => {
     const { username, password, email, verificationCode } = user;
     const errors: string[] = [];
 
@@ -60,7 +60,7 @@ export class userMysqlRepository implements UserRepository {
     }
   };
 
-  public loginUserRepository = async (login: Login) => {
+  public loginUser = async (login: Login) => {
     const { username, password } = login;
     const user = await userInfo(username, this.Database);
 

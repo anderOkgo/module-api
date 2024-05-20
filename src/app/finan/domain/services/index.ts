@@ -1,9 +1,9 @@
 import * as service from './finan.service';
 import { finanRepository } from '../../infrastructure/index';
 
-const FinanRepository = new finanRepository();
+const finanRepo = new finanRepository();
 
-export const getInitialLoad = service.getInitialLoadService(FinanRepository);
-export const putMovement = service.putMovementService(FinanRepository);
-export const updateMovement = service.updateMovementService(FinanRepository);
-export const deleteMovement = service.deleteMovementService(FinanRepository);
+export const getInitialLoadService = service.getInitialLoad(finanRepo);
+export const putMovementService = service.putMovement(finanRepo);
+export const updateMovementService = service.updateMovement(finanRepo);
+export const deleteMovementService = service.deleteMovement(finanRepo);

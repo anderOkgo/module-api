@@ -1,7 +1,7 @@
-import { getProductionService, getProductionYearService } from './series.service';
+import * as service from './series.service';
 import { productionRepository } from '../../infrastructure/index';
 
-const ProductionRepository = new productionRepository();
+const productionRepo = new productionRepository();
 
-export const getProduction = getProductionService(ProductionRepository);
-export const getProductionYear = getProductionYearService(ProductionRepository);
+export const getProductionsService = service.getProductions(productionRepo);
+export const getProductionYearsService = service.getProductionYears(productionRepo);

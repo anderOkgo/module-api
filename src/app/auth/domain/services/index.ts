@@ -1,7 +1,7 @@
-import { addUserService, loginUserService } from './auth.service';
+import * as service from './auth.service';
 import { userRepository } from '../../infrastructure/index';
 
 const userRepo = new userRepository();
 
-export const addUser = addUserService(userRepo);
-export const loginUser = loginUserService(userRepo);
+export const addUserService = service.addUser(userRepo);
+export const loginUserService = service.loginUser(userRepo);

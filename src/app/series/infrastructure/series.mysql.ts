@@ -9,7 +9,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     this.database = new Database('MYDATABASEANIME');
   }
 
-  public async getProductionRepository(production: Series) {
+  public async getProduction(production: Series) {
     const viewName = 'view_all_info_produtions';
     const initialQuery = `SELECT * FROM ${viewName} WHERE 1`;
     const conditions: string[] = [];
@@ -48,7 +48,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     return await this.database.executeSafeQuery(fullQuery, mergedArray);
   }
 
-  public async getProductionYearRepository() {
+  public async getProductionYears() {
     const fullQuery: string = 'SELECT * FROM view_all_years_productions';
     return await this.database.executeSafeQuery(fullQuery);
   }

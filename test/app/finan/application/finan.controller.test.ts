@@ -14,9 +14,9 @@ import {
 } from '../../../../src/app/finan/domain/services/index';
 
 import {
-  validateGetInitialLoads,
-  validatePutMovements,
-  validateDeleteMovements,
+  validateGetInitialLoad,
+  validatePutMovement,
+  validateDeleteMovement,
   validateUpdateMovements,
 } from '../../../../src/app/finan/application/finan.validations';
 
@@ -49,7 +49,7 @@ describe('Finan Controller', () => {
     it('should respond with TotalBank when validation passes', async () => {
       const requestBody = { date: '2023-01-01' };
       const totalBankData = { balance: 1000 };
-      (validateGetInitialLoads as jest.MockedFunction<any>).mockReturnValue({ isValid: true });
+      (validateGetInitialLoad as jest.MockedFunction<any>).mockReturnValue({ isValid: true });
       (getInitialLoad as jest.MockedFunction<any>).mockResolvedValue(totalBankData);
 
       await getInitialLoads(req as Request, res as Response, next);
@@ -60,7 +60,7 @@ describe('Finan Controller', () => {
 
     it('should respond with 404 error when TotalBank is not found', async () => {
       const requestBody = { date: '2023-01-01' };
-      (validateGetInitialLoads as jest.MockedFunction<any>).mockReturnValue({ isValid: true });
+      (validateGetInitialLoad as jest.MockedFunction<any>).mockReturnValue({ isValid: true });
       (getInitialLoad as jest.MockedFunction<any>).mockResolvedValue(null);
 
       await getInitialLoads(req as Request, res as Response, next);

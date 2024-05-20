@@ -1,3 +1,3 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import express, { Application, Router, Request, Response, NextFunction } from 'express';
 const router = Router();
-export { router, Request, Response, NextFunction };
+export { express, Application, router, Request, Response, NextFunction };

@@ -13,16 +13,16 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async getInitialLoadRepository(data: DataParams) {
     this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [data.username]);
-    const movements = this.movementRepository(data);
-    const balance = this.balanceRepository(data);
-    const movementTag = this.movementTagRepository(data);
-    const totalDay = this.totalDayRepository(data);
-    const balanceUntilDate = this.balanceUntilDateRepository(data);
+    const movements = await this.movementRepository(data);
+    const balance = await this.balanceRepository(data);
+    const movementTag = await this.movementTagRepository(data);
+    const totalDay = await this.totalDayRepository(data);
+    const balanceUntilDate = await this.balanceUntilDateRepository(data);
     const totalBank = await this.totalBankRepository(data);
     let ret = {};
 
     if (data.username === 'anderokgo') {
-      const generalInfo = this.generalInfoRepository();
+      const generalInfo = await this.generalInfoRepository();
       const tripInfo = await this.tripInfoRepository();
       ret = { movements, balance, movementTag, totalDay, generalInfo, tripInfo, balanceUntilDate, totalBank };
     } else {

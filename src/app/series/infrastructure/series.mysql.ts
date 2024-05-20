@@ -27,19 +27,19 @@ export class ProductionMysqlRepository implements ProductionRepository {
 
     for (const [key, value] of Object.entries(production)) {
       if (conditionMap[key]) {
-        conditions.push(conditionMap[key](key, value));
-        conditionsVals.push(value);
+        conditions.push(conditionMap[key](key, value)); // call the HDB fucntion to get a SQL string
+        conditionsVals.push(value); // push the value for the previous SQL string
       }
     }
 
     conditions.push(HDB.generateOrderBy('production_ranking_number', 'ASC'));
     conditions.push(HDB.generateLimit());
-    const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
+    const fullQuery = `${initialQuery} ${conditions.join(' ')}`; // create full SQL string
     conditionsVals.push(parseInt(production.limit));
     const mergedArray: any[] = [];
     conditionsVals.forEach((element) => {
       if (Array.isArray(element)) {
-        mergedArray.push(...element);
+        mergedArray.push(...element); // flat the array
       } else {
         mergedArray.push(element);
       }

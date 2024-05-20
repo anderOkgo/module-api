@@ -13,20 +13,24 @@ class Server {
   constructor() {
     this.app = express();
     this.port = process.env.PORT || '3000';
-    this.listening();
-    this.connectDB();
     this.middlewares();
     this.routes();
+    this.connectDB();
+    this.listening();
   }
 
   private listening() {
-    this.app.listen(this.port, () => console.log('app running port', this.port));
+    this.app.listen(this.port, () => console.log('App running on port', this.port));
   }
 
-  private connectDB() {
-    const database: Database = new Database('MYDATABASEANIME');
-    database.open();
-    database.close();
+  private async connectDB() {
+    try {
+      const database: Database = new Database('MYDATABASEANIME');
+      await database.open();
+    } catch (error) {
+      console.error('Database connection failed', error);
+      process.exit(1);
+    }
   }
 
   private routes() {
@@ -36,11 +40,11 @@ class Server {
     this.app.use('/api/series', routesSeries);
     this.app.use('/api/users', routesUser);
     this.app.use('/api/finan', routesFinan);
+    this.app.use(this.errorHandlerMiddleware);
   }
 
   private middlewares() {
     this.app.use(express.json());
-    this.app.use(this.errorHandlerMiddleware);
   }
 
   private errorHandlerMiddleware(err: Error, req: Request, res: Response, next: NextFunction) {

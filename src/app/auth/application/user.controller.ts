@@ -1,8 +1,8 @@
 import { Request, Response } from '../../../helpers/middle.helper';
 import { addUser, loginUser } from '../domain/services/index';
-import { validateUser, validateLogin } from './user.validation'; // Import validation functions
+import { validateUser, validateLogin } from './user.validation';
 
-export const defaultUsers = async (res: Response) => res.json({ msg: `API Users Working` });
+export const defaultUsers = async (req: Request, res: Response) => res.json({ msg: `API Users Working` });
 
 export const addUsers = async (req: Request, res: Response) => {
   const validation = validateUser(req.body);

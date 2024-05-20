@@ -1,31 +1,9 @@
-interface RequestBody {
-  currency?: any;
-  movement_name?: any;
-  movement_val?: any;
-  movement_date?: any;
-  movement_type?: any;
-  movement_tag?: any;
-  id?: any;
-}
-
-export interface ValidationResult {
-  error: boolean;
-  errors: string[];
-}
-
-// Validation function to check if a string is empty or undefined
-export const isEmpty = (str: string | undefined): boolean => {
-  return !str || (typeof str === 'string' && str.trim().length === 0);
-};
+import { isEmpty, isNumber, isValidDate } from '../../../helpers//validatios.helper';
+import { RequestBody, ValidationResult } from './finan.repository';
 
 // Validation function to check if a number is positive
 export const isPositiveNumber = (num: number | undefined): boolean => {
   return num !== undefined && num > 0;
-};
-
-// Validation function to check if a value is a number
-export const isNumber = (value: any): boolean => {
-  return typeof value === 'number' && !isNaN(value);
 };
 
 // Function to validate the request body for getInitialLoads endpoint
@@ -35,11 +13,6 @@ export const validateGetInitialLoads = (body: RequestBody): ValidationResult => 
     errors.push('Currency cannot be empty');
   }
   return { error: errors.length > 0, errors };
-};
-
-const isValidDate = (dateString: any) => {
-  const date = new Date(dateString);
-  return !isNaN(date.getTime());
 };
 
 // Function to validate the request body for putMovements endpoint

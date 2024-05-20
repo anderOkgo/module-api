@@ -1,18 +1,4 @@
-interface ValidateProduction {
-  [key: string]: string | null;
-}
-
-type ValidationResult =
-  | {
-      result: any;
-      valid: false;
-      errors: ValidateProduction;
-    }
-  | {
-      result: any;
-      valid: true;
-      errors?: ValidateProduction; // Include 'errors' even when 'valid' is true
-    };
+import { ValidateProduction, ValidationResult } from './series.repository';
 
 export const validateProduction = (input: any): ValidationResult => {
   const errors: ValidateProduction = {};

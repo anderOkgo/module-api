@@ -1,7 +1,8 @@
 import { Request, Response } from '../../../helpers/middle.helper';
 import { getInitialLoad, putMovement, updateMovement, deleteMovement } from '../domain/services/index';
 import { validateGetInitialLoads, validatePutMovements, validateDeleteMovements } from './finan.validations';
-import { validateUpdateMovements, ValidationResult } from './finan.validations';
+import { validateUpdateMovements } from './finan.validations';
+import { ValidationResult } from './finan.repository';
 
 export const defaultFInan = async (res: Response) => res.json({ msg: `API Finan Working` });
 

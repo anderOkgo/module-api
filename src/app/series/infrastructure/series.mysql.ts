@@ -45,20 +45,11 @@ export class ProductionMysqlRepository implements ProductionRepository {
       }
     });
 
-    try {
-      return await this.database.executeQuery(fullQuery, mergedArray);
-    } catch (e) {
-      return { errorSys: true, message: 'Intenal Server Error' };
-    }
+    return await this.database.executeSafeQuery(fullQuery, mergedArray);
   }
 
   public async getProductionYearRepository() {
     const fullQuery: string = 'SELECT * FROM view_all_years_productions';
-
-    try {
-      return await this.database.executeQuery(fullQuery);
-    } catch (e) {
-      return { errorSys: true, message: 'Intenal Server Error' };
-    }
+    return await this.database.executeSafeQuery(fullQuery);
   }
 }

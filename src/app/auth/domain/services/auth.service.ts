@@ -2,5 +2,7 @@ import { UserRepository } from '../../infrastructure/repositories/user.repositor
 import User from '../models/User';
 import Login from '../models/Login';
 
-export const addUser = (userRepo: UserRepository) => (user: User) => userRepo.addUser(user);
-export const loginUser = (userRepo: UserRepository) => (login: Login) => userRepo.loginUser(login);
+const addUser = (userRepo: UserRepository) => (user: User) => userRepo.addUser(user);
+const loginUser = (userRepo: UserRepository) => (login: Login) => userRepo.loginUser(login);
+
+export { addUser, loginUser };

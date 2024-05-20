@@ -12,31 +12,23 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async getInitialLoadRepository(data: DataParams) {
-    await this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [data.username]);
-    const movements = await this.movementRepository(data);
-    const balance = await this.balanceRepository(data);
-    const movementTag = await this.movementTagRepository(data);
-    const totalDay = await this.totalDayRepository(data);
-    let generalInfo: any[] = [];
-    let tripInfo: any[] = [];
-    if (data.username === 'anderokgo') {
-      generalInfo = await this.generalInfoRepository();
-      tripInfo = await this.tripInfoRepository();
-    }
-
-    const balanceUntilDate = await this.balanceUntilDateRepository(data);
+    this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [data.username]);
+    const movements = this.movementRepository(data);
+    const balance = this.balanceRepository(data);
+    const movementTag = this.movementTagRepository(data);
+    const totalDay = this.totalDayRepository(data);
+    const balanceUntilDate = this.balanceUntilDateRepository(data);
     const totalBank = await this.totalBankRepository(data);
+    let ret = {};
 
-    return {
-      movements,
-      balance,
-      movementTag,
-      totalDay,
-      generalInfo,
-      tripInfo,
-      balanceUntilDate,
-      totalBank,
-    };
+    if (data.username === 'anderokgo') {
+      const generalInfo = this.generalInfoRepository();
+      const tripInfo = await this.tripInfoRepository();
+      ret = { movements, balance, movementTag, totalDay, generalInfo, tripInfo, balanceUntilDate, totalBank };
+    } else {
+      ret = { movements, balance, movementTag, totalDay, balanceUntilDate, totalBank };
+    }
+    return ret;
   }
 
   public async totalBankRepository(data: DataParams) {
@@ -84,13 +76,8 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async balanceUntilDateRepository(data: DataParams) {
     const full_query = `CALL proc_view_balance_until_date(?, ?, ?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [
-      data.currency,
-      data.username,
-      'Date_movement',
-      'DESC',
-      this.Limit,
-    ]);
+    const arr = [data.currency, data.username, 'Date_movement', 'DESC', this.Limit];
+    const resp = await this.Database.executeSafeQuery(full_query, arr);
     return resp[0];
   }
 
@@ -100,13 +87,19 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async putMovementRepository(parameters: any) {
+    const { movement_name, movement_val, movement_date } = parameters;
+    const { movement_type, movement_tag, currency, username } = parameters;
+    const a = [movement_name, movement_val, movement_date, movement_type, movement_tag, currency, username];
     const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?, ?)`;
-    return await this.Database.executeSafeQuery(full_query, parameters);
+    return await this.Database.executeSafeQuery(full_query, a);
   }
 
   public async updateMovementByIdRepository(id: number, parameters: any) {
+    const { movement_name, movement_val, movement_date } = parameters;
+    const { movement_type, movement_tag, currency, username } = parameters;
+    const a = [id, movement_name, movement_val, movement_date, movement_type, movement_tag, currency, username];
     const full_query = `CALL proc_update_movement(?, ?, ?, ?, ?, ?, ?, ?)`;
-    return await this.Database.executeSafeQuery(full_query, parameters);
+    return await this.Database.executeSafeQuery(full_query, a);
   }
 
   public async deleteMovementByIdRepository(id: number, username: string) {

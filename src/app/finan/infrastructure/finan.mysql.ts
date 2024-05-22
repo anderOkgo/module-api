@@ -15,19 +15,19 @@ export class FinanMysqlRepository implements FinanRepository {
     this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [data.username]);
     const movements = await this.movement(data);
     const balance = await this.balance(data);
+    const yearlyBalance = await this.yearlyBalance(data);
     const movementTag = await this.movementTag(data);
     const totalDay = await this.totalDay(data);
     const balanceUntilDate = await this.balanceUntilDate(data);
     const totalBank = await this.totalBank(data);
-    let ret = {};
+    let ret: any = { movements, balance, yearlyBalance, movementTag, totalDay, balanceUntilDate, totalBank };
 
     if (data.username === 'anderokgo') {
       const generalInfo = await this.generalInfo();
       const tripInfo = await this.tripInfo();
-      ret = { movements, balance, movementTag, totalDay, generalInfo, tripInfo, balanceUntilDate, totalBank };
-    } else {
-      ret = { movements, balance, movementTag, totalDay, balanceUntilDate, totalBank };
+      ret = { ...ret, generalInfo, tripInfo };
     }
+
     return ret;
   }
 
@@ -47,7 +47,12 @@ export class FinanMysqlRepository implements FinanRepository {
   public async balance(data: DataParams) {
     const full_query = `CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?)`;
     const resp = await this.Database.executeSafeQuery(full_query, [data.username, data.currency, this.Limit]);
+    return resp[0];
+  }
 
+  public async yearlyBalance(data: DataParams) {
+    const full_query = `CALL proc_view_yearly_expenses_incomes(?, ?, ?)`;
+    const resp = await this.Database.executeSafeQuery(full_query, [data.username, data.currency, this.Limit]);
     return resp[0];
   }
 

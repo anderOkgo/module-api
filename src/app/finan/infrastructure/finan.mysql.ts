@@ -93,22 +93,22 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async putMovement(parameters: any) {
-    const { movement_name, movement_val, movement_date, substract_to } = parameters;
+    const { movement_name, movement_val, movement_date, subtract_from } = parameters;
     const { movement_type, movement_tag, currency, username } = parameters;
-    if (substract_to) this.substractTo(parameters);
+    if (subtract_from) this.substractTo(parameters);
     const a = [movement_name, movement_val, movement_date, movement_type, movement_tag, currency, username];
     const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?, ?)`;
     return await this.Database.executeSafeQuery(full_query, a);
   }
 
   public async substractTo(parameters: any) {
-    const { substract_to, movement_val, username } = parameters;
+    const { subtract_from, movement_val, username } = parameters;
     let full_query = `SELECT * FROM movements_${username} WHERE id = ? `;
-    const prev_reg = await this.Database.executeSafeQuery(full_query, substract_to);
+    const prev_reg = await this.Database.executeSafeQuery(full_query, subtract_from);
     if (isNumber(prev_reg[0].value)) {
       const newVal = prev_reg[0].value - movement_val;
       let full_query = `UPDATE  movements_${username} SET value = ? WHERE id = ? `;
-      await this.Database.executeSafeQuery(full_query, [newVal, substract_to]);
+      await this.Database.executeSafeQuery(full_query, [newVal, subtract_from]);
     }
   }
 

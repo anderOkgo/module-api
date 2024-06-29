@@ -1,1 +1,1 @@
-G:/Mi unidad/Documents/Variant/Notes/Dev/Codes/Commands/FTPSync/module-api/0.symbolics.bat
+G:/My drive/Documents/Variant/Notes/Dev/Codes/Commands/FTPSync/module-api/0.symbolics.bat

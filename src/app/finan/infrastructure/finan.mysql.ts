@@ -82,7 +82,7 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async balanceUntilDate(data: DataParams) {
     const full_query = `CALL proc_view_balance_until_date(?, ?, ?, ?, ?)`;
-    const arr = [data.currency, data.username, 'Date_movement', 'DESC', this.Limit];
+    const arr = [data.currency, data.username, 'Date_movement', 'ASC', this.Limit];
     const resp = await this.Database.executeSafeQuery(full_query, arr);
     return resp[0];
   }

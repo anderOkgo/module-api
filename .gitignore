@@ -102,3 +102,8 @@ dist
 
 # TernJS port file
 .tern-port
+
+# settings and release folders
+com
+keys
+0.symbolics.bat

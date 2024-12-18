@@ -13,7 +13,9 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async getInitialLoad(data: DataParams) {
-    this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [data.username]);
+    this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [
+      data.username ? data.username.toLowerCase() : '',
+    ]);
     const movements = await this.movement(data);
     const balance = await this.balance(data);
     const yearlyBalance = await this.yearlyBalance(data);

@@ -52,7 +52,7 @@ export class FinanMysqlRepository implements FinanRepository {
     const resp = await this.Database.executeSafeQuery(full_query, [
       data.username,
       data.currency,
-      'ASC',
+      'DESC',
       this.Limit,
     ]);
     return resp[0];

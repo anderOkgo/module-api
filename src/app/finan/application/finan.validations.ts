@@ -22,8 +22,8 @@ export const validatePutMovement = (body: RequestBody): ValidationResult => {
 
   if (isEmpty(body.movement_name)) {
     errors.push('Movement name cannot be empty');
-  } else if (body.movement_name.length > 20) {
-    errors.push('Movement name exceeds 20 characters');
+  } else if (body.movement_name.length > 100) {
+    errors.push('Movement name exceeds 100 characters');
   }
   if (!isNumber(body.movement_val)) {
     errors.push('Movement value must be a number');
@@ -47,8 +47,8 @@ export const validatePutMovement = (body: RequestBody): ValidationResult => {
 
   if (isEmpty(body.movement_tag)) {
     errors.push('Movement tag cannot be empty');
-  } else if (body.movement_tag.length > 15) {
-    errors.push('Movement tag exceeds 15 characters');
+  } else if (body.movement_tag.length > 60) {
+    errors.push('Movement tag exceeds 60 characters');
   }
 
   if (isEmpty(body.currency)) {
@@ -69,8 +69,8 @@ export const validateUpdateMovements = (body: RequestBody, id: any): ValidationR
 
   if (isEmpty(body.movement_name)) {
     errors.push('Movement name cannot be empty');
-  } else if (body.movement_name.length > 20) {
-    errors.push('Movement name exceeds 20 characters');
+  } else if (body.movement_name.length > 100) {
+    errors.push('Movement name exceeds 100 characters');
   }
 
   if (!isNumber(body.movement_val)) {
@@ -95,8 +95,8 @@ export const validateUpdateMovements = (body: RequestBody, id: any): ValidationR
 
   if (isEmpty(body.movement_tag)) {
     errors.push('Movement tag cannot be empty');
-  } else if (body.movement_tag.length > 15) {
-    errors.push('Movement tag exceeds 15 characters');
+  } else if (body.movement_tag.length > 60) {
+    errors.push('Movement tag exceeds 60 characters');
   }
 
   if (isEmpty(body.currency)) {

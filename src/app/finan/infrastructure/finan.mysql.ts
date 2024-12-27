@@ -42,7 +42,7 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async totalDay(data: DataParams) {
     const { username, currency, date } = data;
-    const full_query = `CALL proc_view_total_day(?, ?, ?, ?)`;
+    const full_query = `CALL proc_view_total_expense_day(?, ?, ?, ?)`;
     const resp = await this.Database.executeSafeQuery(full_query, [username, currency, date, this.Limit]);
     return resp[0];
   }
@@ -115,19 +115,10 @@ export class FinanMysqlRepository implements FinanRepository {
     return await this.Database.executeSafeQuery(full_query);
   }
 
-  public async putMovement(parameters: any) {
-    const { movement_name, movement_val, movement_date, subtract_from } = parameters;
-    const { movement_type, movement_tag, currency, username } = parameters;
-    if (subtract_from) this.operateTo(parameters);
-    const a = [movement_name, movement_val, movement_date, movement_type, movement_tag, currency, username];
-    const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?, ?)`;
-    return await this.Database.executeSafeQuery(full_query, a);
-  }
-
-  public async operateTo(parameters: any) {
-    const { subtract_from, movement_val, username, movement_type } = parameters;
+  public async operateFor(parameters: any) {
+    const { operate_for, movement_val, username, movement_type } = parameters;
     let full_query = `SELECT * FROM movements_${username} WHERE id = ? `;
-    const prev_reg = await this.Database.executeSafeQuery(full_query, subtract_from);
+    const prev_reg = await this.Database.executeSafeQuery(full_query, operate_for);
     let newVal = null;
     if (isNumber(prev_reg[0].value)) {
       if (movement_type == 1) {
@@ -139,13 +130,23 @@ export class FinanMysqlRepository implements FinanRepository {
       }
 
       let full_query = `UPDATE  movements_${username} SET value = ? WHERE id = ? `;
-      if (newVal !== null) await this.Database.executeSafeQuery(full_query, [newVal, subtract_from]);
+      if (newVal !== null) await this.Database.executeSafeQuery(full_query, [newVal, operate_for]);
     }
   }
 
-  public async updateMovementById(id: number, parameters: any) {
-    const { movement_name, movement_val, movement_date } = parameters;
+  public async putMovement(parameters: any) {
+    const { movement_name, movement_val, movement_date, operate_for } = parameters;
     const { movement_type, movement_tag, currency, username } = parameters;
+    if (operate_for) this.operateFor(parameters);
+    const a = [movement_name, movement_val, movement_date, movement_type, movement_tag, currency, username];
+    const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?, ?)`;
+    return await this.Database.executeSafeQuery(full_query, a);
+  }
+
+  public async updateMovementById(id: number, parameters: any) {
+    const { movement_name, movement_val, movement_date, operate_for } = parameters;
+    const { movement_type, movement_tag, currency, username } = parameters;
+    if (operate_for) this.operateFor(parameters);
     const a = [id, movement_name, movement_val, movement_date, movement_type, movement_tag, currency, username];
     const full_query = `CALL proc_update_movement(?, ?, ?, ?, ?, ?, ?, ?)`;
     return await this.Database.executeSafeQuery(full_query, a);

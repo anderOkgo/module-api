@@ -118,20 +118,28 @@ export class FinanMysqlRepository implements FinanRepository {
   public async putMovement(parameters: any) {
     const { movement_name, movement_val, movement_date, subtract_from } = parameters;
     const { movement_type, movement_tag, currency, username } = parameters;
-    if (subtract_from) this.substractTo(parameters);
+    if (subtract_from) this.operateTo(parameters);
     const a = [movement_name, movement_val, movement_date, movement_type, movement_tag, currency, username];
     const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?, ?)`;
     return await this.Database.executeSafeQuery(full_query, a);
   }
 
-  public async substractTo(parameters: any) {
-    const { subtract_from, movement_val, username } = parameters;
+  public async operateTo(parameters: any) {
+    const { subtract_from, movement_val, username, movement_type } = parameters;
     let full_query = `SELECT * FROM movements_${username} WHERE id = ? `;
     const prev_reg = await this.Database.executeSafeQuery(full_query, subtract_from);
+    let newVal = null;
     if (isNumber(prev_reg[0].value)) {
-      const newVal = prev_reg[0].value - movement_val;
+      if (movement_type == 1) {
+        newVal = prev_reg[0].value + movement_val;
+      } else if (movement_type == 2) {
+        newVal = prev_reg[0].value - movement_val;
+      } else if (movement_type == 8) {
+        newVal = prev_reg[0].value - movement_val;
+      }
+
       let full_query = `UPDATE  movements_${username} SET value = ? WHERE id = ? `;
-      await this.Database.executeSafeQuery(full_query, [newVal, subtract_from]);
+      if (newVal !== null) await this.Database.executeSafeQuery(full_query, [newVal, subtract_from]);
     }
   }
 

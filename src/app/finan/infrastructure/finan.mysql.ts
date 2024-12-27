@@ -135,9 +135,12 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async putMovement(parameters: any) {
-    const { movement_name, movement_val, movement_date, operate_for } = parameters;
+    let { movement_name, movement_val, movement_date, operate_for } = parameters;
     const { movement_type, movement_tag, currency, username } = parameters;
-    if (operate_for) this.operateFor(parameters);
+
+    operate_for = operate_for === undefined || operate_for === '' ? 0 : operate_for;
+
+    if (operate_for) await this.operateFor(parameters);
     const a = [
       movement_name,
       movement_val,
@@ -148,13 +151,17 @@ export class FinanMysqlRepository implements FinanRepository {
       username,
       operate_for,
     ];
+
     const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?, ?, ?)`;
     return await this.Database.executeSafeQuery(full_query, a);
   }
 
   public async updateMovementById(id: number, parameters: any) {
-    const { movement_name, movement_val, movement_date, operate_for } = parameters;
+    let { movement_name, movement_val, movement_date, operate_for = 0 } = parameters;
     const { movement_type, movement_tag, currency, username } = parameters;
+
+    operate_for = operate_for === undefined || operate_for === '' ? 0 : operate_for;
+
     if (operate_for) this.operateFor(parameters);
     const a = [
       id,

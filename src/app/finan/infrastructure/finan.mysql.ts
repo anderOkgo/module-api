@@ -138,8 +138,17 @@ export class FinanMysqlRepository implements FinanRepository {
     const { movement_name, movement_val, movement_date, operate_for } = parameters;
     const { movement_type, movement_tag, currency, username } = parameters;
     if (operate_for) this.operateFor(parameters);
-    const a = [movement_name, movement_val, movement_date, movement_type, movement_tag, currency, username];
-    const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?, ?)`;
+    const a = [
+      movement_name,
+      movement_val,
+      movement_date,
+      movement_type,
+      movement_tag,
+      currency,
+      username,
+      operate_for,
+    ];
+    const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?, ?, ?)`;
     return await this.Database.executeSafeQuery(full_query, a);
   }
 
@@ -147,8 +156,18 @@ export class FinanMysqlRepository implements FinanRepository {
     const { movement_name, movement_val, movement_date, operate_for } = parameters;
     const { movement_type, movement_tag, currency, username } = parameters;
     if (operate_for) this.operateFor(parameters);
-    const a = [id, movement_name, movement_val, movement_date, movement_type, movement_tag, currency, username];
-    const full_query = `CALL proc_update_movement(?, ?, ?, ?, ?, ?, ?, ?)`;
+    const a = [
+      id,
+      movement_name,
+      movement_val,
+      movement_date,
+      movement_type,
+      movement_tag,
+      currency,
+      username,
+      operate_for,
+    ];
+    const full_query = `CALL proc_update_movement(?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     return await this.Database.executeSafeQuery(full_query, a);
   }
 

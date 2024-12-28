@@ -162,7 +162,6 @@ export class FinanMysqlRepository implements FinanRepository {
 
     operate_for = operate_for === undefined || operate_for === '' ? 0 : operate_for;
 
-    if (operate_for) this.operateFor(parameters);
     const a = [
       id,
       movement_name,

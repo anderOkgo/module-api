@@ -139,46 +139,67 @@ export class FinanMysqlRepository implements FinanRepository {
     const { movement_type, movement_tag, currency, username } = parameters;
 
     operate_for = operate_for === undefined || operate_for === '' ? 0 : operate_for;
-
     if (operate_for) await this.operateFor(parameters);
-    const a = [
+
+    const tableName = `movements_${username}`;
+    const query = `INSERT INTO ${tableName}
+    (name, value, date_movement, type_source_id, tag, currency, user, log)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+    const values = [
       movement_name,
       movement_val,
       movement_date,
-      movement_type,
-      movement_tag,
-      currency,
+      movement_type || null,
+      movement_tag || null,
+      currency || null,
       username,
-      operate_for,
+      operate_for || null,
     ];
 
-    const full_query = `CALL proc_insert_movement(?, ?, ?, ?, ?, ?, ?, ?)`;
-    return await this.Database.executeSafeQuery(full_query, a);
+    return await this.Database.executeSafeQuery(query, values);
   }
 
   public async updateMovementById(id: number, parameters: any) {
-    let { movement_name, movement_val, movement_date, operate_for = 0 } = parameters;
+    let { movement_name, movement_val, movement_date, operate_for } = parameters;
     const { movement_type, movement_tag, currency, username } = parameters;
+    const tableName = `movements_${username}`;
 
     operate_for = operate_for === undefined || operate_for === '' ? 0 : operate_for;
 
-    const a = [
-      id,
+    const query = `
+      UPDATE ${tableName}
+      SET
+        name = ?,
+        value = ?,
+        date_movement = ?,
+        type_source_id = ?,
+        tag = ?,
+        currency = ?,
+        user = ?,
+        log = ?
+      WHERE id = ?
+    `;
+
+    const values = [
       movement_name,
       movement_val,
       movement_date,
-      movement_type,
-      movement_tag,
-      currency,
+      movement_type || null,
+      movement_tag || null,
+      currency || null,
       username,
-      operate_for,
+      operate_for || null,
+      id,
     ];
-    const full_query = `CALL proc_update_movement(?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    return await this.Database.executeSafeQuery(full_query, a);
+
+    return await this.Database.executeSafeQuery(query, values);
   }
 
   public async deleteMovementById(id: number, username: string) {
-    const full_query = `CALL proc_delete_movement(?,?)`;
-    return await this.Database.executeSafeQuery(full_query, [id, username]);
+    const tableName = `movements_${username}`;
+    const query = `DELETE FROM ${tableName} WHERE id = ?`;
+    return await this.Database.executeSafeQuery(query, [id]);
   }
 }

@@ -42,12 +42,6 @@ export class FinanMysqlRepository implements FinanRepository {
     return ret;
   }
 
-  public async totalBalance(data: DataParams) {
-    const full_query = `CALL proc_view_total_balance(?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [data.username, data.currency]);
-    return resp[0];
-  }
-
   public async totalExpenseDay(data: DataParams) {
     const { username, currency, date } = data;
     const full_query = `CALL proc_view_total_expense_day(?, ?, ?, ?)`;
@@ -55,14 +49,26 @@ export class FinanMysqlRepository implements FinanRepository {
     return resp[0];
   }
 
-  public async monthlyBalance(data: DataParams) {
-    const full_query = `CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?, ?)`;
+  public async movement(data: DataParams) {
+    const full_query = `CALL proc_view_movements(?, ?, ?)`;
+    const resp = await this.Database.executeSafeQuery(full_query, [data.username, data.currency, this.Limit]);
+    return resp[0];
+  }
+
+  public async movementTag(data: DataParams) {
+    const full_query = `CALL proc_view_monthly_movements_order_by_tag(?, ?, ?, ?)`;
     const resp = await this.Database.executeSafeQuery(full_query, [
       data.username,
       data.currency,
       'DESC',
       this.Limit,
     ]);
+    return resp[0];
+  }
+
+  public async totalBalance(data: DataParams) {
+    const full_query = `CALL proc_view_total_balance(?, ?)`;
+    const resp = await this.Database.executeSafeQuery(full_query, [data.username, data.currency]);
     return resp[0];
   }
 
@@ -78,14 +84,8 @@ export class FinanMysqlRepository implements FinanRepository {
     return resp[0];
   }
 
-  public async movement(data: DataParams) {
-    const full_query = `CALL proc_view_movements(?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [data.username, data.currency, this.Limit]);
-    return resp[0];
-  }
-
-  public async movementSources(data: DataParams) {
-    const full_query = `CALL proc_view_monthly_movements_order_by_source(?, ?, ?, ?)`;
+  public async monthlyBalance(data: DataParams) {
+    const full_query = `CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?, ?)`;
     const resp = await this.Database.executeSafeQuery(full_query, [
       data.username,
       data.currency,
@@ -93,22 +93,6 @@ export class FinanMysqlRepository implements FinanRepository {
       this.Limit,
     ]);
     return resp[0];
-  }
-
-  public async movementTag(data: DataParams) {
-    const full_query = `CALL proc_view_monthly_movements_order_by_tag(?, ?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [
-      data.username,
-      data.currency,
-      'DESC',
-      this.Limit,
-    ]);
-    return resp[0];
-  }
-
-  public async generalInfo() {
-    const full_query = `SELECT * FROM view_general_info`;
-    return await this.Database.executeSafeQuery(full_query);
   }
 
   public async balanceUntilDate(data: DataParams) {
@@ -116,6 +100,11 @@ export class FinanMysqlRepository implements FinanRepository {
     const arr = [data.username, data.currency, 'date_movement', 'DESC', this.Limit];
     const resp = await this.Database.executeSafeQuery(full_query, arr);
     return resp[0];
+  }
+
+  public async generalInfo() {
+    const full_query = `SELECT * FROM view_general_info`;
+    return await this.Database.executeSafeQuery(full_query);
   }
 
   public async tripInfo() {

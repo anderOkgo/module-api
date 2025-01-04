@@ -16,14 +16,22 @@ export class FinanMysqlRepository implements FinanRepository {
     await this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [
       data.username ? data.username.toLowerCase() : '',
     ]);
+    const totalExpenseDay = await this.totalExpenseDay(data);
     const movements = await this.movement(data);
-    const balance = await this.balance(data);
-    const yearlyBalance = await this.yearlyBalance(data);
     const movementTag = await this.movementTag(data);
-    const totalDay = await this.totalDay(data);
+    const totalBalance = await this.totalBalance(data);
+    const yearlyBalance = await this.yearlyBalance(data);
+    const monthlyBalance = await this.monthlyBalance(data);
     const balanceUntilDate = await this.balanceUntilDate(data);
-    const totalBank = await this.totalBank(data);
-    let ret: any = { movements, balance, yearlyBalance, movementTag, totalDay, balanceUntilDate, totalBank };
+    let ret: any = {
+      totalExpenseDay,
+      movements,
+      movementTag,
+      totalBalance,
+      yearlyBalance,
+      monthlyBalance,
+      balanceUntilDate,
+    };
 
     if (data.username === 'anderokgo') {
       const generalInfo = await this.generalInfo();
@@ -34,20 +42,20 @@ export class FinanMysqlRepository implements FinanRepository {
     return ret;
   }
 
-  public async totalBank(data: DataParams) {
-    const full_query = `CALL proc_view_total_bank(?, ?)`;
+  public async totalBalance(data: DataParams) {
+    const full_query = `CALL proc_view_total_balance(?, ?)`;
     const resp = await this.Database.executeSafeQuery(full_query, [data.username, data.currency]);
     return resp[0];
   }
 
-  public async totalDay(data: DataParams) {
+  public async totalExpenseDay(data: DataParams) {
     const { username, currency, date } = data;
     const full_query = `CALL proc_view_total_expense_day(?, ?, ?, ?)`;
     const resp = await this.Database.executeSafeQuery(full_query, [username, currency, date, this.Limit]);
     return resp[0];
   }
 
-  public async balance(data: DataParams) {
+  public async monthlyBalance(data: DataParams) {
     const full_query = `CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?, ?)`;
     const resp = await this.Database.executeSafeQuery(full_query, [
       data.username,

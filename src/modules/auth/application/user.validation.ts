@@ -1,4 +1,4 @@
-import { isValidEmail } from '../../../helpers/validatios.helper';
+import { isValidEmail } from '../../../infrastructure/validatios.helper';
 import User from '../domain/models/User';
 import Login from '../domain/models/Login';
 

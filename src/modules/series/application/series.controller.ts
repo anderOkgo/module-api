@@ -1,4 +1,4 @@
-import { Request, Response } from '../../../helpers/middle.helper';
+import { Request, Response } from '../../../infrastructure/middle.helper';
 import { getProductionsService, getProductionYearsService } from '../domain/services/index';
 import { validateProduction } from './series.validation';
 

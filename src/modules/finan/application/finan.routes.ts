@@ -1,5 +1,5 @@
-import validateToken from '../../../helpers/validate-token.helper';
-import { router } from '../../../helpers/middle.helper';
+import validateToken from '../../../infrastructure/validate-token.helper';
+import { router } from '../../../infrastructure/middle.helper';
 import { getInitialLoad, putMovement, updateMovement, deleteMovement, defaultFInan } from './finan.controller';
 
 router.get('/finan', defaultFInan);

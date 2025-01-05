@@ -1,4 +1,4 @@
-import { Request, Response } from '../../../helpers/middle.helper';
+import { Request, Response } from '../../../infrastructure/middle.helper';
 import { getInitialLoadService, putMovementService } from '../domain/services/index';
 import { updateMovementService, deleteMovementService } from '../domain/services/index';
 import { validateGetInitialLoad, validatePutMovement, validateDeleteMovement } from './finan.validations';

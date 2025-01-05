@@ -1,4 +1,4 @@
-import { router } from '../../../helpers/middle.helper';
+import { router } from '../../../infrastructure/middle.helper';
 import { getDefault } from './default.controller';
 
 router.get('/', getDefault);

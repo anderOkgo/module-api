@@ -1,4 +1,4 @@
-import { Request, Response } from '../../../helpers/middle.helper';
+import { Request, Response } from '../../../infrastructure/middle.helper';
 import { addUserService, loginUserService } from '../domain/services/index';
 import { validateUser, validateLogin } from './user.validation';
 

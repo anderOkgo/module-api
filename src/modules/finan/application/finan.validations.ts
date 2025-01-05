@@ -1,4 +1,4 @@
-import { isEmpty, isNumber, isValidDate } from '../../../helpers/validatios.helper';
+import { isEmpty, isNumber, isValidDate } from '../../../infrastructure/validatios.helper';
 import { RequestBody, ValidationResult } from './finan.repository';
 
 export const isPositiveNumber = (num: number | undefined): boolean => {

@@ -1,4 +1,4 @@
-import { Database, HDB } from '../../../helpers/my.database.helper';
+import { Database, HDB } from '../../../infrastructure/my.database.helper';
 import Series from '../domain/models/Series';
 import { ProductionRepository } from './repositories/series.repository';
 

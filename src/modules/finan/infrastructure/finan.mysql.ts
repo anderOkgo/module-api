@@ -1,7 +1,7 @@
-import { Database } from '../../../helpers/my.database.helper';
+import { Database } from '../../../infrastructure/my.database.helper';
 import { FinanRepository } from './repositories/finan.repository';
 import { DataParams } from './models/dataparams';
-import { isNumber } from '../../../helpers/validatios.helper';
+import { isNumber } from '../../../infrastructure/validatios.helper';
 
 export class FinanMysqlRepository implements FinanRepository {
   private Database: Database;

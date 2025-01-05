@@ -1,10 +1,10 @@
-import { express, Application, Request, Response, NextFunction } from './helpers/middle.helper';
-import { Database } from './helpers/my.database.helper';
-import routesSeries from './app/series/application/series.routes';
-import routesDefault from './app/default/application/default.routes';
-import routesUser from './app/auth/application/user.routes';
-import routesFinan from './app/finan/application/finan.routes';
-import { cors } from './helpers/cors.helper';
+import { express, Application, Request, Response, NextFunction } from './infrastructure/middle.helper';
+import { Database } from './infrastructure/my.database.helper';
+import { cors } from './infrastructure/cors.helper';
+import routesSeries from './modules/series/application/series.routes';
+import routesDefault from './modules/default/application/default.routes';
+import routesUser from './modules/auth/application/user.routes';
+import routesFinan from './modules/finan/application/finan.routes';
 
 class Server {
   public app: Application;

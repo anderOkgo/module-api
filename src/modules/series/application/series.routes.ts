@@ -1,4 +1,4 @@
-import { router } from '../../../helpers/middle.helper';
+import { router } from '../../../infrastructure/middle.helper';
 import { getProductions, getProductionYears, defaultSeries } from './series.controller';
 
 router.get('/series', defaultSeries);

@@ -1,4 +1,4 @@
-import { router } from '../../../helpers/middle.helper';
+import { router } from '../../../infrastructure/middle.helper';
 import { addUser, loginUser, defaultUser } from './user.controller';
 
 router.get('/users', defaultUser);

@@ -16,6 +16,7 @@ export class FinanMysqlRepository implements FinanRepository {
     await this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [
       data.username ? data.username.toLowerCase() : '',
     ]);
+
     const totalExpenseDay = await this.totalExpenseDay(data);
     const movements = await this.movement(data);
     const movementTag = await this.movementTag(data);

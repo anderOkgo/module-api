@@ -75,7 +75,7 @@ export class userMysqlRepository implements UserRepository {
           : { error: true, message: 'Wrong Password' };
       } catch (error) {
         console.error('Error comparing passwords:', error);
-        return { errorSys: true, message: 'Intenal Server Error' };
+        return { errorSys: true, message: 'Internal Server Error' };
       }
     } else {
       return { error: true, message: 'User does not exist' };

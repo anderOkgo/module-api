@@ -1,76 +1,170 @@
-import { Request, Response, NextFunction } from '../../../../src/infrastructure/middle.helper';
+import { Request, Response } from '../../../../src/infrastructure/middle.helper';
 import {
   defaultFInan,
-  getInitialLoads,
-  putMovements,
-  updateMovements,
-  deleteMovements,
-} from '../../../../src/modules/finan/application/finan.controller';
-import {
   getInitialLoad,
   putMovement,
-  updateMovement,
-  deleteMovement,
-} from '../../../../src/modules/finan/domain/services/index';
-
+} from '../../../../src/modules/finan/application/finan.controller';
+import { getInitialLoadService, putMovementService } from '../../../../src/modules/finan/domain/services/index';
 import {
   validateGetInitialLoad,
   validatePutMovement,
-  validateDeleteMovement,
-  validateUpdateMovements,
 } from '../../../../src/modules/finan/application/finan.validations';
 
-// Mocking the dependencies
-jest.mock('../../../../src/modules/finan/domain/services/index');
+// Mock the dependencies
+jest.mock('../../../../src/modules/finan/domain/services/index', () => ({
+  getInitialLoadService: jest.fn(),
+  putMovementService: jest.fn(),
+}));
 jest.mock('../../../../src/modules/finan/application/finan.validations');
 
 describe('Finan Controller', () => {
-  const req: Partial<Request> = {};
-  const res: Partial<Response> = {
-    json: jest.fn(),
-    status: jest.fn(() => res as Response), // Mocking the chainable method
-  };
-  const next: jest.MockedFunction<any> = jest.fn();
+  let req: Partial<Request>;
+  let res: Partial<Response>;
+
+  beforeEach(() => {
+    req = {
+      body: {},
+    };
+    res = {
+      json: jest.fn(),
+      status: jest.fn(() => res as Response),
+    };
+    jest.clearAllMocks();
+  });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('defaultFInan', () => {
-    it('should respond with a message', async () => {
-      await defaultFInan(req as Request, res as Response);
+  it('should respond with a message for defaultFInan', async () => {
+    await defaultFInan(res as Response);
 
-      // Check if the response JSON has been called correctly with the expected message
-      expect(res.json).toHaveBeenCalledWith({ msg: 'API Finan Working' });
+    expect(res.json).toHaveBeenCalledWith({ msg: 'API Finan Working' });
+  });
+
+  it('should respond with initial load data when validation passes', async () => {
+    const requestBody = { currency: 'USD', username: 'testuser' };
+    req.body = requestBody;
+
+    // Mock validation to pass
+    (validateGetInitialLoad as jest.Mock).mockReturnValue({ error: false });
+    // Mock service to return data
+    (getInitialLoadService as jest.Mock).mockResolvedValue({
+      movements: [],
+      balance: [],
+      yearlyBalance: [],
+      movementTag: [],
+      totalDay: [],
+      balanceUntilDate: [],
+      totalBank: [],
+    });
+
+    await getInitialLoad(req as Request, res as Response);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      movements: [],
+      balance: [],
+      yearlyBalance: [],
+      movementTag: [],
+      totalDay: [],
+      balanceUntilDate: [],
+      totalBank: [],
     });
   });
 
-  describe('getInitialLoads', () => {
-    it('should respond with TotalBank when validation passes', async () => {
-      const requestBody = { date: '2023-01-01' };
-      const totalBankData = { balance: 1000 };
-      (validateGetInitialLoad as jest.MockedFunction<any>).mockReturnValue({ isValid: true });
-      (getInitialLoad as jest.MockedFunction<any>).mockResolvedValue(totalBankData);
+  it('should respond with 400 error when validation fails', async () => {
+    const requestBody = { currency: 'INVALID' };
+    req.body = requestBody;
 
-      await getInitialLoads(req as Request, res as Response, next);
+    // Mock validation to fail
+    (validateGetInitialLoad as jest.Mock).mockReturnValue({ error: true, errors: ['Invalid currency'] });
 
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(totalBankData);
-    });
+    await getInitialLoad(req as Request, res as Response);
 
-    it('should respond with 404 error when TotalBank is not found', async () => {
-      const requestBody = { date: '2023-01-01' };
-      (validateGetInitialLoad as jest.MockedFunction<any>).mockReturnValue({ isValid: true });
-      (getInitialLoad as jest.MockedFunction<any>).mockResolvedValue(null);
-
-      await getInitialLoads(req as Request, res as Response, next);
-
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ error: 'TotalBank Not Found' });
-    });
-
-    // Add more test cases as needed
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(['Invalid currency']);
   });
 
-  // Similar tests for putMovements, updateMovements, and deleteMovements
+  it('should respond with 500 error when service fails', async () => {
+    const requestBody = { currency: 'USD', username: 'testuser' };
+    req.body = requestBody;
+
+    // Mock validation to pass
+    (validateGetInitialLoad as jest.Mock).mockReturnValue({ error: false });
+    // Mock service to return error
+    (getInitialLoadService as jest.Mock).mockResolvedValue({ errorSys: true, message: 'Database error' });
+
+    await getInitialLoad(req as Request, res as Response);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith('Database error');
+  });
+
+  it('should respond with success when movement is added', async () => {
+    const movement = {
+      movement_name: 'test',
+      movement_val: 10,
+      movement_date: '2023-09-25',
+      movement_type: 1,
+      movement_tag: 'testtag',
+      currency: 'USD',
+      username: 'testuser',
+    };
+    req.body = movement;
+
+    // Mock validation to pass
+    (validatePutMovement as jest.Mock).mockReturnValue({ error: false });
+    // Mock service to return success
+    (putMovementService as jest.Mock).mockResolvedValue({ affectedRows: 1 });
+
+    await putMovement(req as Request, res as Response);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ affectedRows: 1 });
+  });
+
+  it('should respond with 400 error when movement validation fails', async () => {
+    const movement = {
+      movement_name: '',
+      movement_val: -1,
+      movement_date: 'invalid',
+      movement_type: 0,
+      movement_tag: '',
+      currency: 'INVALID',
+      username: '',
+    };
+    req.body = movement;
+
+    // Mock validation to fail
+    (validatePutMovement as jest.Mock).mockReturnValue({ error: true, errors: ['Invalid movement'] });
+
+    await putMovement(req as Request, res as Response);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(['Invalid movement']);
+  });
+
+  it('should respond with 500 error when movement service fails', async () => {
+    const movement = {
+      movement_name: 'test',
+      movement_val: 10,
+      movement_date: '2023-09-25',
+      movement_type: 1,
+      movement_tag: 'testtag',
+      currency: 'USD',
+      username: 'testuser',
+    };
+    req.body = movement;
+
+    // Mock validation to pass
+    (validatePutMovement as jest.Mock).mockReturnValue({ error: false });
+    // Mock service to return error
+    (putMovementService as jest.Mock).mockResolvedValue({ errorSys: true, message: 'Database error' });
+
+    await putMovement(req as Request, res as Response);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith('Database error');
+  });
 });

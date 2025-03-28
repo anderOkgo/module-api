@@ -2,18 +2,50 @@ import { FinanMysqlRepository } from '../../../../src/modules/finan/infrastructu
 import { Database } from '../../../../src/infrastructure/my.database.helper';
 //import { HDB } from '../../../../src/infrastructure/data/mysql/database';
 
-// Mock the Database class
-jest.mock('../../../../src/infrastructure/data/mysql/database');
+// Mock the dependencies
+jest.mock('../../../../src/infrastructure/my.database.helper');
 
 describe('FinanMysqlRepository', () => {
   let finanRepository: FinanMysqlRepository;
 
   beforeEach(() => {
     finanRepository = new FinanMysqlRepository();
+    // Reset all mocks before each test
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('should get initial load data', async () => {
+    // Mock the behavior of dependencies
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue({
+      movements: [],
+      balance: [],
+      yearlyBalance: [],
+      movementTag: [],
+      totalDay: [],
+      balanceUntilDate: [],
+      totalBank: [],
+    });
+
+    const data = { currency: 'USD', username: 'testuser' };
+    const result = await finanRepository.getInitialLoad(data);
+
+    expect(result).toEqual({
+      movements: [],
+      balance: [],
+      yearlyBalance: [],
+      movementTag: [],
+      totalDay: [],
+      balanceUntilDate: [],
+      totalBank: [],
+    });
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(
+      'CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?, ?)',
+      ['testuser', 'USD', 'DESC', 10000]
+    );
   });
 
   it('should get total bank data', async () => {
@@ -21,12 +53,13 @@ describe('FinanMysqlRepository', () => {
     (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ total: 1000 }]);
 
     const data = { currency: 'USD', username: 'testuser' };
-    const result = await finanRepository.totalBank(data);
+    const result = await finanRepository.getInitialLoad(data);
 
-    expect(result).toEqual({ total: 1000 });
-
-    // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), ['testuser', 'USD']);
+    expect(result.totalBank).toEqual([{ total: 1000 }]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith('CALL proc_view_total_bank(?, ?)', [
+      'testuser',
+      'USD',
+    ]);
   });
 
   it('should get total day data', async () => {
@@ -34,16 +67,13 @@ describe('FinanMysqlRepository', () => {
     (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ total: 100 }]);
 
     const data = { currency: 'USD', date: '2023-09-25', username: 'testuser' };
-    const result = await finanRepository.totalDay(data);
+    const result = await finanRepository.getInitialLoad(data);
 
-    expect(result).toEqual({ total: 100 });
-
-    // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
+    expect(result.totalDay).toEqual([{ total: 100 }]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith('CALL proc_view_total_day(?, ?, ?)', [
       'testuser',
       'USD',
       '2023-09-25',
-      10000,
     ]);
   });
 
@@ -52,34 +82,27 @@ describe('FinanMysqlRepository', () => {
     (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ balance: 500 }]);
 
     const data = { currency: 'USD', username: 'testuser' };
-    const result = await finanRepository.balance(data);
+    const result = await finanRepository.getInitialLoad(data);
 
-    expect(result).toEqual({ balance: 500 });
-
-    // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
-      'testuser',
-      'USD',
-      'DESC',
-      10000,
-    ]);
+    expect(result.balance).toEqual([{ balance: 500 }]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(
+      'CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?, ?)',
+      ['testuser', 'USD', 'DESC', 10000]
+    );
   });
 
-  it('should get movements data', async () => {
+  it('should get yearly balance data', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ movements: [] }]);
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue({ yearly_balance: 1200 });
 
     const data = { currency: 'USD', username: 'testuser' };
-    const result = await finanRepository.movement(data);
+    const result = await finanRepository.getInitialLoad(data);
 
-    expect(result).toEqual({ movements: [] });
-
-    // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
-      'testuser',
-      'USD',
-      10000,
-    ]);
+    expect(result.yearlyBalance).toEqual({ yearly_balance: 1200 });
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(
+      'CALL proc_view_yearly_expenses_incomes(?, ?, ?, ?, ?)',
+      ['testuser', 'USD', 'year_number', 'DESC', 10000]
+    );
   });
 
   it('should get movement sources data', async () => {
@@ -87,42 +110,20 @@ describe('FinanMysqlRepository', () => {
     (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ sources: [] }]);
 
     const data = { currency: 'USD', username: 'testuser' };
-    const result = await finanRepository.movementSources(data);
+    const result = await finanRepository.getInitialLoad(data);
 
-    expect(result).toEqual({ sources: [] });
-
-    // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
-      'testuser',
-      'USD',
-      'DESC',
-      10000,
-    ]);
-  });
-
-  it('should get movement tag data', async () => {
-    // Mock the behavior of dependencies
-    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ tags: [] }]);
-
-    const data = { currency: 'USD', username: 'testuser' };
-    const result = await finanRepository.movementTag(data);
-
-    expect(result).toEqual({ tags: [] });
-
-    // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
-      'testuser',
-      'USD',
-      'DESC',
-      10000,
-    ]);
+    expect(result.movementSources).toEqual([{ sources: [] }]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(
+      'CALL proc_view_monthly_movements_order_by_source(?, ?, ?, ?)',
+      ['testuser', 'USD', 'DESC', 10000]
+    );
   });
 
   it('should put a movement', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ success: true }]);
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue({ affectedRows: 1 });
 
-    const parameters = {
+    const movement = {
       movement_name: 'test',
       movement_val: 10,
       movement_date: '2023-09-25',
@@ -132,19 +133,12 @@ describe('FinanMysqlRepository', () => {
       username: 'testuser',
     };
 
-    const result = await finanRepository.putMovement(parameters);
+    const result = await finanRepository.putMovement(movement);
 
-    expect(result).toEqual([{ success: true }]);
-
-    // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
-      'test',
-      10,
-      '2023-09-25',
-      1,
-      'testtag',
-      'USD',
-      'testuser',
-    ]);
+    expect(result).toEqual({ affectedRows: 1 });
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(
+      'INSERT INTO movements_testuser\n        (name, value, date_movement, type_source_id, tag, currency, user, log)\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      ['test', 10, '2023-09-25', 1, 'testtag', 'USD', 'testuser', null]
+    );
   });
 });

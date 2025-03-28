@@ -3,7 +3,7 @@ import validateToken from '../../../src/infrastructure/validate-token.helper';
 import { token } from '../../../src/infrastructure/token.helper';
 
 // Mock the token helper
-jest.mock('../../../src/helpers/token.helper', () => ({
+jest.mock('../../../src/infrastructure/token.helper', () => ({
   token: {
     verify: jest.fn(),
   },

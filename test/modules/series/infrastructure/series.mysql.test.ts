@@ -1,8 +1,8 @@
-import { Database } from '../../../../src/infrastructure/my.database.helper';
 import { ProductionMysqlRepository } from '../../../../src/modules/series/infrastructure/series.mysql';
-import Series from '../../../../src/modules/series/domain/models/Series';
+import { Database } from '../../../../src/infrastructure/my.database.helper';
+import Production from '../../../../src/modules/series/domain/models/Series';
 
-// Mock the Database class
+// Mock the dependencies
 jest.mock('../../../../src/infrastructure/my.database.helper');
 
 describe('ProductionMysqlRepository', () => {
@@ -10,36 +10,42 @@ describe('ProductionMysqlRepository', () => {
 
   beforeEach(() => {
     productionRepository = new ProductionMysqlRepository();
+    // Reset all mocks before each test
+    jest.clearAllMocks();
   });
 
-  it('should get productions with specified conditions', async () => {
-    // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 
-    const production: Series = {
-      production_name: 'Sample Production',
-      production_number_chapters: [10, 20],
-      production_description: 'Sample Description',
-      production_year: [2000, 2020],
-      demographic_name: 'Demographic Name',
-      genre_names: ['Genre 1'],
-      id: [1, 2, 3],
-      limit: '10',
+  it('should get production data', async () => {
+    // Mock the behavior of dependencies
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ productions: [] }]);
+
+    const production: Production = {
+      id: 'string',
+      production_name: 'string',
+      production_number_chapters: [1, 2],
+      production_description: 'string',
+      production_year: [1, 2],
+      demographic_name: 'string',
+      genre_names: ['1', '2'],
+      limit: 'string',
     };
 
-    const result = await productionRepository.getProductionRepository(production);
-    expect(result).toEqual({});
+    const result = await productionRepository.getProduction(production);
+
+    expect(result).toEqual([{ productions: [] }]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM view_all_productions');
   });
 
   it('should get production years', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ years: [] }]);
 
-    const result = await productionRepository.getProductionYearRepository();
+    const result = await productionRepository.getProductionYears();
 
-    expect(result).toEqual({});
-
-    // Verify that the expected method is called
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * FROM view_all_years_productions');
+    expect(result).toEqual([{ years: [] }]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM view_all_years_productions');
   });
 });

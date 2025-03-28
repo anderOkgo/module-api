@@ -1,12 +1,12 @@
 import { UserRepository } from '../../../../../src/modules/auth/infrastructure/repositories/user.repository';
-import { addUserService, loginUserService } from '../../../../../src/modules/auth/domain/services/auth.service';
+import { addUser, loginUser } from '../../../../../src/modules/auth/domain/services/auth.service';
 import User from '../../../../../src/modules/auth/domain/models/User';
 import Login from '../../../../../src/modules/auth/domain/models/Login';
 
 // Manually mock UserRepository
 const mockUserRepository: UserRepository = {
-  addUserRepository: jest.fn(),
-  loginUserRepository: jest.fn(),
+  addUser: jest.fn(),
+  loginUser: jest.fn(),
 };
 
 describe('User Services', () => {
@@ -15,8 +15,8 @@ describe('User Services', () => {
     jest.clearAllMocks();
   });
 
-  it('should call addUserRepository when addUserService is called', () => {
-    const userService = addUserService(mockUserRepository);
+  it('should call addUser when addUser is called', () => {
+    const userService = addUser(mockUserRepository);
     const user: User = {
       first_name: 'string',
       last_name: 'string',
@@ -31,11 +31,11 @@ describe('User Services', () => {
 
     userService(user);
 
-    expect(mockUserRepository.addUserRepository).toHaveBeenCalledWith(user);
+    expect(mockUserRepository.addUser).toHaveBeenCalledWith(user);
   });
 
-  it('should call loginUserRepository when loginUserService is called', () => {
-    const userService = loginUserService(mockUserRepository);
+  it('should call loginUser when loginUser is called', () => {
+    const userService = loginUser(mockUserRepository);
     const login: Login = {
       username: 'anderokg',
       password: '123',
@@ -43,6 +43,6 @@ describe('User Services', () => {
 
     userService(login);
 
-    expect(mockUserRepository.loginUserRepository).toHaveBeenCalledWith(login);
+    expect(mockUserRepository.loginUser).toHaveBeenCalledWith(login);
   });
 });

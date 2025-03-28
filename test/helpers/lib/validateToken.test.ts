@@ -2,6 +2,13 @@ import { Request, Response, NextFunction } from '../../../src/helpers/middle.hel
 import validateToken from '../../../src/helpers/validate-token.helper';
 import { token } from '../../../src/helpers/token.helper';
 
+// Mock the token helper
+jest.mock('../../../src/helpers/token.helper', () => ({
+  token: {
+    verify: jest.fn(),
+  },
+}));
+
 describe('validateToken Middleware', () => {
   // Mock Express request, response, and next functions
   let req: Partial<Request>;
@@ -17,36 +24,40 @@ describe('validateToken Middleware', () => {
     // Create mock request, response, and next functions for each test
     req = {
       headers: {},
+      body: {},
     };
     res = {
-      status: jest.fn(() => res) as MockResponse['status'], // Explicitly type the status function
-      json: jest.fn() as MockResponse['json'], // Explicitly type the json function
+      status: jest.fn(() => res) as MockResponse['status'],
+      json: jest.fn() as MockResponse['json'],
     };
     next = jest.fn();
-  });
-  beforeEach(() => {
-    // Reset mock function calls before each test
     jest.clearAllMocks();
   });
 
-  it('should pass when a valid token is provided', () => {
+  it('should pass when a valid token is provided', async () => {
     // Mock a valid token
     const validToken =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmaXJzdF9uYW1lIjoiYW5kZXJva2dvIiwiaWF0IjoxNzE0OTMwNjU2fQ.Q28Pel7h5VcIo8B3tTF6Rpf-TIZTSrY8CWeVllaq08k';
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFuZGVyb2tnbyIsImlhdCI6MTcxNDkzMDY1Nn0.Q28Pel7h5VcIo8B3tTF6Rpf-TIZTSrY8CWeVllaq08k';
 
     // Set the Authorization header with the valid token
     req.headers = { authorization: `Bearer ${validToken}` };
 
-    validateToken(req as Request, res as Response, next as NextFunction);
+    // Mock token verification to succeed
+    (token.verify as jest.Mock).mockImplementation((token, secret, callback) => {
+      callback(null, { username: 'anderokgo' });
+    });
+
+    await validateToken(req as Request, res as Response, next as NextFunction);
 
     expect(next).toHaveBeenCalled();
+    expect(req.body.username).toBe('anderokgo');
   });
 
-  it('should return 401 when no token is provided', () => {
+  it('should return 401 when no token is provided', async () => {
     // Set no Authorization header
     req.headers = {};
 
-    validateToken(req as Request, res as Response, next as NextFunction);
+    await validateToken(req as Request, res as Response, next as NextFunction);
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({
       error: 'Unauthorized: Missing or invalid token format',
@@ -54,11 +65,11 @@ describe('validateToken Middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('should return 401 when token format is invalid', () => {
+  it('should return 401 when token format is invalid', async () => {
     // Set an invalid token format
     req.headers = { authorization: 'InvalidToken' };
 
-    validateToken(req as Request, res as Response, next);
+    await validateToken(req as Request, res as Response, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({
@@ -67,14 +78,19 @@ describe('validateToken Middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('should return 401 when token is invalid', () => {
+  it('should return 401 when token is invalid', async () => {
     // Mock an invalid token
     const invalidToken = 'invalid_token';
 
     // Set the Authorization header with the invalid token
     req.headers = { authorization: `Bearer ${invalidToken}` };
 
-    validateToken(req as Request, res as Response, next as NextFunction);
+    // Mock token verification to fail
+    (token.verify as jest.Mock).mockImplementation((token, secret, callback) => {
+      callback(new Error('Invalid token'), null);
+    });
+
+    await validateToken(req as Request, res as Response, next as NextFunction);
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({
@@ -83,23 +99,23 @@ describe('validateToken Middleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('should handle token verification errors', () => {
+  it('should handle token verification errors', async () => {
     // Mock a token that will trigger an error during verification
     const errorToken = 'error_token';
 
     // Set the Authorization header with the error-triggering token
     req.headers = { authorization: `Bearer ${errorToken}` };
 
-    // Mock token verification function to throw an error
-    token.verify = jest.fn(() => {
-      throw new Error('Token verification error');
+    // Mock token verification to throw an error
+    (token.verify as jest.Mock).mockImplementation((token, secret, callback) => {
+      callback(new Error('Token verification error'), null);
     });
 
-    validateToken(req as Request, res as Response, next);
+    await validateToken(req as Request, res as Response, next);
 
-    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({
-      error: 'Internal Server Error',
+      error: 'Unauthorized: Invalid token',
     });
     expect(next).not.toHaveBeenCalled();
   });

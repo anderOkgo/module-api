@@ -1,5 +1,5 @@
-import { Database } from '../../../../src/helpers/my.database.helper';
 import { ProductionMysqlRepository } from '../../../../src/app/series/infrastructure/series.mysql';
+import { Database } from '../../../../src/helpers/my.database.helper';
 import Series from '../../../../src/app/series/domain/models/Series';
 
 // Mock the Database class
@@ -12,9 +12,13 @@ describe('ProductionMysqlRepository', () => {
     productionRepository = new ProductionMysqlRepository();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should get productions with specified conditions', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ productions: [] }]);
 
     const production: Series = {
       production_name: 'Sample Production',
@@ -27,19 +31,19 @@ describe('ProductionMysqlRepository', () => {
       limit: '10',
     };
 
-    const result = await productionRepository.getProductionRepository(production);
-    expect(result).toEqual({});
+    const result = await productionRepository.getProduction(production);
+
+    expect(result).toEqual([{ productions: [] }]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), expect.any(Array));
   });
 
   it('should get production years', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ years: [] }]);
 
-    const result = await productionRepository.getProductionYearRepository();
+    const result = await productionRepository.getProductionYears();
 
-    expect(result).toEqual({});
-
-    // Verify that the expected method is called
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * FROM view_all_years_productions');
+    expect(result).toEqual([{ years: [] }]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM view_all_years_productions');
   });
 });

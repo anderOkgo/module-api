@@ -1,14 +1,11 @@
 import { ProductionRepository } from '../../../../../src/app/series/infrastructure/repositories/series.repository';
-import {
-  getProductionService,
-  getProductionYearService,
-} from '../../../../../src/app/series/domain/services/series.service';
+import { getProductions, getProductionYears } from '../../../../../src/app/series/domain/services/series.service';
 import Production from '../../../../../src/app/series/domain/models/Series';
 
 // Manually mock ProductionRepository
 const mockProductionRepository: ProductionRepository = {
-  getProductionRepository: jest.fn(),
-  getProductionYearRepository: jest.fn(),
+  getProduction: jest.fn(),
+  getProductionYears: jest.fn(),
 };
 
 describe('Series Services', () => {
@@ -17,8 +14,8 @@ describe('Series Services', () => {
     jest.clearAllMocks();
   });
 
-  it('should call getProductionService when getProductionService is called', () => {
-    const productionService = getProductionService(mockProductionRepository);
+  it('should call getProduction when getProductions is called', () => {
+    const productionService = getProductions(mockProductionRepository);
     const production: Production = {
       id: 'string',
       production_name: 'string',
@@ -32,14 +29,14 @@ describe('Series Services', () => {
 
     productionService(production);
 
-    expect(mockProductionRepository.getProductionRepository).toHaveBeenCalledWith(production);
+    expect(mockProductionRepository.getProduction).toHaveBeenCalledWith(production);
   });
 
-  it('should call getProductionYearService when getProductionYearsService is called', () => {
-    const yearsService = getProductionYearService(mockProductionRepository);
+  it('should call getProductionYears when getProductionYears is called', () => {
+    const yearsService = getProductionYears(mockProductionRepository);
 
     yearsService();
 
-    expect(mockProductionRepository.getProductionYearRepository).toHaveBeenCalled();
+    expect(mockProductionRepository.getProductionYears).toHaveBeenCalled();
   });
 });

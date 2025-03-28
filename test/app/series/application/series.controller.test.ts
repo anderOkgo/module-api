@@ -4,9 +4,14 @@ import {
   getProductions,
   getProductionYears,
 } from '../../../../src/app/series/application/series.controller';
-import { getProduction, getProductionYear } from '../../../../src/app/series/domain/services/index';
+import {
+  getProductionsService,
+  getProductionYearsService,
+} from '../../../../src/app/series/domain/services/index';
+import { validateProduction } from '../../../../src/app/series/application/series.validation';
 
 jest.mock('../../../../src/app/series/domain/services/index'); // Mock the services
+jest.mock('../../../../src/app/series/application/series.validation'); // Mock the validation
 
 describe('Series Controller', () => {
   const req: Partial<Request> = {};
@@ -30,8 +35,11 @@ describe('Series Controller', () => {
     // Define a sample productions object for testing
     const productions = [{ title: 'Series 1' }, { title: 'Series 2' }];
 
-    // Mock the getProduction function to resolve with productions
-    (getProduction as jest.Mock).mockResolvedValue(productions);
+    // Mock the validation to pass
+    (validateProduction as jest.Mock).mockReturnValue({ valid: true, result: {} });
+
+    // Mock the getProductionsService function to resolve with productions
+    (getProductionsService as jest.Mock).mockResolvedValue(productions);
 
     // Simulate a request with a request body (e.g., filters)
     req.body = { category: 'Action' };
@@ -44,8 +52,11 @@ describe('Series Controller', () => {
   });
 
   it('should respond with a 404 error for getProductions when productions are not found', async () => {
-    // Mock the getProduction function to resolve with null (productions not found)
-    (getProduction as jest.Mock).mockResolvedValue(null);
+    // Mock the validation to pass
+    (validateProduction as jest.Mock).mockReturnValue({ valid: true, result: {} });
+
+    // Mock the getProductionsService function to resolve with error
+    (getProductionsService as jest.Mock).mockResolvedValue({ errorSys: true, message: 'Productions not found' });
 
     // Simulate a request with a request body (e.g., filters)
     req.body = { category: 'Drama' };
@@ -53,16 +64,16 @@ describe('Series Controller', () => {
     await getProductions(req as Request, res as Response);
 
     // Check if the response status and JSON have been called correctly for error
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Productions not found' });
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith('Productions not found');
   });
 
   it('should respond with production years when getProductionYear succeeds', async () => {
     // Define a sample years array for testing
     const years = [2020, 2021, 2022];
 
-    // Mock the getProductionYear function to resolve with years
-    (getProductionYear as jest.Mock).mockResolvedValue(years);
+    // Mock the getProductionYearsService function to resolve with years
+    (getProductionYearsService as jest.Mock).mockResolvedValue(years);
 
     // Simulate a request without a request body (e.g., no filters)
     req.body = {};
@@ -75,8 +86,11 @@ describe('Series Controller', () => {
   });
 
   it('should respond with a 404 error for getProductionYears when production years are not found', async () => {
-    // Mock the getProductionYear function to resolve with null (production years not found)
-    (getProductionYear as jest.Mock).mockResolvedValue(null);
+    // Mock the getProductionYearsService function to resolve with error
+    (getProductionYearsService as jest.Mock).mockResolvedValue({
+      errorSys: true,
+      message: 'Production years not found',
+    });
 
     // Simulate a request without a request body (e.g., no filters)
     req.body = {};
@@ -84,7 +98,7 @@ describe('Series Controller', () => {
     await getProductionYears(req as Request, res as Response);
 
     // Check if the response status and JSON have been called correctly for error
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Production years not found' });
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith('Production years not found');
   });
 });

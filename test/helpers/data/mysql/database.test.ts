@@ -14,7 +14,7 @@ describe('ProductionMysqlRepository', () => {
 
   it('should get productions with specified conditions', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ productions: [] }]);
 
     const production: Series = {
       production_name: 'Sample Production',
@@ -27,20 +27,20 @@ describe('ProductionMysqlRepository', () => {
       limit: '10',
     };
 
-    const result = await productionRepository.getProductionRepository(production);
+    const result = await productionRepository.getProduction(production);
 
-    expect(result).toEqual({});
+    expect(result).toEqual([{ productions: [] }]);
   });
 
   it('should get production years', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ years: [] }]);
 
-    const result = await productionRepository.getProductionYearRepository();
+    const result = await productionRepository.getProductionYears();
 
-    expect(result).toEqual({});
+    expect(result).toEqual([{ years: [] }]);
 
     // Verify that the expected method is called
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('SELECT * FROM view_all_years_productions');
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM view_all_years_productions');
   });
 });

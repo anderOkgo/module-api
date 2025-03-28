@@ -18,85 +18,109 @@ describe('FinanMysqlRepository', () => {
 
   it('should get total bank data', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ total: 1000 }]);
 
-    const data = { currency: 'USD' };
-    const result = await finanRepository.totalBankRepository(data);
+    const data = { currency: 'USD', username: 'testuser' };
+    const result = await finanRepository.totalBank(data);
 
-    expect(result).toEqual({});
+    expect(result).toEqual({ total: 1000 });
 
     // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['USD', 10000]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), ['testuser', 'USD']);
   });
 
   it('should get total day data', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ total: 100 }]);
 
-    const data = { currency: 'USD', date: '2023-09-25' };
-    const result = await finanRepository.totalDayRepository(data);
+    const data = { currency: 'USD', date: '2023-09-25', username: 'testuser' };
+    const result = await finanRepository.totalDay(data);
 
-    expect(result).toEqual({});
+    expect(result).toEqual({ total: 100 });
 
     // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['2023-09-25', 'USD', 10000]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
+      'testuser',
+      'USD',
+      '2023-09-25',
+      10000,
+    ]);
   });
 
   it('should get balance data', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ balance: 500 }]);
 
-    const data = { currency: 'USD' };
-    const result = await finanRepository.balanceRepository(data);
+    const data = { currency: 'USD', username: 'testuser' };
+    const result = await finanRepository.balance(data);
 
-    expect(result).toEqual({});
+    expect(result).toEqual({ balance: 500 });
 
     // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['USD', 10000]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
+      'testuser',
+      'USD',
+      'DESC',
+      10000,
+    ]);
   });
 
   it('should get movements data', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ movements: [] }]);
 
-    const data = { currency: 'USD' };
-    const result = await finanRepository.movementRepository(data);
+    const data = { currency: 'USD', username: 'testuser' };
+    const result = await finanRepository.movement(data);
 
-    expect(result).toEqual({});
+    expect(result).toEqual({ movements: [] });
 
     // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['USD', 10000]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
+      'testuser',
+      'USD',
+      10000,
+    ]);
   });
 
   it('should get movement sources data', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ sources: [] }]);
 
-    const data = { currency: 'USD' };
-    const result = await finanRepository.movementSourcesRepository(data);
+    const data = { currency: 'USD', username: 'testuser' };
+    const result = await finanRepository.movementSources(data);
 
-    expect(result).toEqual({});
+    expect(result).toEqual({ sources: [] });
 
     // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['USD', 10000]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
+      'testuser',
+      'USD',
+      'DESC',
+      10000,
+    ]);
   });
 
   it('should get movement tag data', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ tags: [] }]);
 
-    const data = { currency: 'USD' };
-    const result = await finanRepository.movementTagRepository(data);
+    const data = { currency: 'USD', username: 'testuser' };
+    const result = await finanRepository.movementTag(data);
 
-    expect(result).toEqual({});
+    expect(result).toEqual({ tags: [] });
 
     // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), ['USD', 10000]);
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
+      'testuser',
+      'USD',
+      'DESC',
+      10000,
+    ]);
   });
 
   it('should put a movement', async () => {
     // Mock the behavior of dependencies
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({});
+    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ success: true }]);
 
     const parameters = {
       movement_name: 'test',
@@ -105,20 +129,22 @@ describe('FinanMysqlRepository', () => {
       movement_type: 1,
       movement_tag: 'testtag',
       currency: 'USD',
+      username: 'testuser',
     };
 
-    const result = await finanRepository.putMovementRepository(parameters);
+    const result = await finanRepository.putMovement(parameters);
 
-    expect(result).toEqual({});
+    expect(result).toEqual([{ success: true }]);
 
     // Verify that the expected method is called with the correct parameters
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith(expect.any(String), [
+    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
       'test',
       10,
       '2023-09-25',
       1,
       'testtag',
       'USD',
+      'testuser',
     ]);
   });
 });

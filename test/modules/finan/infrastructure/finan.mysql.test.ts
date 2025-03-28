@@ -1,144 +1,233 @@
 import { FinanMysqlRepository } from '../../../../src/modules/finan/infrastructure/finan.mysql';
 import { Database } from '../../../../src/infrastructure/my.database.helper';
-//import { HDB } from '../../../../src/infrastructure/data/mysql/database';
+import { DataParams } from '../../../../src/modules/finan/infrastructure/models/dataparams';
 
-// Mock the dependencies
 jest.mock('../../../../src/infrastructure/my.database.helper');
 
 describe('FinanMysqlRepository', () => {
   let finanRepository: FinanMysqlRepository;
+  let mockExecuteSafeQuery: jest.Mock;
+
+  const mockData: DataParams = {
+    username: 'testuser',
+    currency: 'USD',
+    date: '2024-03-20',
+  };
 
   beforeEach(() => {
+    mockExecuteSafeQuery = jest.fn();
+    (Database as jest.Mock).mockImplementation(() => ({
+      executeSafeQuery: mockExecuteSafeQuery,
+    }));
     finanRepository = new FinanMysqlRepository();
-    // Reset all mocks before each test
-    jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should get initial load data', async () => {
-    // Mock the behavior of dependencies
-    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue({
-      movements: [],
-      balance: [],
-      yearlyBalance: [],
-      movementTag: [],
-      totalDay: [],
-      balanceUntilDate: [],
-      totalBank: [],
+  describe('getInitialLoad', () => {
+    beforeEach(() => {
+      mockExecuteSafeQuery
+        .mockResolvedValueOnce([]) // create table
+        .mockResolvedValueOnce([[{ total: 100 }]]) // totalExpenseDay
+        .mockResolvedValueOnce([[{ id: 1 }]]) // movements
+        .mockResolvedValueOnce([[{ tag: 'food' }]]) // movementTag
+        .mockResolvedValueOnce([[{ balance: 1000 }]]) // totalBalance
+        .mockResolvedValueOnce([[{ year: 2024 }]]) // yearlyBalance
+        .mockResolvedValueOnce([[{ month: 'March' }]]) // monthlyBalance
+        .mockResolvedValueOnce([[{ date: '2024-03-20' }]]); // balanceUntilDate
     });
 
-    const data = { currency: 'USD', username: 'testuser' };
-    const result = await finanRepository.getInitialLoad(data);
+    it('should fetch all required data for regular user', async () => {
+      const result = await finanRepository.getInitialLoad(mockData);
 
-    expect(result).toEqual({
-      movements: [],
-      balance: [],
-      yearlyBalance: [],
-      movementTag: [],
-      totalDay: [],
-      balanceUntilDate: [],
-      totalBank: [],
+      expect(result).toEqual({
+        totalExpenseDay: [{ total: 100 }],
+        movements: [{ id: 1 }],
+        movementTag: [{ tag: 'food' }],
+        totalBalance: [{ balance: 1000 }],
+        yearlyBalance: [{ year: 2024 }],
+        monthlyBalance: [{ month: 'March' }],
+        balanceUntilDate: [{ date: '2024-03-20' }],
+      });
     });
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(
-      'CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?, ?)',
-      ['testuser', 'USD', 'DESC', 10000]
-    );
+
+    it('should include additional info for anderokgo user', async () => {
+      mockExecuteSafeQuery
+        .mockResolvedValueOnce([]) // create table
+        .mockResolvedValueOnce([[{ total: 100 }]]) // totalExpenseDay
+        .mockResolvedValueOnce([[{ id: 1 }]]) // movements
+        .mockResolvedValueOnce([[{ tag: 'food' }]]) // movementTag
+        .mockResolvedValueOnce([[{ balance: 1000 }]]) // totalBalance
+        .mockResolvedValueOnce([[{ year: 2024 }]]) // yearlyBalance
+        .mockResolvedValueOnce([[{ month: 'March' }]]) // monthlyBalance
+        .mockResolvedValueOnce([[{ date: '2024-03-20' }]]) // balanceUntilDate
+        .mockResolvedValueOnce([{ general: 'info' }]) // generalInfo
+        .mockResolvedValueOnce([{ trip: 'info' }]); // tripInfo
+
+      const result = await finanRepository.getInitialLoad({ ...mockData, username: 'anderokgo' });
+
+      expect(result).toHaveProperty('generalInfo');
+      expect(result).toHaveProperty('tripInfo');
+    });
   });
 
-  it('should get total bank data', async () => {
-    // Mock the behavior of dependencies
-    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ total: 1000 }]);
-
-    const data = { currency: 'USD', username: 'testuser' };
-    const result = await finanRepository.getInitialLoad(data);
-
-    expect(result.totalBank).toEqual([{ total: 1000 }]);
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith('CALL proc_view_total_bank(?, ?)', [
-      'testuser',
-      'USD',
-    ]);
-  });
-
-  it('should get total day data', async () => {
-    // Mock the behavior of dependencies
-    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ total: 100 }]);
-
-    const data = { currency: 'USD', date: '2023-09-25', username: 'testuser' };
-    const result = await finanRepository.getInitialLoad(data);
-
-    expect(result.totalDay).toEqual([{ total: 100 }]);
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith('CALL proc_view_total_day(?, ?, ?)', [
-      'testuser',
-      'USD',
-      '2023-09-25',
-    ]);
-  });
-
-  it('should get balance data', async () => {
-    // Mock the behavior of dependencies
-    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ balance: 500 }]);
-
-    const data = { currency: 'USD', username: 'testuser' };
-    const result = await finanRepository.getInitialLoad(data);
-
-    expect(result.balance).toEqual([{ balance: 500 }]);
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(
-      'CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?, ?)',
-      ['testuser', 'USD', 'DESC', 10000]
-    );
-  });
-
-  it('should get yearly balance data', async () => {
-    // Mock the behavior of dependencies
-    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue({ yearly_balance: 1200 });
-
-    const data = { currency: 'USD', username: 'testuser' };
-    const result = await finanRepository.getInitialLoad(data);
-
-    expect(result.yearlyBalance).toEqual({ yearly_balance: 1200 });
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(
-      'CALL proc_view_yearly_expenses_incomes(?, ?, ?, ?, ?)',
-      ['testuser', 'USD', 'year_number', 'DESC', 10000]
-    );
-  });
-
-  it('should get movement sources data', async () => {
-    // Mock the behavior of dependencies
-    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue([{ sources: [] }]);
-
-    const data = { currency: 'USD', username: 'testuser' };
-    const result = await finanRepository.getInitialLoad(data);
-
-    expect(result.movementSources).toEqual([{ sources: [] }]);
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(
-      'CALL proc_view_monthly_movements_order_by_source(?, ?, ?, ?)',
-      ['testuser', 'USD', 'DESC', 10000]
-    );
-  });
-
-  it('should put a movement', async () => {
-    // Mock the behavior of dependencies
-    (Database.prototype.executeSafeQuery as jest.Mock).mockResolvedValue({ affectedRows: 1 });
-
-    const movement = {
-      movement_name: 'test',
-      movement_val: 10,
-      movement_date: '2023-09-25',
+  describe('Movement Operations', () => {
+    const mockMovement = {
+      movement_name: 'Test',
+      movement_val: 100,
+      movement_date: '2024-03-20',
       movement_type: 1,
-      movement_tag: 'testtag',
+      movement_tag: 'food',
       currency: 'USD',
       username: 'testuser',
     };
 
-    const result = await finanRepository.putMovement(movement);
+    describe('operateFor', () => {
+      beforeEach(() => {
+        mockExecuteSafeQuery.mockResolvedValueOnce([{ value: 200 }]);
+      });
 
-    expect(result).toEqual({ affectedRows: 1 });
-    expect(Database.prototype.executeSafeQuery).toHaveBeenCalledWith(
-      'INSERT INTO movements_testuser\n        (name, value, date_movement, type_source_id, tag, currency, user, log)\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      ['test', 10, '2023-09-25', 1, 'testtag', 'USD', 'testuser', null]
-    );
+      it('should handle addition (type 1)', async () => {
+        await finanRepository.operateFor({
+          ...mockMovement,
+          operate_for: 1,
+          movement_type: 1,
+        });
+
+        expect(mockExecuteSafeQuery).toHaveBeenLastCalledWith(expect.stringContaining('UPDATE'), [300, 1]);
+      });
+
+      it('should handle subtraction (type 2)', async () => {
+        await finanRepository.operateFor({
+          ...mockMovement,
+          operate_for: 1,
+          movement_type: 2,
+        });
+
+        expect(mockExecuteSafeQuery).toHaveBeenLastCalledWith(expect.stringContaining('UPDATE'), [100, 1]);
+      });
+    });
+
+    describe('putMovement', () => {
+      it('should insert new movement', async () => {
+        await finanRepository.putMovement(mockMovement);
+
+        expect(mockExecuteSafeQuery).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO'), [
+          'Test',
+          100,
+          '2024-03-20',
+          1,
+          'food',
+          'USD',
+          'testuser',
+          null,
+        ]);
+      });
+
+      it('should handle operate_for when provided', async () => {
+        mockExecuteSafeQuery
+          .mockResolvedValueOnce([{ value: 200 }]) // for operateFor query
+          .mockResolvedValueOnce({ insertId: 1 }); // for insert query
+
+        await finanRepository.putMovement({
+          ...mockMovement,
+          operate_for: 1,
+        });
+
+        expect(mockExecuteSafeQuery).toHaveBeenCalledTimes(3); // SELECT, UPDATE, and INSERT
+      });
+    });
+
+    describe('updateMovementById', () => {
+      it('should update existing movement', async () => {
+        await finanRepository.updateMovementById(1, mockMovement);
+
+        expect(mockExecuteSafeQuery).toHaveBeenCalledWith(expect.stringContaining('UPDATE'), [
+          'Test',
+          100,
+          '2024-03-20',
+          1,
+          'food',
+          'USD',
+          'testuser',
+          null,
+          1,
+        ]);
+      });
+    });
+
+    describe('deleteMovementById', () => {
+      it('should delete movement', async () => {
+        await finanRepository.deleteMovementById(1, 'testuser');
+
+        expect(mockExecuteSafeQuery).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM'), [1]);
+      });
+    });
+  });
+
+  describe('Data Retrieval Methods', () => {
+    beforeEach(() => {
+      mockExecuteSafeQuery.mockResolvedValue([[{ data: 'test' }]]);
+    });
+
+    it('should fetch totalExpenseDay', async () => {
+      await finanRepository.totalExpenseDay(mockData);
+      expect(mockExecuteSafeQuery).toHaveBeenCalledWith('CALL proc_view_total_expense_day(?, ?, ?, ?)', [
+        'testuser',
+        'USD',
+        '2024-03-20',
+        10000,
+      ]);
+    });
+
+    it('should fetch movements', async () => {
+      await finanRepository.movement(mockData);
+      expect(mockExecuteSafeQuery).toHaveBeenCalledWith('CALL proc_view_movements(?, ?, ?)', [
+        'testuser',
+        'USD',
+        10000,
+      ]);
+    });
+
+    it('should fetch movementTag', async () => {
+      await finanRepository.movementTag(mockData);
+      expect(mockExecuteSafeQuery).toHaveBeenCalledWith(
+        'CALL proc_view_monthly_movements_order_by_tag(?, ?, ?, ?)',
+        ['testuser', 'USD', 'DESC', 10000]
+      );
+    });
+
+    it('should fetch totalBalance', async () => {
+      await finanRepository.totalBalance(mockData);
+      expect(mockExecuteSafeQuery).toHaveBeenCalledWith('CALL proc_view_total_balance(?, ?)', ['testuser', 'USD']);
+    });
+
+    it('should fetch yearlyBalance', async () => {
+      await finanRepository.yearlyBalance(mockData);
+      expect(mockExecuteSafeQuery).toHaveBeenCalledWith('CALL proc_view_yearly_expenses_incomes(?, ?, ?, ?, ?)', [
+        'testuser',
+        'USD',
+        'year_number',
+        'DESC',
+        10000,
+      ]);
+    });
+
+    it('should fetch monthlyBalance', async () => {
+      await finanRepository.monthlyBalance(mockData);
+      expect(mockExecuteSafeQuery).toHaveBeenCalledWith(
+        'CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?, ?)',
+        ['testuser', 'USD', 'DESC', 10000]
+      );
+    });
+
+    it('should fetch balanceUntilDate', async () => {
+      await finanRepository.balanceUntilDate(mockData);
+      expect(mockExecuteSafeQuery).toHaveBeenCalledWith('CALL proc_view_balance_until_date(?, ?, ?, ?, ?)', [
+        'testuser',
+        'USD',
+        'date_movement',
+        'DESC',
+        10000,
+      ]);
+    });
   });
 });

@@ -4,97 +4,179 @@ import Login from '../../../../src/modules/auth/domain/models/Login';
 import { crypt } from '../../../../src/infrastructure/crypt.helper';
 import { Database } from '../../../../src/infrastructure/my.database.helper';
 import { token } from '../../../../src/infrastructure/token.helper';
+import sendEmail from '../../../../src/infrastructure/email.helper';
 
-// Mock the dependencies (crypt, Database, token)
+// Mock the dependencies
 jest.mock('../../../../src/infrastructure/crypt.helper');
 jest.mock('../../../../src/infrastructure/my.database.helper');
 jest.mock('../../../../src/infrastructure/token.helper');
+jest.mock('../../../../src/infrastructure/email.helper');
 
 describe('userMysqlRepository', () => {
   let userRepository: userMysqlRepository;
+  let mockExecuteSafeQuery: jest.Mock;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     userRepository = new userMysqlRepository();
+    mockExecuteSafeQuery = jest.fn();
+    (Database as jest.Mock).mockImplementation(() => ({
+      executeSafeQuery: mockExecuteSafeQuery,
+    }));
   });
 
-  it('should add a user to the database', async () => {
-    const user: User = {
-      first_name: 'testuser',
-      last_name: 'string',
-      username: 'string',
-      email: 'string',
-      role: 1,
-      password: 'string',
-      active: 1,
-      created: 'string',
-      modified: 'string',
-    };
-    // Mock the behavior of dependencies
-    (crypt.hash as jest.Mock).mockResolvedValue('hashedpassword');
-    (Database.prototype.executeQuery as jest.Mock).mockResolvedValue({ insertId: 1 });
+  describe('addUser', () => {
+    it('should send verification code when first registering', async () => {
+      const user: User = {
+        first_name: '',
+        last_name: '',
+        username: 'testuser',
+        email: 'test@example.com',
+        role: 2,
+        password: 'password123',
+        active: 1,
+        created: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+        modified: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+      };
 
-    const userId = await userRepository.addUserRepository(user);
+      // Mock validation functions to return no errors
+      mockExecuteSafeQuery
+        .mockResolvedValueOnce([]) // email validation
+        .mockResolvedValueOnce([]) // username validation
+        .mockResolvedValueOnce(true); // insert verification code
 
-    expect(userId).toBe(1);
-    expect(crypt.hash).toHaveBeenCalledWith('string', 10);
-    expect(Database.prototype.executeQuery).toHaveBeenCalledWith('INSERT INTO users SET ?', {
-      first_name: 'testuser',
-      last_name: '',
-      username: '',
-      email: '',
-      role: 1,
-      password: 'hashedpassword',
-      active: 1,
-      created: '2018-01-18',
-      modified: '2018-01-18',
+      const result = await userRepository.addUser(user);
+
+      expect(result?.error).toBeFalsy();
+      expect(result?.message).toBe('Verification code sent');
+      expect(sendEmail).toHaveBeenCalled();
+      expect(mockExecuteSafeQuery).toHaveBeenCalledTimes(3);
+    });
+
+    it('should create user when verification code is provided', async () => {
+      const user: User = {
+        first_name: '',
+        last_name: '',
+        username: 'testuser',
+        email: 'test@example.com',
+        role: 2,
+        password: 'password123',
+        active: 1,
+        created: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+        modified: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+        verificationCode: 123456,
+      };
+
+      // Mock validation functions to return no errors
+      mockExecuteSafeQuery
+        .mockResolvedValueOnce([]) // email validation
+        .mockResolvedValueOnce([]) // username validation
+        .mockResolvedValueOnce([{ verification_code: 123456 }]) // verification code validation
+        .mockResolvedValueOnce(true) // delete verification code
+        .mockResolvedValueOnce({ insertId: 1 }); // insert user
+
+      (crypt.hash as jest.Mock).mockResolvedValue('hashedpassword');
+
+      const result = await userRepository.addUser(user);
+
+      expect(result?.error).toBeFalsy();
+      expect(result?.message).toBe('User created successfully');
+      expect(crypt.hash).toHaveBeenCalledWith('password123', 10);
+    });
+
+    it('should return validation errors when present', async () => {
+      const user: User = {
+        first_name: '',
+        last_name: '',
+        username: 'testuser',
+        email: 'test@example.com',
+        role: 2,
+        password: 'password123',
+        active: 1,
+        created: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+        modified: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+      };
+
+      mockExecuteSafeQuery
+        .mockResolvedValueOnce([{ email: 'test@example.com' }]) // email already exists
+        .mockResolvedValueOnce([{ username: 'testuser' }]); // username already exists
+
+      const result = await userRepository.addUser(user);
+
+      expect(result?.error).toBeTruthy();
+      expect(Array.isArray(result?.message)).toBeTruthy();
     });
   });
 
-  it('should log in a user', async () => {
-    const login: Login = {
-      username: 'testuser',
-      password: 'testpassword',
-    };
+  describe('loginUser', () => {
+    it('should successfully login user with correct credentials', async () => {
+      const login: Login = {
+        username: 'testuser',
+        password: 'correctpassword',
+      };
 
-    // Mock the behavior of dependencies
-    (Database.prototype.loginUser as jest.Mock).mockResolvedValue('hashedpassword');
-    (crypt.compare as jest.Mock).mockResolvedValue(true);
-    (token.sign as jest.Mock).mockReturnValue('testtoken');
+      const mockUser = {
+        username: 'testuser',
+        password: 'hashedpassword',
+        role: 2,
+        first_name: '',
+        last_name: '',
+        email: 'test@example.com',
+        active: 1,
+        created: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+        modified: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+      };
 
-    const result = await userRepository.loginUserRepository(login);
+      mockExecuteSafeQuery.mockResolvedValueOnce([mockUser]);
+      (crypt.compare as jest.Mock).mockResolvedValueOnce(true);
+      (token.sign as jest.Mock).mockReturnValueOnce('generated_token');
 
-    expect(result).toEqual({ token: 'testtoken' });
-    expect(Database.prototype.loginUser).toHaveBeenCalledWith('testuser');
-    expect(crypt.compare).toHaveBeenCalledWith('testpassword', 'hashedpassword');
-    expect(token.sign).toHaveBeenCalledWith({ username: 'testuser' }, 'enterkey');
-  });
+      const result = await userRepository.loginUser(login);
 
-  it('should handle login failure due to wrong password', async () => {
-    const login: Login = {
-      username: 'testuser',
-      password: 'testpassword',
-    };
+      expect(result.error).toBeFalsy();
+      expect(result.token).toBe('generated_token');
+      expect(token.sign).toHaveBeenCalledWith({ username: 'testuser', role: 2 }, expect.any(String));
+    });
 
-    // Mock the behavior of dependencies
-    (Database.prototype.loginUser as jest.Mock).mockResolvedValue('hashedpassword');
-    (crypt.compare as jest.Mock).mockResolvedValue(false);
+    it('should return error for wrong password', async () => {
+      const login: Login = {
+        username: 'testuser',
+        password: 'wrongpassword',
+      };
 
-    const result = await userRepository.loginUserRepository(login);
+      const mockUser = {
+        username: 'testuser',
+        password: 'hashedpassword',
+        role: 2,
+        first_name: '',
+        last_name: '',
+        email: 'test@example.com',
+        active: 1,
+        created: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+        modified: new Date().toISOString().replace('T', ' ').replace('Z', ''),
+      };
 
-    expect(result).toEqual({ msg: 'Wrong Password' });
-  });
+      mockExecuteSafeQuery.mockResolvedValueOnce([mockUser]);
+      (crypt.compare as jest.Mock).mockResolvedValueOnce(false);
 
-  it('should handle login failure due to user not existing', async () => {
-    const login: Login = {
-      username: 'nonexistentuser',
-      password: 'testpassword',
-    };
+      const result = await userRepository.loginUser(login);
 
-    // Mock the behavior of dependencies
-    (Database.prototype.loginUser as jest.Mock).mockResolvedValue(null);
+      expect(result.error).toBeTruthy();
+      expect(result.message).toBe('Wrong Password');
+    });
 
-    const result = await userRepository.loginUserRepository(login);
+    it('should return error for non-existent user', async () => {
+      const login: Login = {
+        username: 'nonexistent',
+        password: 'password123',
+      };
 
-    expect(result).toEqual({ msg: 'User does not exist' });
+      mockExecuteSafeQuery.mockResolvedValueOnce([]);
+
+      const result = await userRepository.loginUser(login);
+
+      expect(result.error).toBeTruthy();
+      expect(result.message).toBe('User does not exist');
+    });
   });
 });

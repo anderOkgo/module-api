@@ -1,88 +1,178 @@
 import request from 'supertest';
-import server from '../src/server';
-import { Database } from '../src/helpers/my.database.helper';
-import { token } from '../src/helpers/token.helper';
+import Server from '../src/server';
+import { Database } from '../src/infrastructure/my.database.helper';
+import { token } from '../src/infrastructure/token.helper';
+import { Application } from 'express';
 
 // Mock the dependencies
-jest.mock('../src/helpers/my.database.helper');
-jest.mock('../src/helpers/token.helper', () => ({
-  token: {
-    verify: jest.fn(),
-  },
+jest.mock('../src/infrastructure/my.database.helper');
+jest.mock('../src/infrastructure/token.helper');
+jest.mock('../src/infrastructure/cors.helper', () => ({
+  cors: () => (req: any, res: any, next: any) => next(),
 }));
 
 describe('Express Server', () => {
-  let app: any;
+  let app: Application;
+  let server: Server;
+  const validToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRlc3R1c2VyIiwicm9sZSI6MX0.abc123';
 
   beforeAll(() => {
-    // Mock database connection
+    // Suppress console output during tests
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock Database connection
     (Database.prototype.open as jest.Mock).mockResolvedValue(true);
-    app = new server().app;
+
+    // Create server instance
+    server = new Server();
+    app = server.app;
   });
 
   afterAll(() => {
-    // Clean up any open handles
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  // Test the root route
-  it('should respond with status code 200 for the root route', async () => {
-    const response = await request(app).get('/');
-    expect(response.status).toBe(200);
-  });
-
-  // Test an API route (for example, /api/series)
-  it('should respond with status code 401 for /api/series without auth token', async () => {
-    // Mock token verification to fail
-    (token.verify as jest.Mock).mockImplementation((token, secret, callback) => {
-      callback(new Error('Invalid token'), null);
+  describe('Server Initialization', () => {
+    it('should initialize with default port 3000', () => {
+      const originalPort = process.env.PORT;
+      process.env.PORT = undefined;
+      const testServer = new Server();
+      expect(testServer.app).toBeDefined();
+      process.env.PORT = originalPort;
     });
 
-    const response = await request(app).get('/api/series');
-    expect(response.status).toBe(401);
-    expect(response.body).toEqual({
-      error: 'Unauthorized: Missing or invalid token format',
+    it('should initialize with custom port', () => {
+      process.env.PORT = '4000';
+      const testServer = new Server();
+      expect(testServer.app).toBeDefined();
     });
   });
 
-  // Test /api/users route
-  it('should respond with status code 401 for /api/users without auth token', async () => {
-    // Mock token verification to fail
-    (token.verify as jest.Mock).mockImplementation((token, secret, callback) => {
-      callback(new Error('Invalid token'), null);
+  describe('Database Connection', () => {
+    it('should connect successfully', async () => {
+      const testServer = new Server();
+      await testServer['connectDB']();
+      expect(Database.prototype.open).toHaveBeenCalled();
     });
 
-    const response = await request(app).get('/api/users');
-    expect(response.status).toBe(401);
-    expect(response.body).toEqual({
-      error: 'Unauthorized: Missing or invalid token format',
+    it('should handle connection failure', async () => {
+      const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+      (Database.prototype.open as jest.Mock).mockRejectedValueOnce(new Error('Connection failed'));
+
+      const testServer = new Server();
+      await testServer['connectDB']();
+
+      expect(mockExit).toHaveBeenCalledWith(1);
+      mockExit.mockRestore();
     });
   });
 
-  // Test /api/finan route
-  it('should respond with status code 401 for /api/finan without auth token', async () => {
-    // Mock token verification to fail
-    (token.verify as jest.Mock).mockImplementation((token, secret, callback) => {
-      callback(new Error('Invalid token'), null);
+  describe('Route Handlers', () => {
+    describe('Public Routes', () => {
+      it('should respond 200 for /', async () => {
+        const response = await request(app).get('/');
+        expect(response.status).toBe(200);
+      });
+
+      it('should respond 200 for /api', async () => {
+        const response = await request(app).get('/api');
+        expect(response.status).toBe(200);
+      });
     });
 
-    const response = await request(app).get('/api/finan');
-    expect(response.status).toBe(401);
-    expect(response.body).toEqual({
-      error: 'Unauthorized: Missing or invalid token format',
-    });
-  }, 30000);
+    describe('Protected Routes', () => {
+      const protectedRoutes = ['/api/series', '/api/users', '/api/finan'];
 
-  // Test with valid auth token
-  it('should respond with status code 200 for /api/series with valid auth token', async () => {
-    // Mock token verification to succeed
-    (token.verify as jest.Mock).mockImplementation((token, secret, callback) => {
-      callback(null, { username: 'testuser' });
+      beforeEach(() => {
+        // Default token verification behavior
+        (token.verify as jest.Mock).mockImplementation((_, __, callback) => {
+          callback(new Error('Invalid token'), null);
+        });
+      });
+
+      protectedRoutes.forEach((route) => {
+        it(`should require auth token for ${route}`, async () => {
+          const response = await request(app).get(route);
+          expect(response.status).toBe(401);
+          expect(response.body).toEqual({
+            error: 'Unauthorized: Missing or invalid token format',
+          });
+        });
+
+        it(`should reject invalid token for ${route}`, async () => {
+          const response = await request(app).get(route).set('Authorization', 'Bearer invalid.token');
+
+          expect(response.status).toBe(401);
+          expect(response.body).toEqual({
+            error: 'Unauthorized: Invalid token',
+          });
+        });
+
+        it(`should accept valid token for ${route}`, async () => {
+          // Mock successful token verification
+          (token.verify as jest.Mock).mockImplementation((_, __, callback) => {
+            callback(null, { username: 'testuser', role: 1 });
+          });
+
+          const response = await request(app).get(route).set('Authorization', `Bearer ${validToken}`);
+
+          expect(response.status).toBe(200);
+        });
+      });
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle invalid JSON', async () => {
+      const response = await request(app)
+        .post('/api/users')
+        .set('Content-Type', 'application/json')
+        .send('{invalid json}');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: 'Bad Request: Invalid JSON',
+      });
     });
 
-    const validToken =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFuZGVyb2tnbyIsImlhdCI6MTcxNDkzMDY1Nn0.Q28Pel7h5VcIo8B3tTF6Rpf-TIZTSrY8CWeVllaq08k';
-    const response = await request(app).get('/api/series').set('Authorization', `Bearer ${validToken}`);
-    expect(response.status).toBe(200);
+    it('should handle 404 errors', async () => {
+      const response = await request(app).get('/nonexistent-route');
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({
+        error: 'Not Found',
+      });
+    });
+
+    it('should handle method not allowed', async () => {
+      // Mock successful token verification for this test
+      (token.verify as jest.Mock).mockImplementation((_, __, callback) => {
+        callback(null, { username: 'testuser', role: 1 });
+      });
+
+      const response = await request(app).post('/api').set('Authorization', `Bearer ${validToken}`);
+
+      expect(response.status).toBe(405);
+      expect(response.body).toEqual({
+        error: 'Method Not Allowed',
+      });
+    });
+
+    it('should handle internal server errors', async () => {
+      // Add a route that throws an error
+      app.get('/test-error', () => {
+        throw new Error('Test internal error');
+      });
+
+      const response = await request(app).get('/test-error');
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({
+        error: 'Internal Server Error',
+      });
+    });
   });
 });

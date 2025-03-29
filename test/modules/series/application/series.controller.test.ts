@@ -8,11 +8,16 @@ import {
   getProductionsService,
   getProductionYearsService,
 } from '../../../../src/modules/series/domain/services/index';
+import { validateProduction } from '../../../../src/modules/series/application/series.validation';
 
 // Mock the dependencies
 jest.mock('../../../../src/modules/series/domain/services/index', () => ({
   getProductionsService: jest.fn(),
   getProductionYearsService: jest.fn(),
+}));
+
+jest.mock('../../../../src/modules/series/application/series.validation', () => ({
+  validateProduction: jest.fn(),
 }));
 
 describe('Series Controller', () => {
@@ -35,39 +40,54 @@ describe('Series Controller', () => {
   it('should respond with productions when getProduction succeeds', async () => {
     const productions = [{ id: 1, name: 'Test Production' }];
 
-    // Mock the getProduction function to resolve with productions
-    (getProductionsService as jest.Mock).mockResolvedValue(productions);
+    // Mock validation to return a valid result
+    (validateProduction as jest.Mock).mockReturnValue({ valid: true, result: { limit: '10' } });
 
-    // Simulate a request with a request body (e.g., filters)
-    req.body = { category: 'Action' };
+    // Mock the service to return success response
+    (getProductionsService as jest.Mock).mockResolvedValue(productions);
 
     await getProductions(req as Request, res as Response);
 
+    expect(validateProduction).toHaveBeenCalled();
+    expect(getProductionsService).toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(productions);
   });
 
-  it('should respond with a 404 error for getProductions when productions are not found', async () => {
-    // Mock the getProduction function to resolve with null (productions not found)
-    (getProductionsService as jest.Mock).mockResolvedValue(null);
+  it('should respond with a 500 error for getProductions when there is a system error', async () => {
+    // Mock validation to return a valid result
+    (validateProduction as jest.Mock).mockReturnValue({ valid: true, result: { limit: '10' } });
 
-    // Simulate a request with a request body (e.g., filters)
-    req.body = { category: 'Drama' };
+    // Mock with error response format matching the controller
+    (getProductionsService as jest.Mock).mockResolvedValue({
+      errorSys: true,
+      message: 'Database error',
+    });
 
     await getProductions(req as Request, res as Response);
 
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Productions not found' });
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith('Database error');
+  });
+
+  it('should respond with 400 for invalid production request', async () => {
+    // Mock validation to return invalid result
+    (validateProduction as jest.Mock).mockReturnValue({
+      valid: false,
+      errors: { message: 'Invalid input' },
+    });
+
+    await getProductions(req as Request, res as Response);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Invalid input' });
   });
 
   it('should respond with production years when getProductionYear succeeds', async () => {
-    const years = [2020, 2021, 2022];
+    const years = [{ year: 2020 }, { year: 2021 }];
 
-    // Mock the getProductionYear function to resolve with years
+    // Mock the getProductionYearsService to return years (not error)
     (getProductionYearsService as jest.Mock).mockResolvedValue(years);
-
-    // Simulate a request without a request body (e.g., no filters)
-    req.body = {};
 
     await getProductionYears(req as Request, res as Response);
 
@@ -75,17 +95,17 @@ describe('Series Controller', () => {
     expect(res.json).toHaveBeenCalledWith(years);
   });
 
-  it('should respond with a 404 error for getProductionYears when production years are not found', async () => {
-    // Mock the getProductionYear function to resolve with null (production years not found)
-    (getProductionYearsService as jest.Mock).mockResolvedValue(null);
-
-    // Simulate a request without a request body (e.g., no filters)
-    req.body = {};
+  it('should respond with a 500 error for getProductionYears when there is a system error', async () => {
+    // Mock with error response format
+    (getProductionYearsService as jest.Mock).mockResolvedValue({
+      errorSys: true,
+      message: 'Database error',
+    });
 
     await getProductionYears(req as Request, res as Response);
 
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Production years not found' });
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith('Database error');
   });
 
   it('should respond with a message for defaultSeries', async () => {

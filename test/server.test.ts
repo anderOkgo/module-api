@@ -45,7 +45,7 @@ jest.mock('../src/server', () => {
   };
 });
 
-// Mock controller methods that are causing issues
+// Mock conroller methods that are causing issues
 jest.mock('../src/modules/finan/application/finan.controller', () => ({
   defaultFInan: jest.fn((req, res) => res.json({ msg: 'API Finan Working' })),
   getInitialLoad: jest.fn((req, res) => res.json({ msg: 'Initial load' })),

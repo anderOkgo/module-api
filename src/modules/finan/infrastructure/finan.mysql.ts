@@ -24,6 +24,8 @@ export class FinanMysqlRepository implements FinanRepository {
     const yearlyBalance = await this.yearlyBalance(data);
     const monthlyBalance = await this.monthlyBalance(data);
     const balanceUntilDate = await this.balanceUntilDate(data);
+    const monthlyExpensesUntilDay = await this.monthlyExpensesUntilCurrentDay(data);
+
     let ret: any = {
       totalExpenseDay,
       movements,
@@ -32,6 +34,7 @@ export class FinanMysqlRepository implements FinanRepository {
       yearlyBalance,
       monthlyBalance,
       balanceUntilDate,
+      monthlyExpensesUntilDay,
     };
 
     if (data.username === 'anderokgo') {
@@ -111,6 +114,17 @@ export class FinanMysqlRepository implements FinanRepository {
   public async tripInfo() {
     const full_query = `SELECT * FROM view_final_trip_info`;
     return await this.Database.executeSafeQuery(full_query);
+  }
+
+  public async monthlyExpensesUntilCurrentDay(data: DataParams) {
+    const full_query = `CALL proc_monthly_expenses_until_day(?, ?, ?, ?)`;
+    const resp = await this.Database.executeSafeQuery(full_query, [
+      data.username,
+      data.currency,
+      'ASC',
+      this.Limit,
+    ]);
+    return resp[0];
   }
 
   public async operateFor(parameters: any) {

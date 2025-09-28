@@ -1,7 +1,11 @@
-import * as service from './auth.service';
-import { userRepository } from '../../infrastructure/index';
+import { getAuthService } from './auth.factory';
 
-const userRepo = new userRepository();
+export const addUserService = async (userData: any) => {
+  const authService = getAuthService();
+  return await authService.registerUser(userData);
+};
 
-export const addUserService = service.addUser(userRepo);
-export const loginUserService = service.loginUser(userRepo);
+export const loginUserService = async (loginData: any) => {
+  const authService = getAuthService();
+  return await authService.loginUser(loginData);
+};

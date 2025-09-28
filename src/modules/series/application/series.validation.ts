@@ -93,11 +93,18 @@ export const validateProduction = (input: any): ValidationResult => {
     delete result.genre_names;
   }
 
-  // Set default for 'limit' and ensure it doesn't exceed 10,000
-  if (!result.limit && result.limit !== 0) {
-    result.limit = 10000;
-  } else if (result.limit > 10000) {
-    errors.limit = 'Limit cannot exceed 10,000.';
+  // Validate and convert 'limit' to number
+  if (result.limit !== undefined) {
+    const limitValue = parseInt(result.limit);
+    if (isNaN(limitValue) || limitValue < 1) {
+      errors.limit = 'Limit must be a positive number.';
+    } else if (limitValue > 10000) {
+      errors.limit = 'Limit cannot exceed 10,000.';
+    } else {
+      result.limit = limitValue;
+    }
+  } else {
+    result.limit = 10000; // Default limit
   }
 
   return Object.keys(errors).length > 0 ? { result, valid: false, errors } : { result, valid: true };

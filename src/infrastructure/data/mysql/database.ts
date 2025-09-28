@@ -74,6 +74,18 @@ class Database {
   myEscape(str: string): string {
     return this.connection.escape(str);
   }
+
+  async testConnection(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      this.connection.ping((err?: MysqlError) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(true);
+        }
+      });
+    });
+  }
 }
 
 export default Database;

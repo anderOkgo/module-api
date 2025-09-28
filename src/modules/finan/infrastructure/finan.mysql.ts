@@ -100,10 +100,29 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async balanceUntilDate(data: DataParams) {
-    const full_query = `CALL proc_view_balance_until_date(?, ?, ?, ?, ?)`;
-    const arr = [data.username, data.currency, 'date_movement', 'DESC', this.Limit];
-    const resp = await this.Database.executeSafeQuery(full_query, arr);
-    return resp[0];
+    try {
+      // Intentar usar el stored procedure primero
+      const full_query = `CALL proc_view_balance_until_date(?, ?, ?, ?, ?)`;
+      const arr = [data.username, data.currency, 'date_movement', 'DESC', this.Limit];
+      const resp = await this.Database.executeSafeQuery(full_query, arr);
+      return resp[0];
+    } catch (error) {
+      // Si el stored procedure no existe, usar consulta directa
+      console.log('Stored procedure not found, using direct query for balanceUntilDate');
+      const table_name = `movements_${data.username}`;
+      const direct_query = `
+        SELECT 
+          DATE_FORMAT(date_movement, '%Y-%m-%d') as date_movement,
+          SUM(movement_val) as total_balance
+        FROM ${table_name}
+        WHERE currency = ?
+        GROUP BY DATE_FORMAT(date_movement, '%Y-%m-%d')
+        ORDER BY date_movement DESC
+        LIMIT ?
+      `;
+      const resp = await this.Database.executeSafeQuery(direct_query, [data.currency, this.Limit]);
+      return resp;
+    }
   }
 
   public async generalInfo() {
@@ -117,14 +136,34 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   public async monthlyExpensesUntilCurrentDay(data: DataParams) {
-    const full_query = `CALL proc_monthly_expenses_until_day(?, ?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [
-      data.username,
-      data.currency,
-      'ASC',
-      this.Limit,
-    ]);
-    return resp[0];
+    try {
+      // Intentar usar el stored procedure primero
+      const full_query = `CALL proc_monthly_expenses_until_day(?, ?, ?, ?)`;
+      const resp = await this.Database.executeSafeQuery(full_query, [
+        data.username,
+        data.currency,
+        'ASC',
+        this.Limit,
+      ]);
+      return resp[0];
+    } catch (error) {
+      // Si el stored procedure no existe, usar consulta directa
+      console.log('Stored procedure not found, using direct query for monthlyExpensesUntilCurrentDay');
+      const table_name = `movements_${data.username}`;
+      const direct_query = `
+        SELECT 
+          DATE_FORMAT(date_movement, '%Y-%m') as month_year,
+          SUM(movement_val) as total_expenses
+        FROM ${table_name}
+        WHERE currency = ? 
+        AND date_movement <= CURDATE()
+        GROUP BY DATE_FORMAT(date_movement, '%Y-%m')
+        ORDER BY month_year ASC
+        LIMIT ?
+      `;
+      const resp = await this.Database.executeSafeQuery(direct_query, [data.currency, this.Limit]);
+      return resp;
+    }
   }
 
   public async operateFor(parameters: any) {

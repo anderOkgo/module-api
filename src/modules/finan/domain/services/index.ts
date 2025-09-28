@@ -1,9 +1,21 @@
-import * as service from './finan.service';
-import { finanRepository } from '../../infrastructure/index';
+import { getFinanService } from './finan.factory';
 
-const finanRepo = new finanRepository();
+export const getInitialLoadService = async (data: any) => {
+  const finanService = getFinanService();
+  return await finanService.getInitialLoad(data);
+};
 
-export const getInitialLoadService = service.getInitialLoad(finanRepo);
-export const putMovementService = service.putMovement(finanRepo);
-export const updateMovementService = service.updateMovement(finanRepo);
-export const deleteMovementService = service.deleteMovement(finanRepo);
+export const putMovementService = async (movement: any) => {
+  const finanService = getFinanService();
+  return await finanService.putMovement(movement);
+};
+
+export const updateMovementService = async (id: number, updatedMovement: any) => {
+  const finanService = getFinanService();
+  return await finanService.updateMovement(id, updatedMovement);
+};
+
+export const deleteMovementService = async (id: number, username: string) => {
+  const finanService = getFinanService();
+  return await finanService.deleteMovement(id, username);
+};

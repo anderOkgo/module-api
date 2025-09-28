@@ -1,7 +1,11 @@
-import * as service from './series.service';
-import { productionRepository } from '../../infrastructure/index';
+import { getSeriesService } from './series.factory';
 
-const productionRepo = new productionRepository();
+export const getProductionsService = async (production: any) => {
+  const seriesService = getSeriesService();
+  return await seriesService.getAllSeries(production.limit || 50, production.offset || 0);
+};
 
-export const getProductionsService = service.getProductions(productionRepo);
-export const getProductionYearsService = service.getProductionYears(productionRepo);
+export const getProductionYearsService = async () => {
+  const seriesService = getSeriesService();
+  return await seriesService.getProductionYears();
+};

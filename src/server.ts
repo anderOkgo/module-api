@@ -1,10 +1,12 @@
-import { express, Application, Request, Response, NextFunction } from './infrastructure/middle.helper';
+import express, { Application, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import { Database } from './infrastructure/my.database.helper';
-import { cors } from './infrastructure/cors.helper';
-import routesSeries from './modules/series/application/series.routes';
-import routesDefault from './modules/default/application/default.routes';
-import routesUser from './modules/auth/application/user.routes';
-import routesFinan from './modules/finan/application/finan.routes';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './infrastructure/lib/swagger';
+import routesSeries from './modules/series/infrastructure/routes/series.routes';
+// Removed default routes - using direct endpoint
+import routesUser from './modules/auth/infrastructure/routes/user.routes';
+import routesFinan from './modules/finan/infrastructure/routes/finan.routes';
 
 class Server {
   public app: Application;
@@ -35,8 +37,30 @@ class Server {
 
   private routes() {
     this.app.use(cors({ origin: '*' }));
-    this.app.use('/', routesDefault);
-    this.app.use('/api', routesDefault);
+
+    // Swagger documentation
+    this.app.use(
+      '/api-docs',
+      swaggerUi.serve,
+      swaggerUi.setup(swaggerSpec, {
+        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: 'Animecream API Documentation',
+      })
+    );
+
+    // Health check endpoint
+    this.app.get('/health', (req: Request, res: Response) => {
+      this.healthCheck(req, res);
+    });
+
+    // Default API status endpoint
+    this.app.get('/', (req: Request, res: Response) => {
+      res.json({ msg: 'API Working' });
+    });
+
+    this.app.get('/api', (req: Request, res: Response) => {
+      res.json({ msg: 'API Working' });
+    });
     this.app.use('/api/series', routesSeries);
     this.app.use('/api/users', routesUser);
     this.app.use('/api/finan', routesFinan);
@@ -60,6 +84,42 @@ class Server {
 
     console.error('Internal Server Error:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
+  }
+
+  private async healthCheck(req: Request, res: Response) {
+    try {
+      const healthStatus = {
+        status: 'UP',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development',
+        version: '2.0.9',
+        services: {
+          database: 'UP',
+          api: 'UP',
+        },
+      };
+
+      // Verificar conexión a base de datos
+      try {
+        const db = new Database('MYDATABASE');
+        await db.testConnection();
+        healthStatus.services.database = 'UP';
+      } catch (error) {
+        healthStatus.status = 'DOWN';
+        healthStatus.services.database = 'DOWN';
+        (healthStatus.services as any).database_error = error instanceof Error ? error.message : 'Unknown error';
+      }
+
+      const statusCode = healthStatus.status === 'UP' ? 200 : 503;
+      res.status(statusCode).json(healthStatus);
+    } catch (error) {
+      res.status(503).json({
+        status: 'DOWN',
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 }
 

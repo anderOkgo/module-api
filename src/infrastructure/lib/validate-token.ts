@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from '../middle.helper';
-import { token } from '../token.helper';
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 
 const validateToken = (req: Request, res: Response, next: NextFunction) => {
   if (!req.headers || !req.headers['authorization']) {
@@ -18,7 +18,7 @@ const validateToken = (req: Request, res: Response, next: NextFunction) => {
   const bearerToken = headerToken.slice(7); // Remove 'Bearer ' prefix
 
   try {
-    token.verify(bearerToken, process.env.SECRET_KEY || 'qwertgfdsa', (err, decoded) => {
+    jwt.verify(bearerToken, process.env.SECRET_KEY || 'qwertgfdsa', (err, decoded) => {
       if (err) {
         console.error('JWT verification failed:', err);
         return res.status(401).json({

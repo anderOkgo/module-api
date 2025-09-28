@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  # Base de datos unificada para todos los módulos
+  mariadb:
+    build: .
+    container_name: animecream-mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_USER: ${MYSQL_USER:-animecream}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-animecream123}
+    ports:
+      - "${MARIADB_PORT:-3306}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+      - ../animecream-data/sql:/docker-entrypoint-initdb.d/animecream
+      - ../auth-data/sql:/docker-entrypoint-initdb.d/auth
+      - ./logs:/var/log/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO"
+    networks:
+      - animecream-network
+
+volumes:
+  mariadb_data:
+    driver: local
+
+networks:
+  animecream-network:
+    driver: bridge

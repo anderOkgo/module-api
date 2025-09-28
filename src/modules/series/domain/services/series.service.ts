@@ -57,6 +57,14 @@ export class SeriesService {
     }
   }
 
+  async getProductionsWithView(production: any): Promise<any[]> {
+    try {
+      return await this.productionRepository.getProduction(production);
+    } catch (error) {
+      throw new Error(`Error getting productions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   async updateSeries(id: number, seriesData: SeriesUpdateRequest, imageBuffer?: Buffer): Promise<Production> {
     try {
       const existingSeries = await this.productionRepository.findById(id);

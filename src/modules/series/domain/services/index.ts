@@ -2,7 +2,7 @@ import { getSeriesService } from './series.factory';
 
 export const getProductionsService = async (production: any) => {
   const seriesService = getSeriesService();
-  return await seriesService.getAllSeries(production.limit || 50, production.offset || 0);
+  return await seriesService.getProductionsWithView(production);
 };
 
 export const getProductionYearsService = async () => {

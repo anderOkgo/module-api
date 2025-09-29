@@ -5,7 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './infrastructure/lib/swagger';
 import routesSeries from './modules/series/infrastructure/routes/series.routes';
 // Removed default routes - using direct endpoint
-import routesUser from './modules/auth/infrastructure/routes/user.routes';
+import { buildAuthModule } from './modules/auth/infrastructure/config/auth.module';
 import routesFinan from './modules/finan/infrastructure/routes/finan.routes';
 
 class Server {
@@ -62,7 +62,7 @@ class Server {
       res.json({ msg: 'API Working' });
     });
     this.app.use('/api/series', routesSeries);
-    this.app.use('/api/users', routesUser);
+    this.app.use('/api/users', buildAuthModule().router);
     this.app.use('/api/finan', routesFinan);
     this.app.use(this.errorHandlerMiddleware);
   }

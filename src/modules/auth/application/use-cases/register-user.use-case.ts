@@ -1,26 +1,17 @@
-import { UserCreateRequest, UserResponse } from '../../domain/models/User';
-import { AuthService } from '../../domain/services/auth.service';
-import { getAuthService } from '../../domain/services/auth.factory';
-import { UserRequestValidator } from '../validators/user-request.validator';
+import { UserCreateRequest, UserResponse } from '../../domain/entities/user.entity';
+import { UserRepository } from '../ports/user.repository';
+import { userMysqlRepository } from '../../infrastructure/persistence/user.mysql';
 
 export class RegisterUserUseCase {
-  private authService: AuthService;
+  private userRepository: UserRepository;
 
-  constructor() {
-    this.authService = getAuthService();
+  constructor(userRepository?: UserRepository) {
+    // Usar el repositorio inyectado o crear uno por defecto
+    this.userRepository = userRepository || new userMysqlRepository();
   }
 
   async execute(userData: UserCreateRequest): Promise<{ error: boolean; message?: string; data?: UserResponse }> {
-    // Validar datos de entrada
-    const validation = UserRequestValidator.validateUserCreate(userData);
-    if (validation.error) {
-      return {
-        error: true,
-        message: validation.message,
-        data: { details: validation.details } as any,
-      };
-    }
-
-    return await this.authService.registerUser(userData);
+    // Usar la lógica existente del repositorio
+    return await this.userRepository.addUser(userData);
   }
 }

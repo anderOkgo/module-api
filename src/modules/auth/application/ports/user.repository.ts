@@ -1,7 +1,11 @@
-import User, { UserCreateRequest } from '../../domain/models/User';
-import Login from '../../domain/models/Login';
+import User, { UserCreateRequest } from '../../domain/entities/user.entity';
 
 export interface UserRepository {
+  // Métodos principales (existentes en el repositorio original)
+  addUser(user: any): Promise<any>;
+  loginUser(login: any): Promise<any>;
+
+  // Métodos adicionales para funcionalidad extendida
   create(user: UserCreateRequest): Promise<User>;
   findById(id: number): Promise<User | null>;
   findByEmailOrUsername(email: string, username: string): Promise<User | null>;

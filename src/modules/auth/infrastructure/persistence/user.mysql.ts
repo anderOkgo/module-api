@@ -1,10 +1,10 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { Database, HDB } from '../../../infrastructure/my.database.helper';
-import Login from '../domain/models/Login';
-import User from '../domain/models/User';
-import { UserRepository } from './repositories/user.repository';
-import sendEmail from '../../../infrastructure/lib/email';
+import { Database, HDB } from '../../../../infrastructure/my.database.helper';
+import Login from '../../domain/entities/login.entity';
+import User from '../../domain/entities/user.entity';
+import { UserRepository } from '../../application/ports/user.repository';
+import sendEmail from '../../../../infrastructure/lib/email';
 import { validateEmail, validateUsername, validateVerificationCode, userInfo } from './user.mysql.validations';
 
 export class userMysqlRepository implements UserRepository {

@@ -1,13 +1,15 @@
 import { Request, Response } from 'express';
-import { getInitialLoadService, putMovementService } from '../../domain/services/index';
-import { updateMovementService, deleteMovementService } from '../../domain/services/index';
+import { GetInitialLoadUseCase } from '../../application/use-cases/get-initial-load.use-case';
+import { PutMovementUseCase } from '../../application/use-cases/put-movement.use-case';
+import { UpdateMovementUseCase } from '../../application/use-cases/update-movement.use-case';
+import { DeleteMovementUseCase } from '../../application/use-cases/delete-movement.use-case';
 import {
   validateGetInitialLoad,
   validatePutMovement,
   validateDeleteMovement,
-} from '../../application/finan.validations';
-import { validateUpdateMovements } from '../../application/finan.validations';
-import { ValidationResult } from '../../application/finan.repository';
+  validateUpdateMovements,
+  ValidationResult,
+} from '../validation/finan.validation';
 
 // Documentación Swagger eliminada - endpoint /api/finan/finan removido
 // Función defaultFInan eliminada - usar /health endpoint en su lugar
@@ -97,7 +99,8 @@ export const getInitialLoad = async (req: Request, res: Response) => {
   const validation = validateGetInitialLoad(req.body);
   if (validation.error) return res.status(400).json(validation.errors);
 
-  const resp = await getInitialLoadService(req.body);
+  const getInitialLoadUseCase = new GetInitialLoadUseCase();
+  const resp = await getInitialLoadUseCase.execute(req.body);
   return resp.errorSys ? res.status(500).json(resp.message) : res.status(200).json(resp);
 };
 
@@ -182,7 +185,8 @@ export const putMovement = async (req: Request, res: Response) => {
   const validation = validatePutMovement(req.body);
   if (validation.error) return res.status(400).json(validation.errors);
 
-  const resp = await putMovementService(req.body);
+  const putMovementUseCase = new PutMovementUseCase();
+  const resp = await putMovementUseCase.execute(req.body);
   return resp.errorSys ? res.status(500).json(resp.message) : res.status(200).json(resp);
 };
 
@@ -276,7 +280,8 @@ export const updateMovement = async (req: Request, res: Response) => {
   const validation: ValidationResult = validateUpdateMovements(req.body, id);
   if (validation.error) return res.status(400).json(validation.errors);
 
-  const resp = await updateMovementService(id, req.body);
+  const updateMovementUseCase = new UpdateMovementUseCase();
+  const resp = await updateMovementUseCase.execute(id, req.body);
   return resp.errorSys ? res.status(500).json(resp.message) : res.status(200).json(resp);
 };
 
@@ -339,6 +344,7 @@ export const deleteMovement = async (req: Request, res: Response) => {
   const validation: ValidationResult = validateDeleteMovement(id);
   if (validation.error) return res.status(400).json(validation.errors);
 
-  const resp = await deleteMovementService(id, username);
+  const deleteMovementUseCase = new DeleteMovementUseCase();
+  const resp = await deleteMovementUseCase.execute(id, username);
   return resp.errorSys ? res.status(500).json(resp.message) : res.status(200).json(resp);
 };

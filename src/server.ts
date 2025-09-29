@@ -6,7 +6,7 @@ import { swaggerSpec } from './infrastructure/lib/swagger';
 import { buildSeriesModule } from './modules/series/infrastructure/config/series.module';
 // Removed default routes - using direct endpoint
 import { buildAuthModule } from './modules/auth/infrastructure/config/auth.module';
-import routesFinan from './modules/finan/infrastructure/routes/finan.routes';
+import { buildFinanModule } from './modules/finan/infrastructure/config/finan.module';
 
 class Server {
   public app: Application;
@@ -63,7 +63,7 @@ class Server {
     });
     this.app.use('/api/series', buildSeriesModule().router);
     this.app.use('/api/users', buildAuthModule().router);
-    this.app.use('/api/finan', routesFinan);
+    this.app.use('/api/finan', buildFinanModule().router);
     this.app.use(this.errorHandlerMiddleware);
   }
 

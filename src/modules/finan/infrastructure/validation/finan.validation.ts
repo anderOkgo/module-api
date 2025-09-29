@@ -1,5 +1,19 @@
-import { isEmpty, isNumber, isValidDate } from '../../../infrastructure/validatios.helper';
-import { RequestBody, ValidationResult } from './finan.repository';
+import { isEmpty, isNumber, isValidDate } from '../../../../infrastructure/validatios.helper';
+
+export interface RequestBody {
+  currency?: any;
+  movement_name?: any;
+  movement_val?: any;
+  movement_date?: any;
+  movement_type?: any;
+  movement_tag?: any;
+  id?: any;
+}
+
+export interface ValidationResult {
+  error: boolean;
+  errors: string[];
+}
 
 export const isPositiveNumber = (num: number | undefined): boolean => {
   return num !== undefined && num > 0;

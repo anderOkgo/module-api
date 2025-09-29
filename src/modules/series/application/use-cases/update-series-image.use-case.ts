@@ -22,7 +22,9 @@ export class UpdateSeriesImageUseCase {
       if (existingSeries.image) {
         const oldImagePath = path.join(this.UPLOAD_DIR, path.basename(existingSeries.image));
         try {
-          await ImageProcessor.deleteImage?.(oldImagePath);
+          if (ImageProcessor.deleteImage) {
+            await ImageProcessor.deleteImage(oldImagePath);
+          }
         } catch (error) {
           // Log pero no fallar si no se puede eliminar la imagen anterior
           console.warn('Could not delete old image:', error);

@@ -1,6 +1,6 @@
-import { Database, HDB } from '../../../infrastructure/my.database.helper';
-import Series, { SeriesCreateRequest, SeriesUpdateRequest } from '../domain/models/Series';
-import { ProductionRepository } from './repositories/series.repository';
+import { Database, HDB } from '../../../../infrastructure/my.database.helper';
+import Series, { SeriesCreateRequest, SeriesUpdateRequest } from '../../domain/entities/series.entity';
+import { ProductionRepository } from '../../application/ports/series.repository';
 
 export class ProductionMysqlRepository implements ProductionRepository {
   private database: Database;

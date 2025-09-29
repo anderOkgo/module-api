@@ -1,5 +1,5 @@
-import Serie, { SeriesCreateRequest, SeriesUpdateRequest } from '../../domain/models/Series';
-import Year from '../../domain/models/Year';
+import Serie, { SeriesCreateRequest, SeriesUpdateRequest } from '../../domain/entities/series.entity';
+import Year from '../../domain/entities/year.entity';
 
 export interface ProductionRepository {
   getProduction(production: Serie): Promise<Serie | any>;

@@ -3,7 +3,7 @@ import cors from 'cors';
 import { Database } from './infrastructure/my.database.helper';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './infrastructure/lib/swagger';
-import routesSeries from './modules/series/infrastructure/routes/series.routes';
+import { buildSeriesModule } from './modules/series/infrastructure/config/series.module';
 // Removed default routes - using direct endpoint
 import { buildAuthModule } from './modules/auth/infrastructure/config/auth.module';
 import routesFinan from './modules/finan/infrastructure/routes/finan.routes';
@@ -61,7 +61,7 @@ class Server {
     this.app.get('/api', (req: Request, res: Response) => {
       res.json({ msg: 'API Working' });
     });
-    this.app.use('/api/series', routesSeries);
+    this.app.use('/api/series', buildSeriesModule().router);
     this.app.use('/api/users', buildAuthModule().router);
     this.app.use('/api/finan', routesFinan);
     this.app.use(this.errorHandlerMiddleware);

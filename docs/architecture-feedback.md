@@ -491,12 +491,23 @@ src/modules/auth/
 - **Pensamiento**: "Tal vez después necesitemos esta flexibilidad"
 - **Realidad**: YAGNI - You Aren't Gonna Need It
 
+**5. 🔗 Errores de imports por análisis insuficiente**
+
+- **Error**: Crear Use Cases nuevos sin verificar paths relativos
+- **Error**: Copiar imports de otros módulos sin ajustar rutas
+- **Error**: No verificar compilación después de mover archivos
+- **Error**: Definir tipos en lugares incorrectos
+- **Error**: Pasar parámetros incorrectos a métodos existentes
+- **Realidad**: Cada módulo tiene estructura de carpetas diferente
+
 #### **🚨 Red flags para futuros módulos:**
 
 - "Necesitamos un service para..." → ¿Realmente se necesita?
 - "Hagamos un factory por si..." → ¿Hay complejidad real?
 - "Creemos un container para..." → ¿Simple DI no es suficiente?
 - "Abstraigamos para flexibilidad" → ¿Hay casos de uso reales?
+- "Copiar estructura de auth..." → ¿Verificaste paths específicos?
+- "Error de compilación..." → ¿Analizaste antes de crear archivos?
 
 #### **✅ Principios aplicados en la limpieza:**
 
@@ -504,8 +515,10 @@ src/modules/auth/
 - **YAGNI** - No agregar hasta que se necesite realmente
 - **Functionality First** - Funcionalidad antes que arquitectura bonita
 - **Real Problems Only** - Resolver problemas reales, no imaginarios
+- **Verify Before Create** - Compilar y verificar antes de crear archivos nuevos
+- **Path Awareness** - Cada módulo tiene estructura de carpetas específica
 
-**🎯 Resultado: -47% archivos, +100% claridad**
+**🎯 Resultado: -47% archivos, +100% claridad, pero cuidado con errores de paths**
 
 ### 📏 **ESTÁNDAR DE NOMENCLATURA ESTABLECIDO**
 
@@ -637,3 +650,128 @@ wc -l src/*/services/*              # ¿Líneas de código justificadas?
 **El refactoring EXITOSO se logró siguiendo un proceso incremental y preservando la funcionalidad existente. La Clean Architecture es un objetivo válido cuando se implementa gradualmente SIN romper lo que ya funciona.**
 
 **La lección principal**: **"Analiza → Mueve → Verifica → Limpia. Preserva la funcionalidad, reestructura la organización."**
+
+## 🔧 **LECCIÓN ADICIONAL: Casos de Uso con Manejo de Archivos**
+
+### 🚨 **Error Detectado en Series Module**
+
+**Problema identificado**: Al crear una serie con imagen, el controlador extraía `imageBuffer` pero NO lo pasaba al Use Case.
+
+```typescript
+❌ ERROR EN SERIES CONTROLLER:
+const imageBuffer = req.file ? req.file.buffer : undefined;
+const createSeriesUseCase = new CreateSeriesUseCase();
+const series = await createSeriesUseCase.execute(validationResult.result!);
+//                                            ↑ Falta imageBuffer
+
+✅ CORRECCIÓN:
+const imageBuffer = req.file ? req.file.buffer : undefined;
+const createSeriesUseCase = new CreateSeriesUseCase();
+const series = await createSeriesUseCase.execute(validationResult.result!, imageBuffer);
+//                                            ↑ Ahora sí pasa la imagen
+```
+
+### 📋 **Patrón de Verificación para Endpoints con Files**
+
+**Para evitar este error en futuros módulos:**
+
+```bash
+# 1. Verificar que el controlador capture el archivo
+grep -A 5 "req.file" src/modules/*/infrastructure/controllers/*.ts
+
+# 2. Verificar que pase el archivo al Use Case
+grep -A 3 -B 3 "execute.*imageBuffer\|execute.*file" src/modules/*/infrastructure/controllers/*.ts
+
+# 3. Verificar que el Use Case reciba el archivo
+grep -A 2 "execute.*Buffer" src/modules/*/application/use-cases/*.ts
+```
+
+### 🎯 **Checklist para Endpoints con Upload de Archivos**
+
+```bash
+□ ¿Middleware de upload configurado? (multer)
+□ ¿Controller extrae req.file.buffer?
+□ ¿Controller pasa buffer al Use Case?
+□ ¿Use Case maneja buffer optional?
+□ ¿Use Case procesa y guarda archivo?
+□ ¿Use Case actualiza BD con path relativo?
+□ ¿Path en BD es limpio? (/img/tarjeta/123.jpg)
+```
+
+### 🛠️ **Flujo Correcto para Manejo de Imágenes**
+
+```typescript
+// 1. CONTROLLER - Capturar y pasar archivo
+const imageBuffer = req.file ? req.file.buffer : undefined;
+const useCase = new CreateEntityUseCase();
+const result = await useCase.execute(data, imageBuffer); // ✅ Pasar buffer
+
+// 2. USE CASE - Procesar archivo condicionalmente
+async execute(data: EntityData, imageBuffer?: Buffer): Promise<Entity> {
+  const entity = await this.repository.create(data);
+
+  if (imageBuffer) {
+    // Procesar imagen
+    const optimized = await ImageProcessor.optimizeImage(imageBuffer);
+    const filename = `${entity.id}.jpg`;
+    await ImageProcessor.saveOptimizedImage(optimized, filename, this.UPLOAD_DIR);
+
+    // Guardar path relativo limpio en BD
+    const imagePath = `/img/categoria/${filename}`;
+    await this.repository.updateImage(entity.id, imagePath);
+  }
+
+  return entity;
+}
+
+// 3. REPOSITORY - Guardar solo path, no binary
+async updateImage(id: number, imagePath: string): Promise<void> {
+  await this.db.query(
+    'UPDATE table SET image = ? WHERE id = ?',
+    [imagePath, id] // ✅ Path string, no Buffer
+  );
+}
+```
+
+### 🔍 **Verificación Rápida de Implementación**
+
+```bash
+# ¿El endpoint funciona con archivo?
+curl -X POST '/api/entity/create' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'name=test' \
+  -F 'image=@test.jpg'
+
+# ¿Se guarda en filesystem?
+ls uploads/categoria/  # ¿Aparece nuevo archivo?
+
+# ¿Se guarda path en BD?
+SELECT image FROM table ORDER BY id DESC LIMIT 1;
+# Resultado esperado: "/img/categoria/123.jpg"
+```
+
+### 📝 **Error Pattern Detectado**
+
+**🚨 CAUSA RAÍZ**: **Desarrollo fragmentado**
+
+- ✅ Se crea el Use Case con manejo de imagen
+- ✅ Se crea el controlador con extracción de imagen
+- ❌ **NO se conectan ambas partes correctamente**
+
+**🎯 SOLUCIÓN**: **Verificación end-to-end**
+
+1. **Crear Use Case** con parámetro file opcional
+2. **Crear Controller** que extraiga file
+3. **🔥 CRÍTICO: Conectar ambos** pasando file del controller al use case
+4. **Verificar flujo completo** con curl de prueba
+
+### ⚡ **Principio Agregado**
+
+**"No basta implementar las partes, hay que conectarlas correctamente"**
+
+- Implementar funcionalidad ≠ Conectar funcionalidad
+- Cada componente puede funcionar bien individualmente
+- El error está en la **interfaz entre componentes**
+- **Siempre verificar el flujo completo end-to-end**
+
+Esta lección aplica a cualquier patrón donde múltiples componentes colaboran (archivos, autenticación, validaciones, etc.).

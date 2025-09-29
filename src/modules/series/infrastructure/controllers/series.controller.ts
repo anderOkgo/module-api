@@ -1,10 +1,15 @@
 import { Request, Response } from 'express';
-import { getProductionsService, getProductionYearsService } from '../../domain/services/index';
-import { SeriesService } from '../../domain/services/series.service';
-import { ProductionMysqlRepository } from '../series.mysql';
-import { validateProduction } from '../../application/series.validation';
+import { GetProductionsUseCase } from '../../application/use-cases/get-productions.use-case';
+import { GetProductionYearsUseCase } from '../../application/use-cases/get-production-years.use-case';
+import { CreateSeriesUseCase } from '../../application/use-cases/create-series.use-case';
+import { GetSeriesByIdUseCase } from '../../application/use-cases/get-series-by-id.use-case';
+import { UpdateSeriesImageUseCase } from '../../application/use-cases/update-series-image.use-case';
+import { ProductionMysqlRepository } from '../persistence/series.mysql';
+import { validateProduction } from '../validation/series.validation';
 import { uploadMiddleware } from '../../../../infrastructure/lib/upload';
-import { SeriesCreateRequest, SeriesUpdateRequest } from '../../domain/models/Series';
+import { ImageProcessor } from '../../../../infrastructure/lib/image';
+import path from 'path';
+import { SeriesCreateRequest, SeriesUpdateRequest } from '../../domain/entities/series.entity';
 
 // Documentación Swagger eliminada - endpoint /api/series/series removido
 // Función defaultSeries eliminada - usar /health endpoint en su lugar
@@ -79,7 +84,8 @@ export const getProductions = async (req: Request, res: Response) => {
   if (!validationResult.valid) return res.status(400).json(validationResult.errors);
 
   try {
-    const resp = await getProductionsService(validationResult.result);
+    const getProductionsUseCase = new GetProductionsUseCase();
+    const resp = await getProductionsUseCase.execute(validationResult.result);
     return res.status(200).json(resp);
   } catch (error) {
     console.error('Error in getProductions:', error);
@@ -115,7 +121,8 @@ export const getProductions = async (req: Request, res: Response) => {
  */
 export const getProductionYears = async (req: Request, res: Response) => {
   try {
-    const resp = await getProductionYearsService();
+    const getProductionYearsUseCase = new GetProductionYearsUseCase();
+    const resp = await getProductionYearsUseCase.execute();
     return res.status(200).json(resp);
   } catch (error) {
     console.error('Error in getProductionYears:', error);
@@ -123,8 +130,8 @@ export const getProductionYears = async (req: Request, res: Response) => {
   }
 };
 
-// Controladores CRUD
-const seriesService = new SeriesService(new ProductionMysqlRepository());
+// Controladores CRUD - usar repositorio directamente
+const repository = new ProductionMysqlRepository();
 
 /**
  * @swagger
@@ -215,7 +222,8 @@ export const createSeries = async (req: Request, res: Response) => {
     }
 
     const imageBuffer = req.file ? req.file.buffer : undefined;
-    const series = await seriesService.createSeries(validationResult.result!, imageBuffer);
+    const createSeriesUseCase = new CreateSeriesUseCase();
+    const series = await createSeriesUseCase.execute(validationResult.result!, imageBuffer);
 
     return res.status(201).json({
       message: 'Serie creada exitosamente',
@@ -280,7 +288,7 @@ export const getSeriesById = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'ID inválido' });
     }
 
-    const series = await seriesService.getSeriesById(id);
+    const series = await repository.findById(id);
     if (!series) {
       return res.status(404).json({ error: 'Serie no encontrada' });
     }
@@ -357,7 +365,7 @@ export const getAllSeries = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
 
-    const series = await seriesService.getAllSeries(limit, offset);
+    const series = await repository.findAll(limit, offset);
     return res.status(200).json({ data: series });
   } catch (error) {
     console.error('Error getting series:', error);
@@ -465,8 +473,7 @@ export const updateSeries = async (req: Request, res: Response) => {
       });
     }
 
-    const imageBuffer = req.file ? req.file.buffer : undefined;
-    const series = await seriesService.updateSeries(id, validationResult.result!, imageBuffer);
+    const series = await repository.update(id, validationResult.result!);
 
     return res.status(200).json({
       message: 'Serie actualizada exitosamente',
@@ -534,7 +541,7 @@ export const deleteSeries = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'ID inválido' });
     }
 
-    const deleted = await seriesService.deleteSeries(id);
+    const deleted = await repository.delete(id);
     if (!deleted) {
       return res.status(404).json({ error: 'Serie no encontrada' });
     }
@@ -608,7 +615,7 @@ export const deleteSeries = async (req: Request, res: Response) => {
 export const searchSeries = async (req: Request, res: Response) => {
   try {
     const filters = req.body;
-    const series = await seriesService.searchSeries(filters);
+    const series = await repository.search(filters);
     return res.status(200).json({ data: series });
   } catch (error) {
     console.error('Error searching series:', error);
@@ -684,7 +691,9 @@ export const updateSeriesImage = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No se proporcionó imagen' });
     }
 
-    const series = await seriesService.updateSeriesImage(id, req.file.buffer);
+    // Usar Use Case que maneja toda la lógica de imágenes
+    const updateImageUseCase = new UpdateSeriesImageUseCase();
+    const series = await updateImageUseCase.execute(id, req.file.buffer);
     return res.status(200).json({
       message: 'Imagen actualizada exitosamente',
       data: series,

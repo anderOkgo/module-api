@@ -1,4 +1,20 @@
-import { ValidateProduction, ValidationResult } from './series.repository';
+// Tipos para validación
+export interface ValidateProduction {
+  id?: string;
+  production_name?: string;
+  production_number_chapters?: string;
+  production_description?: string;
+  production_year?: string;
+  demographic_name?: string;
+  genre_names?: string;
+  limit?: string;
+}
+
+export interface ValidationResult {
+  result: any;
+  valid: boolean;
+  errors?: ValidateProduction;
+}
 
 export const validateProduction = (input: any): ValidationResult => {
   const errors: ValidateProduction = {};

@@ -12,6 +12,39 @@
 - [🗄️ Bases de Datos](databases.md)
 - [🚀 Despliegue](deployment.md)
 - [🐛 Troubleshooting](troubleshooting.md)
+- [📮 Postman Collection](postman/README.md)
+
+## 📁 Configuración de Archivos en Producción
+
+### Symlinks en cPanel
+
+El proyecto utiliza symlinks para gestionar archivos de imágenes en producción:
+
+- **Carpeta real**: `/home/animecre/public_html/webroot/img/tarjeta`
+- **Carpeta espejo**: `/home/animecre/info.animecream.com/uploads/series/img/tarjeta`
+
+Esta configuración permite que los archivos se almacenen físicamente en la carpeta web accesible, pero la aplicación los guarde usando la ruta estándar de uploads. Ver [Deployment](deployment.md#configuración-de-carpetas-y-symlinks-en-cpanel) para más detalles.
+
+## 📮 Postman Collection
+
+### Estructura Organizada
+
+Todos los archivos de Postman están organizados en `docs/postman/`:
+
+- **`docs/postman/Animecream-API.postman_collection.json`** - Colección completa con todos los endpoints
+- **`docs/postman/Animecream-Local.postman_environment.json`** - Ambiente local (`http://localhost:3001`)
+- **`docs/postman/Animecream-Production.postman_environment.json`** - Ambiente producción (`https://info.animecream.com`)
+- **`docs/postman/Animecream-Environments.postman_environment.json`** - Ambiente base
+- **`docs/postman/README.md`** - Guía completa de uso
+
+### Uso Rápido
+
+1. Importar los archivos `.json` desde `docs/postman/` en Postman
+2. Seleccionar el ambiente deseado (Local/Production)
+3. Configurar variables de autenticación
+4. ¡Listo para usar!
+
+Ver [Postman Collection](postman/README.md) para documentación completa.
 
 ## 🎯 Descripción General
 

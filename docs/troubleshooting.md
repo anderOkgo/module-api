@@ -6,6 +6,110 @@ Este documento proporciona soluciones para los problemas más comunes que pueden
 
 ## 🔧 Problemas de Configuración
 
+### Symlinks y Archivos en Producción
+
+#### Error: "Archivos no se guardan en la ubicación correcta"
+
+```bash
+# Síntomas
+# Los archivos se guardan en uploads/ pero no son accesibles desde la web
+# Error 404 al intentar acceder a las imágenes
+
+# Diagnóstico
+# Verificar si existe el symlink
+ls -l /home/animecre/info.animecream.com/uploads/series/img/ | grep tarjeta
+
+# Si no existe o está roto, recrear el symlink
+rm /home/animecre/info.animecream.com/uploads/series/img/tarjeta
+ln -s /home/animecre/public_html/webroot/img/tarjeta /home/animecre/info.animecream.com/uploads/series/img/tarjeta
+
+# Verificar que el symlink funciona
+ls -l /home/animecre/info.animecream.com/uploads/series/img/tarjeta
+```
+
+#### Error: "Symlink roto o no existe"
+
+```bash
+# Síntomas
+# ls -l muestra un archivo normal en lugar de un symlink
+# Los archivos no se reflejan entre las carpetas
+
+# Solución
+# 1. Eliminar el archivo/carpeta existente
+rm -rf /home/animecre/info.animecream.com/uploads/series/img/tarjeta
+
+# 2. Crear el directorio de destino si no existe
+mkdir -p /home/animecre/public_html/webroot/img/tarjeta
+
+# 3. Crear el symlink
+ln -s /home/animecre/public_html/webroot/img/tarjeta /home/animecre/info.animecream.com/uploads/series/img/tarjeta
+
+# 4. Verificar permisos
+chmod 755 /home/animecre/public_html/webroot/img/tarjeta
+chown animecre:animecre /home/animecre/public_html/webroot/img/tarjeta
+```
+
+#### Error: "Permisos de archivos incorrectos"
+
+```bash
+# Síntomas
+# Error 403 al acceder a las imágenes
+# Archivos no se pueden escribir
+
+# Solución
+# Configurar permisos correctos
+chmod 755 /home/animecre/public_html/webroot/img/tarjeta
+chmod 644 /home/animecre/public_html/webroot/img/tarjeta/*
+chown -R animecre:animecre /home/animecre/public_html/webroot/img/tarjeta
+
+# Verificar permisos
+ls -la /home/animecre/public_html/webroot/img/tarjeta
+```
+
+#### Verificación de Configuración de Symlinks
+
+```bash
+# Script de verificación completo
+#!/bin/bash
+
+echo "=== Verificación de Symlinks ==="
+
+# Verificar que el directorio de destino existe
+if [ -d "/home/animecre/public_html/webroot/img/tarjeta" ]; then
+    echo "✅ Directorio de destino existe"
+else
+    echo "❌ Directorio de destino no existe"
+    mkdir -p /home/animecre/public_html/webroot/img/tarjeta
+    echo "✅ Directorio de destino creado"
+fi
+
+# Verificar que el symlink existe
+if [ -L "/home/animecre/info.animecream.com/uploads/series/img/tarjeta" ]; then
+    echo "✅ Symlink existe"
+
+    # Verificar que el symlink apunta al lugar correcto
+    TARGET=$(readlink /home/animecre/info.animecream.com/uploads/series/img/tarjeta)
+    if [ "$TARGET" = "/home/animecre/public_html/webroot/img/tarjeta" ]; then
+        echo "✅ Symlink apunta al lugar correcto"
+    else
+        echo "❌ Symlink apunta a: $TARGET"
+        echo "   Debería apuntar a: /home/animecre/public_html/webroot/img/tarjeta"
+    fi
+else
+    echo "❌ Symlink no existe"
+    echo "Creando symlink..."
+    ln -s /home/animecre/public_html/webroot/img/tarjeta /home/animecre/info.animecream.com/uploads/series/img/tarjeta
+    echo "✅ Symlink creado"
+fi
+
+# Verificar permisos
+echo "=== Verificación de Permisos ==="
+ls -la /home/animecre/public_html/webroot/img/tarjeta
+ls -la /home/animecre/info.animecream.com/uploads/series/img/
+
+echo "=== Verificación Completada ==="
+```
+
 ### Node.js y NPM
 
 #### Error: "Node.js versión incorrecta"

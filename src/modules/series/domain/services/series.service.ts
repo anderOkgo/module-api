@@ -22,7 +22,13 @@ export class SeriesService {
       if (imageBuffer) {
         const optimizedImageBuffer = await ImageProcessor.optimizeImageAdvanced(imageBuffer);
         const filename = `${newSeries.id}.jpg`; // Usar el ID como nombre del archivo
-        imagePath = await ImageProcessor.saveOptimizedImage(optimizedImageBuffer, filename, this.UPLOAD_DIR);
+        const fullImagePath = await ImageProcessor.saveOptimizedImage(
+          optimizedImageBuffer,
+          filename,
+          this.UPLOAD_DIR
+        );
+        // Guardar solo la ruta relativa en la base de datos
+        imagePath = `/img/tarjeta/${filename}`;
         await this.productionRepository.updateImage(newSeries.id, imagePath);
       }
       return { ...newSeries, image: imagePath || undefined };
@@ -81,7 +87,13 @@ export class SeriesService {
         }
         const optimizedImageBuffer = await ImageProcessor.optimizeImageAdvanced(imageBuffer);
         const filename = `${id}.jpg`; // Usar el ID como nombre del archivo
-        imagePath = await ImageProcessor.saveOptimizedImage(optimizedImageBuffer, filename, this.UPLOAD_DIR);
+        const fullImagePath = await ImageProcessor.saveOptimizedImage(
+          optimizedImageBuffer,
+          filename,
+          this.UPLOAD_DIR
+        );
+        // Guardar solo la ruta relativa en la base de datos
+        imagePath = `/img/tarjeta/${filename}`;
         // No need to set image in seriesData as it's handled separately
       }
 
@@ -129,7 +141,13 @@ export class SeriesService {
 
       const optimizedImageBuffer = await ImageProcessor.optimizeImageAdvanced(imageBuffer);
       const filename = `${id}.jpg`; // Usar el ID como nombre del archivo
-      const imagePath = await ImageProcessor.saveOptimizedImage(optimizedImageBuffer, filename, this.UPLOAD_DIR);
+      const fullImagePath = await ImageProcessor.saveOptimizedImage(
+        optimizedImageBuffer,
+        filename,
+        this.UPLOAD_DIR
+      );
+      // Guardar solo la ruta relativa en la base de datos
+      const imagePath = `/img/tarjeta/${filename}`;
 
       await this.productionRepository.updateImage(id, imagePath);
       const series = await this.productionRepository.findById(id);

@@ -244,6 +244,68 @@ az vm create \
 
 ## 🔧 Configuración de Producción
 
+### Configuración de Carpetas y Symlinks en cPanel
+
+#### Configuración de Carpetas Reales y Symlinks
+
+**Carpeta real (donde se guardan los archivos físicamente):**
+
+```
+/home/animecre/public_html/webroot/img/tarjeta
+```
+
+**Carpeta espejo (symlink, alias que apunta a la real):**
+
+```
+/home/animecre/info.animecream.com/uploads/series/img/tarjeta
+```
+
+#### Pasos Realizados
+
+1. **Respaldo de la carpeta anterior en uploads (por seguridad):**
+
+```bash
+mv /home/animecre/info.animecream.com/uploads/series/img/tarjeta /home/animecre/info.animecream.com/uploads/series/img/tarjeta_backup
+```
+
+2. **Creación del symlink:**
+
+```bash
+ln -s /home/animecre/public_html/webroot/img/tarjeta /home/animecre/info.animecream.com/uploads/series/img/tarjeta
+```
+
+3. **Verificación:**
+
+```bash
+ls -l /home/animecre/info.animecream.com/uploads/series/img | grep tarjeta
+```
+
+Debe mostrar algo como:
+
+```
+tarjeta -> /home/animecre/public_html/webroot/img/tarjeta
+```
+
+#### Resultado
+
+- Todos los archivos se guardan realmente en:
+  `/home/animecre/public_html/webroot/img/tarjeta`
+
+- Acceder o guardar en la ruta de `uploads/.../tarjeta` también usará la carpeta real gracias al symlink.
+
+Así se puede trabajar indistintamente desde ambas rutas, pero sin duplicar archivos.
+
+#### Configuración en el Código
+
+Para que la aplicación use la ruta correcta en producción, asegúrate de que la configuración de uploads esté configurada para usar la ruta del symlink:
+
+```typescript
+// En series.service.ts
+private readonly UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'series', 'img', 'tarjeta');
+```
+
+Esto permitirá que la aplicación guarde archivos en la ruta del symlink, que automáticamente los almacenará en la carpeta real.
+
 ### Variables de Entorno de Producción
 
 ```env

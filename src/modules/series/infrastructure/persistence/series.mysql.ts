@@ -203,4 +203,101 @@ export class ProductionMysqlRepository implements ProductionRepository {
     }
     return result;
   }
+
+  // Métodos para manejar relaciones
+  async assignGenres(seriesId: number, genreIds: number[]): Promise<boolean> {
+    try {
+      // Eliminar géneros existentes
+      await this.database.executeSafeQuery('DELETE FROM productions_genres WHERE production_id = ?', [seriesId]);
+
+      // Insertar nuevos géneros
+      if (genreIds.length > 0) {
+        const values = genreIds.map((genreId) => `(${seriesId}, ${genreId})`).join(',');
+        const query = `INSERT INTO productions_genres (production_id, genre_id) VALUES ${values}`;
+        const result = await this.database.executeSafeQuery(query, []);
+        if (result.errorSys) {
+          throw new Error(result.message);
+        }
+      }
+      return true;
+    } catch (error) {
+      throw new Error(`Error assigning genres: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async removeGenres(seriesId: number, genreIds: number[]): Promise<boolean> {
+    try {
+      const placeholders = genreIds.map(() => '?').join(',');
+      const query = `DELETE FROM productions_genres WHERE production_id = ? AND genre_id IN (${placeholders})`;
+      const params = [seriesId, ...genreIds];
+
+      const result = await this.database.executeSafeQuery(query, params);
+      if (result.errorSys) {
+        throw new Error(result.message);
+      }
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw new Error(`Error removing genres: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async addTitles(seriesId: number, titles: string[]): Promise<boolean> {
+    try {
+      if (titles.length === 0) return true;
+
+      const values = titles.map((title) => `(${seriesId}, '${title.replace(/'/g, "''")}')`).join(',');
+      const query = `INSERT INTO titles (production_id, name) VALUES ${values}`;
+
+      const result = await this.database.executeSafeQuery(query, []);
+      if (result.errorSys) {
+        throw new Error(result.message);
+      }
+      return true;
+    } catch (error) {
+      throw new Error(`Error adding titles: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async removeTitles(seriesId: number, titleIds: number[]): Promise<boolean> {
+    try {
+      const placeholders = titleIds.map(() => '?').join(',');
+      const query = `DELETE FROM titles WHERE production_id = ? AND id IN (${placeholders})`;
+      const params = [seriesId, ...titleIds];
+
+      const result = await this.database.executeSafeQuery(query, params);
+      if (result.errorSys) {
+        throw new Error(result.message);
+      }
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw new Error(`Error removing titles: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  // Métodos para obtener catálogos
+  async getGenres(): Promise<any[]> {
+    try {
+      const query = 'SELECT id, name, slug FROM genres ORDER BY name ASC';
+      const result = await this.database.executeSafeQuery(query, []);
+      if (result.errorSys) {
+        throw new Error(result.message);
+      }
+      return result;
+    } catch (error) {
+      throw new Error(`Error getting genres: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async getDemographics(): Promise<any[]> {
+    try {
+      const query = 'SELECT id, name, slug FROM demographics ORDER BY name ASC';
+      const result = await this.database.executeSafeQuery(query, []);
+      if (result.errorSys) {
+        throw new Error(result.message);
+      }
+      return result;
+    } catch (error) {
+      throw new Error(`Error getting demographics: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }

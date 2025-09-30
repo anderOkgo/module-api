@@ -8,6 +8,8 @@ export interface RequestBody {
   movement_type?: any;
   movement_tag?: any;
   id?: any;
+  start_date?: any;
+  end_date?: any;
 }
 
 export interface ValidationResult {
@@ -26,6 +28,25 @@ export const validateGetInitialLoad = (body: RequestBody): ValidationResult => {
     errors.push('Currency cannot be empty');
   } else if (body.currency.length !== 3) {
     errors.push('Currency must be a 3-character code');
+  }
+
+  return { error: errors.length > 0, errors };
+};
+
+export const validateInitialLoad = (body: RequestBody): ValidationResult => {
+  const errors: string[] = [];
+
+  // Validaciones específicas para initial-load
+  if (body.start_date && !isValidDate(body.start_date)) {
+    errors.push('Start date is invalid');
+  }
+
+  if (body.end_date && !isValidDate(body.end_date)) {
+    errors.push('End date is invalid');
+  }
+
+  if (body.currency && typeof body.currency !== 'string') {
+    errors.push('Currency must be a string');
   }
 
   return { error: errors.length > 0, errors };
@@ -55,7 +76,7 @@ export const validatePutMovement = (body: RequestBody): ValidationResult => {
 
   if (isEmpty(body.movement_type)) {
     errors.push('Movement type cannot be empty');
-  } else if (!isNumber(body.movement_type)) {
+  } else if (!isNumber(body.movement_type) && !isNumber(parseInt(body.movement_type))) {
     errors.push('Movement type must be a number');
   }
 
@@ -103,7 +124,7 @@ export const validateUpdateMovements = (body: RequestBody, id: any): ValidationR
 
   if (isEmpty(body.movement_type)) {
     errors.push('Movement type cannot be empty');
-  } else if (!isNumber(body.movement_type)) {
+  } else if (!isNumber(body.movement_type) && !isNumber(parseInt(body.movement_type))) {
     errors.push('Movement type must be a number');
   }
 

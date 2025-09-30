@@ -48,8 +48,10 @@ export class FinanMysqlRepository implements FinanRepository {
 
   public async totalExpenseDay(data: DataParams) {
     const { username, currency, date } = data;
+    // Usar start_date como date si no se proporciona date
+    const dateParam = date || data.start_date || new Date().toISOString().split('T')[0];
     const full_query = `CALL proc_view_total_expense_day(?, ?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, date, this.Limit]);
+    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, dateParam, this.Limit]);
     return resp[0];
   }
 

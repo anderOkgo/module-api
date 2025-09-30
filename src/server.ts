@@ -1,8 +1,12 @@
+import dotenv from 'dotenv';
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { Database } from './infrastructure/my.database.helper';
+
+// Cargar variables de entorno
+dotenv.config();
 import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './infrastructure/lib/swagger';
+import { swaggerSpec } from './infrastructure/services/swagger';
 import { buildSeriesModule } from './modules/series/infrastructure/config/series.module';
 // Removed default routes - using direct endpoint
 import { buildAuthModule } from './modules/auth/infrastructure/config/auth.module';

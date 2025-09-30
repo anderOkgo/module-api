@@ -1,6 +1,6 @@
 import mysql, { Connection, MysqlError } from 'mysql';
 import dotenv from 'dotenv';
-import sendEmail from '../../../infrastructure/lib/email';
+import sendEmail from '../../../infrastructure/services/email';
 
 class Database {
   private connection: Connection;

@@ -1,14 +1,10 @@
 import { FinanRepository } from '../ports/finan.repository';
-import { FinanMysqlRepository } from '../../infrastructure/persistence/finan.mysql';
+import { InitialLoadRequest } from '../../domain/entities/movement-request.entity';
 
 export class GetInitialLoadUseCase {
-  private repository: FinanRepository;
+  constructor(private readonly repository: FinanRepository) {}
 
-  constructor(repository?: FinanRepository) {
-    this.repository = repository || new FinanMysqlRepository();
-  }
-
-  async execute(data: any): Promise<any> {
+  async execute(data: InitialLoadRequest): Promise<any> {
     return await this.repository.getInitialLoad(data);
   }
 }

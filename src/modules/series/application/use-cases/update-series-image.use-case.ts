@@ -1,6 +1,6 @@
 import { ProductionRepository } from '../ports/series.repository';
 import { ProductionMysqlRepository } from '../../infrastructure/persistence/series.mysql';
-import { ImageProcessor } from '../../../../infrastructure/lib/image';
+import { ImageProcessor } from '../../../../infrastructure/services/image';
 import path from 'path';
 
 export class UpdateSeriesImageUseCase {

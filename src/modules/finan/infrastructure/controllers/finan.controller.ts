@@ -18,77 +18,8 @@ export class FinanController {
   ) {}
 
   /**
-   * @swagger
-   * /api/finan/initial-load:
-   *   post:
-   *     summary: Obtener carga inicial de datos financieros
-   *     tags: [Finance]
-   *     security:
-   *       - bearerAuth: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - currency
-   *             properties:
-   *               currency:
-   *                 type: string
-   *                 description: Código de moneda (3 caracteres)
-   *                 example: "AUD"
-   *                 minLength: 3
-   *                 maxLength: 3
-   *               date:
-   *                 type: string
-   *                 format: date
-   *                 description: Fecha para filtrar datos (opcional)
-   *                 example: "2023-12-25"
-   *               username:
-   *                 type: string
-   *                 description: Nombre de usuario (opcional)
-   *                 example: "anderokgo"
-   *     responses:
-   *       200:
-   *         description: Datos financieros obtenidos exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 error:
-   *                   type: boolean
-   *                   example: false
-   *                 data:
-   *                   type: object
-   *                   properties:
-   *                     movements:
-   *                       type: array
-   *                       items:
-   *                         type: object
-   *                         properties:
-   *                           id:
-   *                             type: number
-   *                             example: 1
-   *                           movement_name:
-   *                             type: string
-   *                             example: "Compra de comida"
-   *                           movement_val:
-   *                             type: number
-   *                             example: 25.50
-   *       400:
-   *         description: Error en la validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       401:
-   *         description: No autorizado
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Obtener carga inicial de datos financieros
+   * Documentación Swagger: finan.swagger.ts
    */
   getInitialLoad = async (req: Request, res: Response) => {
     const validation = validateGetInitialLoad(req.body);
@@ -104,84 +35,8 @@ export class FinanController {
   };
 
   /**
-   * @swagger
-   * /api/finan/insert:
-   *   post:
-   *     summary: Insertar nuevo movimiento financiero
-   *     tags: [Finance]
-   *     security:
-   *       - bearerAuth: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - movement_name
-   *               - movement_val
-   *               - movement_date
-   *               - movement_type
-   *               - movement_tag
-   *               - currency
-   *             properties:
-   *               movement_name:
-   *                 type: string
-   *                 description: Nombre del movimiento
-   *                 example: "Compra de comida"
-   *               movement_val:
-   *                 type: number
-   *                 description: Valor del movimiento
-   *                 example: 25.50
-   *               movement_date:
-   *                 type: string
-   *                 format: date
-   *                 description: Fecha del movimiento
-   *                 example: "2024-01-15"
-   *               movement_type:
-   *                 type: number
-   *                 description: Tipo de movimiento
-   *                 example: 1
-   *               movement_tag:
-   *                 type: string
-   *                 description: Etiqueta del movimiento
-   *                 example: "food"
-   *               currency:
-   *                 type: string
-   *                 description: Moneda
-   *                 example: "USD"
-   *     responses:
-   *       201:
-   *         description: Movimiento insertado exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 error:
-   *                   type: boolean
-   *                   example: false
-   *                 message:
-   *                   type: string
-   *                   example: "Movimiento insertado exitosamente"
-   *                 data:
-   *                   type: object
-   *                   properties:
-   *                     id:
-   *                       type: number
-   *                       example: 1
-   *       400:
-   *         description: Error en la validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       401:
-   *         description: No autorizado
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Crear nuevo movimiento financiero
+   * Documentación Swagger: finan.swagger.ts
    */
   putMovement = async (req: Request, res: Response) => {
     const validation = validatePutMovement(req.body);
@@ -197,85 +52,8 @@ export class FinanController {
   };
 
   /**
-   * @swagger
-   * /api/finan/update/{id}:
-   *   put:
-   *     summary: Actualizar movimiento financiero
-   *     tags: [Finance]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: ID del movimiento
-   *         example: 1
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               movement_name:
-   *                 type: string
-   *                 description: Nombre del movimiento
-   *                 example: "Compra de comida actualizada"
-   *               movement_val:
-   *                 type: number
-   *                 description: Valor del movimiento
-   *                 example: 30.00
-   *               movement_date:
-   *                 type: string
-   *                 format: date
-   *                 description: Fecha del movimiento
-   *                 example: "2024-01-15"
-   *               movement_type:
-   *                 type: number
-   *                 description: Tipo de movimiento
-   *                 example: 1
-   *               movement_tag:
-   *                 type: string
-   *                 description: Etiqueta del movimiento
-   *                 example: "food"
-   *               currency:
-   *                 type: string
-   *                 description: Moneda
-   *                 example: "USD"
-   *     responses:
-   *       200:
-   *         description: Movimiento actualizado exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 error:
-   *                   type: boolean
-   *                   example: false
-   *                 message:
-   *                   type: string
-   *                   example: "Movimiento actualizado exitosamente"
-   *       400:
-   *         description: Error en la validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       401:
-   *         description: No autorizado
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       404:
-   *         description: Movimiento no encontrado
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Actualizar movimiento financiero
+   * Documentación Swagger: finan.swagger.ts
    */
   updateMovement = async (req: Request, res: Response) => {
     const validation = validatePutMovement(req.body);
@@ -292,47 +70,8 @@ export class FinanController {
   };
 
   /**
-   * @swagger
-   * /api/finan/delete/{id}:
-   *   delete:
-   *     summary: Eliminar movimiento financiero
-   *     tags: [Finance]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: ID del movimiento
-   *         example: 1
-   *     responses:
-   *       200:
-   *         description: Movimiento eliminado exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 error:
-   *                   type: boolean
-   *                   example: false
-   *                 message:
-   *                   type: string
-   *                   example: "Movimiento eliminado exitosamente"
-   *       401:
-   *         description: No autorizado
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       404:
-   *         description: Movimiento no encontrado
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Eliminar movimiento financiero
+   * Documentación Swagger: finan.swagger.ts
    */
   deleteMovement = async (req: Request, res: Response) => {
     try {

@@ -20,13 +20,12 @@ import { GetGenresUseCase } from '../../application/use-cases/get-genres.use-cas
 import { GetDemographicsUseCase } from '../../application/use-cases/get-demographics.use-case';
 import { validateProduction } from '../validation/series.validation';
 import { uploadMiddleware } from '../../../../infrastructure/services/upload';
-import { ImageProcessor } from '../../../../infrastructure/services/image';
-import path from 'path';
 import { SeriesCreateRequest, SeriesUpdateRequest } from '../../domain/entities/series.entity';
 
 /**
  * SeriesController con inyección de dependencias
  * Sigue el patrón hexagonal/clean architecture
+ * Documentación Swagger: series.swagger.ts
  */
 export class SeriesController {
   constructor(
@@ -49,69 +48,8 @@ export class SeriesController {
   ) {}
 
   /**
-   * @swagger
-   * /api/series:
-   *   post:
-   *     summary: Obtener producciones con filtros (Boot endpoint)
-   *     tags: [Series]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               production_name:
-   *                 type: string
-   *                 description: Nombre de la producción (búsqueda parcial)
-   *                 example: "Attack on Titan"
-   *               production_year:
-   *                 type: array
-   *                 items:
-   *                   type: number
-   *                 description: Años de producción para filtrar
-   *                 example: [2013, 2014, 2015]
-   *               demographic_name:
-   *                 type: string
-   *                 description: Nombre de la demografía
-   *                 example: "Shōnen"
-   *               limit:
-   *                 type: string
-   *                 description: Límite de resultados
-   *                 example: "50"
-   *     responses:
-   *       200:
-   *         description: Lista de producciones obtenida exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: array
-   *               items:
-   *                 $ref: '#/components/schemas/Series'
-   *               example:
-   *                 - id: 1
-   *                   name: "Attack on Titan"
-   *                   chapter_numer: 25
-   *                   year: 2013
-   *                   description: "Una serie de anime sobre la humanidad luchando contra titanes"
-   *                   qualification: 9.5
-   *                   image: "/img/tarjeta/1.jpg"
-   *                   demography_id: 2
-   *                   visible: 1
-   *                   rank: 1
-   *                   demographic_name: "Shōnen"
-   *       400:
-   *         description: Error de validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Obtener producciones con filtros (Boot endpoint)
+   * Documentación Swagger: series.swagger.ts
    */
   getProductions = async (req: Request, res: Response) => {
     const validationResult = validateProduction(req.body);
@@ -127,30 +65,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/years:
-   *   get:
-   *     summary: Obtener todos los años de producción disponibles
-   *     tags: [Series]
-   *     responses:
-   *       200:
-   *         description: Lista de años obtenida exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 data:
-   *                   type: array
-   *                   items:
-   *                     type: number
-   *                   example: [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Obtener todos los años de producción disponibles
+   * Documentación Swagger: series.swagger.ts
    */
   getProductionYears = async (req: Request, res: Response) => {
     try {
@@ -163,82 +79,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/create:
-   *   post:
-   *     summary: Crear una nueva serie
-   *     tags: [Series]
-   *     security:
-   *       - bearerAuth: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         multipart/form-data:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - name
-   *               - chapter_number
-   *               - year
-   *               - description
-   *               - qualification
-   *               - demography_id
-   *               - visible
-   *             properties:
-   *               name:
-   *                 type: string
-   *                 description: Nombre de la serie
-   *                 example: "Attack on Titan"
-   *               chapter_number:
-   *                 type: number
-   *                 description: Número de capítulos
-   *                 example: 25
-   *               year:
-   *                 type: number
-   *                 description: Año de lanzamiento
-   *                 example: 2013
-   *               description:
-   *                 type: string
-   *                 description: Descripción de la serie
-   *                 example: "Una serie de anime sobre la humanidad luchando contra titanes"
-   *               qualification:
-   *                 type: number
-   *                 minimum: 0
-   *                 maximum: 10
-   *                 description: Calificación de 0 a 10
-   *                 example: 9.5
-   *               demography_id:
-   *                 type: number
-   *                 description: ID de la demografía
-   *                 example: 1
-   *               visible:
-   *                 type: boolean
-   *                 description: Si la serie es visible
-   *                 example: true
-   *               image:
-   *                 type: string
-   *                 format: binary
-   *                 description: Imagen de la serie (será optimizada a 190x285px, ~14KB)
-   *     responses:
-   *       201:
-   *         description: Serie creada exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               allOf:
-   *                 - $ref: '#/components/schemas/SuccessResponse'
-   *                 - type: object
-   *                   properties:
-   *                     data:
-   *                       $ref: '#/components/schemas/Series'
-   *       400:
-   *         description: Error de validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       500:
-   *         description: Error interno del servidor
+   * Crear una nueva serie (multipart/form-data)
+   * Documentación Swagger: series.swagger.ts
    */
   createSeries = async (req: Request, res: Response) => {
     try {
@@ -270,94 +112,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/create-complete:
-   *   post:
-   *     summary: Crear serie completa con relaciones (JSON)
-   *     tags: [Series]
-   *     security:
-   *       - bearerAuth: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - name
-   *               - chapter_number
-   *               - year
-   *               - description
-   *               - qualification
-   *               - demography_id
-   *               - visible
-   *             properties:
-   *               name:
-   *                 type: string
-   *                 description: Nombre de la serie
-   *                 example: "Attack on Titan"
-   *               chapter_number:
-   *                 type: number
-   *                 description: Número de capítulos
-   *                 example: 25
-   *               year:
-   *                 type: number
-   *                 description: Año de lanzamiento
-   *                 example: 2013
-   *               description:
-   *                 type: string
-   *                 description: Descripción de la serie
-   *                 example: "Una serie de anime sobre la humanidad luchando contra titanes"
-   *               qualification:
-   *                 type: number
-   *                 minimum: 0
-   *                 maximum: 10
-   *                 description: Calificación de 0 a 10
-   *                 example: 9.5
-   *               demography_id:
-   *                 type: number
-   *                 description: ID de la demografía
-   *                 example: 2
-   *               visible:
-   *                 type: boolean
-   *                 description: Si la serie es visible
-   *                 example: true
-   *               genres:
-   *                 type: array
-   *                 items:
-   *                   type: number
-   *                 description: Array de IDs de géneros
-   *                 example: [1, 3, 5]
-   *               titles:
-   *                 type: array
-   *                 items:
-   *                   type: string
-   *                 description: Array de títulos alternativos
-   *                 example: ["Shingeki no Kyojin", "AOT"]
-   *     responses:
-   *       201:
-   *         description: Serie creada exitosamente con relaciones
-   *         content:
-   *           application/json:
-   *             schema:
-   *               allOf:
-   *                 - $ref: '#/components/schemas/SuccessResponse'
-   *                 - type: object
-   *                   properties:
-   *                     data:
-   *                       $ref: '#/components/schemas/Series'
-   *       400:
-   *         description: Error de validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Crear serie completa con relaciones (JSON)
+   * Documentación Swagger: series.swagger.ts
    */
   createSeriesComplete = async (req: Request, res: Response) => {
     try {
@@ -379,47 +135,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/{id}:
-   *   get:
-   *     summary: Obtener serie por ID
-   *     tags: [Series]
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: ID de la serie
-   *         example: 1
-   *     responses:
-   *       200:
-   *         description: Serie obtenida exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 data:
-   *                   $ref: '#/components/schemas/Series'
-   *       400:
-   *         description: ID inválido
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       404:
-   *         description: Serie no encontrada
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Obtener serie por ID
+   * Documentación Swagger: series.swagger.ts
    */
   getSeriesById = async (req: Request, res: Response) => {
     try {
@@ -441,58 +158,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/{id}/image:
-   *   put:
-   *     summary: Actualizar imagen de una serie
-   *     tags: [Series]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: ID de la serie
-   *         example: 1
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         multipart/form-data:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               image:
-   *                 type: string
-   *                 format: binary
-   *                 description: Nueva imagen de la serie
-   *     responses:
-   *       200:
-   *         description: Imagen actualizada exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 error:
-   *                   type: boolean
-   *                   example: false
-   *                 message:
-   *                   type: string
-   *                   example: "Imagen actualizada exitosamente"
-   *       400:
-   *         description: Error en la validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       401:
-   *         description: No autorizado
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Actualizar imagen de una serie
+   * Documentación Swagger: series.swagger.ts
    */
   updateSeriesImage = async (req: Request, res: Response) => {
     try {
@@ -522,61 +189,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/list:
-   *   get:
-   *     summary: Obtener todas las series
-   *     tags: [Series]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: query
-   *         name: limit
-   *         schema:
-   *           type: integer
-   *           default: 50
-   *           minimum: 1
-   *           maximum: 100
-   *         description: Número máximo de series a retornar
-   *         example: 25
-   *       - in: query
-   *         name: offset
-   *         schema:
-   *           type: integer
-   *           default: 0
-   *           minimum: 0
-   *         description: Número de series a omitir (para paginación)
-   *         example: 0
-   *     responses:
-   *       200:
-   *         description: Lista de series obtenida exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 data:
-   *                   type: array
-   *                   items:
-   *                     $ref: '#/components/schemas/Series'
-   *                   example:
-   *                     - id: 1
-   *                       name: "Attack on Titan"
-   *                       chapter_numer: 25
-   *                       year: 2013
-   *                       description: "Una serie de anime sobre la humanidad luchando contra titanes"
-   *                       qualification: 9.5
-   *                       image: "/img/tarjeta/1.jpg"
-   *                       demography_id: 2
-   *                       visible: 1
-   *                       rank: 1
-   *                       demographic_name: "Shōnen"
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Obtener todas las series
+   * Documentación Swagger: series.swagger.ts
    */
   getAllSeries = async (req: Request, res: Response) => {
     try {
@@ -595,86 +209,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/{id}:
-   *   put:
-   *     summary: Actualizar serie existente
-   *     tags: [Series]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: ID de la serie a actualizar
-   *         example: 1
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         multipart/form-data:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               name:
-   *                 type: string
-   *                 description: Nombre de la serie
-   *                 example: "Attack on Titan Season 2"
-   *               chapter_number:
-   *                 type: number
-   *                 description: Número de capítulos
-   *                 example: 12
-   *               year:
-   *                 type: number
-   *                 description: Año de lanzamiento
-   *                 example: 2017
-   *               description:
-   *                 type: string
-   *                 description: Descripción de la serie
-   *                 example: "Segunda temporada de Attack on Titan"
-   *               qualification:
-   *                 type: number
-   *                 minimum: 0
-   *                 maximum: 10
-   *                 description: Calificación de 0 a 10
-   *                 example: 9.8
-   *               demography_id:
-   *                 type: number
-   *                 description: ID de la demografía
-   *                 example: 1
-   *               visible:
-   *                 type: boolean
-   *                 description: Si la serie es visible
-   *                 example: true
-   *               image:
-   *                 type: string
-   *                 format: binary
-   *                 description: Nueva imagen de la serie (opcional)
-   *     responses:
-   *       200:
-   *         description: Serie actualizada exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               allOf:
-   *                 - $ref: '#/components/schemas/SuccessResponse'
-   *                 - type: object
-   *                   properties:
-   *                     data:
-   *                       $ref: '#/components/schemas/Series'
-   *       400:
-   *         description: Error de validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Actualizar serie existente
+   * Documentación Swagger: series.swagger.ts
    */
   updateSeries = async (req: Request, res: Response) => {
     try {
@@ -722,50 +258,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/{id}:
-   *   delete:
-   *     summary: Eliminar serie
-   *     tags: [Series]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: ID de la serie a eliminar
-   *         example: 1
-   *     responses:
-   *       200:
-   *         description: Serie eliminada exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: "Serie eliminada exitosamente"
-   *       400:
-   *         description: ID inválido
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       404:
-   *         description: Serie no encontrada
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Eliminar serie
+   * Documentación Swagger: series.swagger.ts
    */
   deleteSeries = async (req: Request, res: Response) => {
     try {
@@ -790,60 +284,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/search:
-   *   post:
-   *     summary: Buscar series con filtros
-   *     tags: [Series]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               production_name:
-   *                 type: string
-   *                 description: Nombre de la serie (búsqueda parcial)
-   *                 example: "Attack on Titan"
-   *               production_year:
-   *                 type: number
-   *                 description: Año de producción
-   *                 example: 2013
-   *               demography_id:
-   *                 type: number
-   *                 description: ID de la demografía (1=Kodomo, 2=Shōnen, 3=Shōjo, 4=Seinen, 5=Josei, 6=Shōnen-Seinen)
-   *                 example: 2
-   *               visible:
-   *                 type: boolean
-   *                 description: Si la serie es visible
-   *                 example: true
-   *               qualification:
-   *                 type: number
-   *                 description: Calificación mínima (0-10)
-   *                 example: 8.5
-   *               chapter_number:
-   *                 type: number
-   *                 description: Número de capítulos
-   *                 example: 25
-   *     responses:
-   *       200:
-   *         description: Búsqueda realizada exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 data:
-   *                   type: array
-   *                   items:
-   *                     $ref: '#/components/schemas/Series'
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Buscar series con filtros
+   * Documentación Swagger: series.swagger.ts
    */
   searchSeries = async (req: Request, res: Response) => {
     try {
@@ -860,59 +302,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/{id}/genres:
-   *   post:
-   *     summary: Asignar géneros a una serie
-   *     tags: [Series]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: ID de la serie
-   *         example: 1
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - genres
-   *             properties:
-   *               genres:
-   *                 type: array
-   *                 items:
-   *                   type: number
-   *                 description: Array de IDs de géneros
-   *                 example: [1, 3, 5]
-   *     responses:
-   *       200:
-   *         description: Géneros asignados exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: "Géneros asignados exitosamente"
-   *       400:
-   *         description: Error de validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Asignar géneros a una serie
+   * Documentación Swagger: series.swagger.ts
    */
   assignGenres = async (req: Request, res: Response) => {
     try {
@@ -941,59 +332,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/{id}/genres:
-   *   delete:
-   *     summary: Remover géneros de una serie
-   *     tags: [Series]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: ID de la serie
-   *         example: 1
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - genres
-   *             properties:
-   *               genres:
-   *                 type: array
-   *                 items:
-   *                   type: number
-   *                 description: Array de IDs de géneros a remover
-   *                 example: [1, 3]
-   *     responses:
-   *       200:
-   *         description: Géneros removidos exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: "Géneros removidos exitosamente"
-   *       400:
-   *         description: Error de validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Remover géneros de una serie
+   * Documentación Swagger: series.swagger.ts
    */
   removeGenres = async (req: Request, res: Response) => {
     try {
@@ -1022,59 +362,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/{id}/titles:
-   *   post:
-   *     summary: Agregar títulos alternativos a una serie
-   *     tags: [Series]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: ID de la serie
-   *         example: 1
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - titles
-   *             properties:
-   *               titles:
-   *                 type: array
-   *                 items:
-   *                   type: string
-   *                 description: Array de títulos alternativos
-   *                 example: ["Shingeki no Kyojin", "AOT"]
-   *     responses:
-   *       200:
-   *         description: Títulos agregados exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: "Títulos agregados exitosamente"
-   *       400:
-   *         description: Error de validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Agregar títulos alternativos a una serie
+   * Documentación Swagger: series.swagger.ts
    */
   addTitles = async (req: Request, res: Response) => {
     try {
@@ -1103,59 +392,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/{id}/titles:
-   *   delete:
-   *     summary: Remover títulos alternativos de una serie
-   *     tags: [Series]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: integer
-   *         description: ID de la serie
-   *         example: 1
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required:
-   *               - titleIds
-   *             properties:
-   *               titleIds:
-   *                 type: array
-   *                 items:
-   *                   type: number
-   *                 description: Array de IDs de títulos a remover
-   *                 example: [1, 2]
-   *     responses:
-   *       200:
-   *         description: Títulos removidos exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: "Títulos removidos exitosamente"
-   *       400:
-   *         description: Error de validación
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Remover títulos alternativos de una serie
+   * Documentación Swagger: series.swagger.ts
    */
   removeTitles = async (req: Request, res: Response) => {
     try {
@@ -1184,42 +422,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/genres:
-   *   get:
-   *     summary: Obtener lista de géneros disponibles
-   *     tags: [Series]
-   *     responses:
-   *       200:
-   *         description: Lista de géneros obtenida exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: "Géneros obtenidos exitosamente"
-   *                 data:
-   *                   type: array
-   *                   items:
-   *                     type: object
-   *                     properties:
-   *                       id:
-   *                         type: number
-   *                         example: 1
-   *                       name:
-   *                         type: string
-   *                         example: "Acción"
-   *                       slug:
-   *                         type: string
-   *                         example: "accion"
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Obtener lista de géneros disponibles
+   * Documentación Swagger: series.swagger.ts
    */
   getGenres = async (req: Request, res: Response) => {
     try {
@@ -1239,42 +443,8 @@ export class SeriesController {
   };
 
   /**
-   * @swagger
-   * /api/series/demographics:
-   *   get:
-   *     summary: Obtener lista de demografías disponibles
-   *     tags: [Series]
-   *     responses:
-   *       200:
-   *         description: Lista de demografías obtenida exitosamente
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 message:
-   *                   type: string
-   *                   example: "Demografías obtenidas exitosamente"
-   *                 data:
-   *                   type: array
-   *                   items:
-   *                     type: object
-   *                     properties:
-   *                       id:
-   *                         type: number
-   *                         example: 1
-   *                       name:
-   *                         type: string
-   *                         example: "Shounen"
-   *                       slug:
-   *                         type: string
-   *                         example: "shounen"
-   *       500:
-   *         description: Error interno del servidor
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Error'
+   * Obtener lista de demografías disponibles
+   * Documentación Swagger: series.swagger.ts
    */
   getDemographics = async (req: Request, res: Response) => {
     try {

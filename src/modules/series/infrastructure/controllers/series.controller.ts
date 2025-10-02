@@ -97,11 +97,10 @@ export class SeriesController {
       const imageBuffer = req.file ? req.file.buffer : undefined;
       const result = await this.createSeriesUseCase.execute(seriesData, imageBuffer);
 
-      if (result.error) {
-        return res.status(400).json(result);
-      }
-
-      res.status(201).json(result);
+      res.status(201).json({
+        message: 'Serie creada exitosamente',
+        data: result,
+      });
     } catch (error) {
       console.error('Error in createSeries:', error);
       return res.status(500).json({
@@ -143,11 +142,17 @@ export class SeriesController {
       const id = parseInt(req.params.id);
       const result = await this.getSeriesByIdUseCase.execute(id);
 
-      if (result.error) {
-        return res.status(404).json(result);
+      if (!result) {
+        return res.status(404).json({
+          error: true,
+          message: 'Series not found',
+        });
       }
 
-      res.status(200).json(result);
+      res.status(200).json({
+        message: 'Serie obtenida exitosamente',
+        data: result,
+      });
     } catch (error) {
       console.error('Error in getSeriesById:', error);
       return res.status(500).json({
@@ -174,11 +179,10 @@ export class SeriesController {
 
       const result = await this.updateSeriesImageUseCase.execute(id, req.file.buffer);
 
-      if (result.error) {
-        return res.status(400).json(result);
-      }
-
-      res.status(200).json(result);
+      res.status(200).json({
+        message: 'Imagen actualizada exitosamente',
+        data: result,
+      });
     } catch (error) {
       console.error('Error in updateSeriesImage:', error);
       return res.status(500).json({
@@ -268,12 +272,18 @@ export class SeriesController {
         return res.status(400).json({ error: 'ID inválido' });
       }
 
-      const deleted = await this.deleteSeriesUseCase.execute(id);
-      if (!deleted) {
-        return res.status(404).json({ error: 'Serie no encontrada' });
+      const result = await this.deleteSeriesUseCase.execute(id);
+
+      if (!result.success) {
+        return res.status(404).json({
+          error: true,
+          message: result.message,
+        });
       }
 
-      return res.status(200).json({ message: 'Serie eliminada exitosamente' });
+      return res.status(200).json({
+        message: result.message,
+      });
     } catch (error) {
       console.error('Error deleting series:', error);
       return res.status(500).json({

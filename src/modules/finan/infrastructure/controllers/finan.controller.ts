@@ -27,7 +27,10 @@ export class FinanController {
 
     try {
       const resp = await this.getInitialLoadUseCase.execute(req.body);
-      return resp.errorSys ? res.status(500).json(resp.message) : res.status(200).json(resp);
+      return res.status(200).json({
+        message: 'Initial load data retrieved successfully',
+        data: resp,
+      });
     } catch (error) {
       console.error('Error in getInitialLoad:', error);
       return res.status(500).json({ error: true, message: 'Internal server error' });
@@ -44,7 +47,18 @@ export class FinanController {
 
     try {
       const resp = await this.putMovementUseCase.execute(req.body);
-      return resp.errorSys ? res.status(500).json(resp.message) : res.status(201).json(resp);
+
+      if (!resp.success) {
+        return res.status(400).json({
+          error: true,
+          message: resp.message,
+        });
+      }
+
+      return res.status(201).json({
+        message: resp.message,
+        data: resp.data,
+      });
     } catch (error) {
       console.error('Error in putMovement:', error);
       return res.status(500).json({ error: true, message: 'Internal server error' });
@@ -61,8 +75,20 @@ export class FinanController {
 
     try {
       const id = parseInt(req.params.id);
-      const resp = await this.updateMovementUseCase.execute(id, req.body);
-      return resp.errorSys ? res.status(500).json(resp.message) : res.status(200).json(resp);
+      const username = req.body.username || 'default'; // Fallback para username
+      const resp = await this.updateMovementUseCase.execute(id, req.body, username);
+
+      if (!resp.success) {
+        return res.status(400).json({
+          error: true,
+          message: resp.message,
+        });
+      }
+
+      return res.status(200).json({
+        message: resp.message,
+        data: resp.data,
+      });
     } catch (error) {
       console.error('Error in updateMovement:', error);
       return res.status(500).json({ error: true, message: 'Internal server error' });
@@ -78,7 +104,17 @@ export class FinanController {
       const id = parseInt(req.params.id);
       const username = req.body.username || 'default'; // Fallback para username
       const resp = await this.deleteMovementUseCase.execute(id, username);
-      return resp.errorSys ? res.status(500).json(resp.message) : res.status(200).json(resp);
+
+      if (!resp.success) {
+        return res.status(400).json({
+          error: true,
+          message: resp.message,
+        });
+      }
+
+      return res.status(200).json({
+        message: resp.message,
+      });
     } catch (error) {
       console.error('Error in deleteMovement:', error);
       return res.status(500).json({ error: true, message: 'Internal server error' });

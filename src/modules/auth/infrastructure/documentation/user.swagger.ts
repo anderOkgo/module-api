@@ -14,37 +14,7 @@ export const userSwaggerDocumentation = {
           content: {
             'application/json': {
               schema: {
-                type: 'object',
-                required: ['first_name', 'last_name', 'username', 'email', 'password'],
-                properties: {
-                  first_name: {
-                    type: 'string',
-                    description: 'Nombre del usuario',
-                    example: 'Juan',
-                  },
-                  last_name: {
-                    type: 'string',
-                    description: 'Apellido del usuario',
-                    example: 'Pérez',
-                  },
-                  username: {
-                    type: 'string',
-                    description: 'Nombre de usuario único',
-                    example: 'juanperez',
-                  },
-                  email: {
-                    type: 'string',
-                    format: 'email',
-                    description: 'Correo electrónico del usuario',
-                    example: 'juan@example.com',
-                  },
-                  password: {
-                    type: 'string',
-                    minLength: 6,
-                    description: 'Contraseña del usuario',
-                    example: 'password123',
-                  },
-                },
+                $ref: '#/components/schemas/UserCreateRequest',
               },
             },
           },
@@ -66,21 +36,7 @@ export const userSwaggerDocumentation = {
                       example: 'Usuario registrado exitosamente',
                     },
                     data: {
-                      type: 'object',
-                      properties: {
-                        id: {
-                          type: 'number',
-                          example: 1,
-                        },
-                        username: {
-                          type: 'string',
-                          example: 'juanperez',
-                        },
-                        email: {
-                          type: 'string',
-                          example: 'juan@example.com',
-                        },
-                      },
+                      $ref: '#/components/schemas/UserResponse',
                     },
                   },
                 },
@@ -122,20 +78,7 @@ export const userSwaggerDocumentation = {
           content: {
             'application/json': {
               schema: {
-                type: 'object',
-                required: ['username', 'password'],
-                properties: {
-                  username: {
-                    type: 'string',
-                    description: 'Nombre de usuario o email',
-                    example: 'juanperez',
-                  },
-                  password: {
-                    type: 'string',
-                    description: 'Contraseña del usuario',
-                    example: 'password123',
-                  },
-                },
+                $ref: '#/components/schemas/LoginRequest',
               },
             },
           },
@@ -157,30 +100,7 @@ export const userSwaggerDocumentation = {
                       example: 'Login exitoso',
                     },
                     data: {
-                      type: 'object',
-                      properties: {
-                        token: {
-                          type: 'string',
-                          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-                        },
-                        user: {
-                          type: 'object',
-                          properties: {
-                            id: {
-                              type: 'number',
-                              example: 1,
-                            },
-                            username: {
-                              type: 'string',
-                              example: 'juanperez',
-                            },
-                            email: {
-                              type: 'string',
-                              example: 'juan@example.com',
-                            },
-                          },
-                        },
-                      },
+                      $ref: '#/components/schemas/LoginResponse',
                     },
                   },
                 },

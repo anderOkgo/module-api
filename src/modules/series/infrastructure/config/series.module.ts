@@ -41,7 +41,7 @@ export function buildSeriesModule() {
   const getProductionYearsUseCase = new GetProductionYearsUseCase(seriesRepository);
   const createSeriesUseCase = new CreateSeriesUseCase(seriesRepository, imageService);
   const getSeriesByIdUseCase = new GetSeriesByIdUseCase(seriesRepository);
-  const updateSeriesImageUseCase = new UpdateSeriesImageUseCase(seriesRepository);
+  const updateSeriesImageUseCase = new UpdateSeriesImageUseCase(seriesRepository, imageService);
   const updateSeriesUseCase = new UpdateSeriesUseCase(seriesRepository);
   const getAllSeriesUseCase = new GetAllSeriesUseCase(seriesRepository);
   const deleteSeriesUseCase = new DeleteSeriesUseCase(seriesRepository, imageService);

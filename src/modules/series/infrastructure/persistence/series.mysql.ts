@@ -9,7 +9,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     this.database = new Database('MYDATABASEANIME');
   }
 
-  public async getProduction(production: Series) {
+  public async getProduction(production: Series): Promise<Series[]> {
     const viewName = 'view_all_info_produtions';
     const initialQuery = `SELECT * FROM ${viewName} WHERE 1`;
     const conditions: string[] = [];
@@ -27,30 +27,44 @@ export class ProductionMysqlRepository implements ProductionRepository {
 
     for (const [key, value] of Object.entries(production)) {
       if (conditionMap[key]) {
-        conditions.push(conditionMap[key](key, value)); // call the HDB fucntion to get a SQL string
-        conditionsVals.push(value); // push the value for the previous SQL string
+        conditions.push(conditionMap[key](key, value));
+        conditionsVals.push(value);
       }
     }
 
     conditions.push(HDB.generateOrderBy('production_ranking_number', 'ASC'));
     conditions.push(HDB.generateLimit());
-    const fullQuery = `${initialQuery} ${conditions.join(' ')}`; // create full SQL string
-    conditionsVals.push(parseInt(production.limit));
+    const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
+
+    // Normalizar limit si existe
+    const limit = (production as any).limit;
+    if (limit) {
+      conditionsVals.push(parseInt(limit));
+    }
+
     const mergedArray: any[] = [];
     conditionsVals.forEach((element) => {
       if (Array.isArray(element)) {
-        mergedArray.push(...element); // flat the array
+        mergedArray.push(...element);
       } else {
         mergedArray.push(element);
       }
     });
 
-    return await this.database.executeSafeQuery(fullQuery, mergedArray);
+    const result = await this.database.executeSafeQuery(fullQuery, mergedArray);
+    if (result.errorSys) {
+      throw new Error(result.message);
+    }
+    return result;
   }
 
-  public async getProductionYears() {
+  public async getProductionYears(): Promise<any[]> {
     const fullQuery: string = 'SELECT * FROM view_all_years_productions';
-    return await this.database.executeSafeQuery(fullQuery);
+    const result = await this.database.executeSafeQuery(fullQuery, []);
+    if (result.errorSys) {
+      throw new Error(result.message);
+    }
+    return result;
   }
 
   // Métodos CRUD
@@ -165,7 +179,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     return result.affectedRows > 0;
   }
 
-  async search(filters: Partial<Series>): Promise<Series[]> {
+  async search(filters: any): Promise<Series[]> {
     let query = `
       SELECT p.*, d.name as demographic_name
       FROM productions p
@@ -175,13 +189,13 @@ export class ProductionMysqlRepository implements ProductionRepository {
     const conditions: string[] = [];
     const params: any[] = [];
 
-    if (filters.production_name) {
+    if (filters.name) {
       conditions.push('p.name LIKE ?');
-      params.push(`%${filters.production_name}%`);
+      params.push(`%${filters.name}%`);
     }
-    if (filters.production_year) {
+    if (filters.year) {
       conditions.push('p.year = ?');
-      params.push(filters.production_year);
+      params.push(filters.year);
     }
     if (filters.demography_id) {
       conditions.push('p.demography_id = ?');
@@ -196,7 +210,11 @@ export class ProductionMysqlRepository implements ProductionRepository {
       query += ' AND ' + conditions.join(' AND ');
     }
 
-    query += ' ORDER BY p.rank ASC, p.qualification DESC LIMIT 100';
+    const limit = filters.limit ?? 100;
+    const offset = filters.offset ?? 0;
+    query += ` ORDER BY p.rank ASC, p.qualification DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
     const result = await this.database.executeSafeQuery(query, params);
     if (result.errorSys) {
       throw new Error(result.message);
@@ -274,30 +292,30 @@ export class ProductionMysqlRepository implements ProductionRepository {
     }
   }
 
-  // Métodos para obtener catálogos
+  // ==================== MÉTODOS DE CATÁLOGOS ====================
   async getGenres(): Promise<any[]> {
-    try {
-      const query = 'SELECT id, name, slug FROM genres ORDER BY name ASC';
-      const result = await this.database.executeSafeQuery(query, []);
-      if (result.errorSys) {
-        throw new Error(result.message);
-      }
-      return result;
-    } catch (error) {
-      throw new Error(`Error getting genres: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const query = 'SELECT id, name, slug FROM genres ORDER BY name ASC';
+    const result = await this.database.executeSafeQuery(query, []);
+    if (result.errorSys) {
+      throw new Error(result.message);
     }
+    return result;
   }
 
   async getDemographics(): Promise<any[]> {
-    try {
-      const query = 'SELECT id, name, slug FROM demographics ORDER BY name ASC';
-      const result = await this.database.executeSafeQuery(query, []);
-      if (result.errorSys) {
-        throw new Error(result.message);
-      }
-      return result;
-    } catch (error) {
-      throw new Error(`Error getting demographics: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const query = 'SELECT id, name, slug FROM demographics ORDER BY name ASC';
+    const result = await this.database.executeSafeQuery(query, []);
+    if (result.errorSys) {
+      throw new Error(result.message);
+    }
+    return result;
+  }
+
+  async updateRank(): Promise<void> {
+    const query = 'CALL update_rank()';
+    const result = await this.database.executeSafeQuery(query, []);
+    if (result.errorSys) {
+      throw new Error(result.message);
     }
   }
 }

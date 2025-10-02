@@ -17,7 +17,9 @@ export class SeriesImageProcessorService implements ImageProcessorPort {
   }
 
   async deleteImage(imagePath: string): Promise<void> {
-    const fullPath = path.join(process.cwd(), imagePath);
+    // La ruta viene como "/img/tarjeta/486.jpg"
+    // Necesitamos construir la ruta completa: "uploads/series/img/tarjeta/486.jpg"
+    const fullPath = path.join(process.cwd(), 'uploads', 'series', imagePath);
     if (ImageProcessor.deleteImage) {
       await ImageProcessor.deleteImage(fullPath);
     }

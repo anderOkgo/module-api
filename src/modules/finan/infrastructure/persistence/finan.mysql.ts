@@ -2,7 +2,12 @@ import { Database } from '../../../../infrastructure/my.database.helper';
 import { FinanRepository } from '../../application/ports/finan.repository';
 import { DataParams } from '../models/dataparams';
 import { isNumber } from '../../../../infrastructure/validatios.helper';
+import Movement from '../../domain/entities/movement.entity';
 
+/**
+ * Implementación MySQL del repositorio financiero
+ * SOLO contiene lógica de acceso a datos
+ */
 export class FinanMysqlRepository implements FinanRepository {
   private Database: Database;
   private Limit: number;
@@ -12,77 +17,99 @@ export class FinanMysqlRepository implements FinanRepository {
     this.Limit = 10000;
   }
 
-  public async getInitialLoad(data: DataParams) {
-    await this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [
-      data.username ? data.username.toLowerCase() : '',
-    ]);
+  // ==================== MÉTODOS CRUD ====================
 
-    const totalExpenseDay = await this.totalExpenseDay(data);
-    const movements = await this.movement(data);
-    const movementTag = await this.movementTag(data);
-    const totalBalance = await this.totalBalance(data);
-    const yearlyBalance = await this.yearlyBalance(data);
-    const monthlyBalance = await this.monthlyBalance(data);
-    const balanceUntilDate = await this.balanceUntilDate(data);
-    const monthlyExpensesUntilDay = await this.monthlyExpensesUntilCurrentDay(data);
+  async create(movement: Movement): Promise<Movement> {
+    const tableName = `movements_${movement.user}`;
+    const query = `
+      INSERT INTO ${tableName}
+      (name, value, date_movement, type_source_id, tag, currency, user, log)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      movement.name,
+      movement.value,
+      movement.date_movement,
+      movement.type_source_id,
+      movement.tag,
+      movement.currency,
+      movement.user,
+      movement.log || 0,
+    ];
 
-    let ret: any = {
-      totalExpenseDay,
-      movements,
-      movementTag,
-      totalBalance,
-      yearlyBalance,
-      monthlyBalance,
-      balanceUntilDate,
-      monthlyExpensesUntilDay,
-    };
-
-    if (data.username === 'anderokgo') {
-      const generalInfo = await this.generalInfo();
-      const tripInfo = await this.tripInfo();
-      ret = { ...ret, generalInfo, tripInfo };
-    }
-
-    return ret;
+    const result = await this.Database.executeSafeQuery(query, values);
+    return { ...movement, id: result.insertId };
   }
 
-  public async totalExpenseDay(data: DataParams) {
-    const { username, currency, date } = data;
-    // Usar start_date como date si no se proporciona date
-    const dateParam = date || data.start_date || new Date().toISOString().split('T')[0];
+  async findById(id: number, username: string): Promise<Movement | null> {
+    const tableName = `movements_${username}`;
+    const query = `SELECT * FROM ${tableName} WHERE id = ?`;
+    const result = await this.Database.executeSafeQuery(query, [id]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  async update(id: number, movement: Partial<Movement>, username: string): Promise<Movement> {
+    const tableName = `movements_${username}`;
+    const query = `
+      UPDATE ${tableName}
+      SET name = ?, value = ?, date_movement = ?, type_source_id = ?, tag = ?, currency = ?, log = ?
+      WHERE id = ?
+    `;
+    const values = [
+      movement.name,
+      movement.value,
+      movement.date_movement,
+      movement.type_source_id,
+      movement.tag,
+      movement.currency,
+      movement.log || 0,
+      id,
+    ];
+
+    await this.Database.executeSafeQuery(query, values);
+    const updated = await this.findById(id, username);
+    if (!updated) throw new Error('Movement not found after update');
+    return updated;
+  }
+
+  async delete(id: number, username: string): Promise<boolean> {
+    const tableName = `movements_${username}`;
+    const query = `DELETE FROM ${tableName} WHERE id = ?`;
+    const result = await this.Database.executeSafeQuery(query, [id]);
+    return result.affectedRows > 0;
+  }
+
+  // ==================== MÉTODOS DE CONSULTA ====================
+
+  async getTotalExpenseDay(username: string, currency: string, date: string): Promise<any[]> {
     const full_query = `CALL proc_view_total_expense_day(?, ?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, dateParam, this.Limit]);
+    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, date, this.Limit]);
     return resp[0];
   }
 
-  public async movement(data: DataParams) {
+  async getMovements(username: string, currency: string): Promise<any[]> {
     const full_query = `CALL proc_view_movements(?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [data.username, data.currency, this.Limit]);
+    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, this.Limit]);
     return resp[0];
   }
 
-  public async movementTag(data: DataParams) {
+  async getMovementsByTag(username: string, currency: string): Promise<any[]> {
     const full_query = `CALL proc_view_monthly_movements_order_by_tag(?, ?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [
-      data.username,
-      data.currency,
-      'DESC',
-      this.Limit,
-    ]);
+    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, 'DESC', this.Limit]);
     return resp[0];
   }
 
-  public async totalBalance(data: DataParams) {
+  async getTotalBalance(username: string, currency: string): Promise<any[]> {
     const full_query = `CALL proc_view_total_balance(?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [data.username, data.currency]);
+    const resp = await this.Database.executeSafeQuery(full_query, [username, currency]);
     return resp[0];
   }
 
-  public async yearlyBalance(data: DataParams) {
+  async getYearlyBalance(username: string, currency: string): Promise<any[]> {
     const full_query = `CALL proc_view_yearly_expenses_incomes(?, ?, ?, ?, ?)`;
     const resp = await this.Database.executeSafeQuery(full_query, [
-      data.username,
-      data.currency,
+      username,
+      currency,
       'year_number',
       'DESC',
       this.Limit,
@@ -90,169 +117,98 @@ export class FinanMysqlRepository implements FinanRepository {
     return resp[0];
   }
 
-  public async monthlyBalance(data: DataParams) {
+  async getMonthlyBalance(username: string, currency: string): Promise<any[]> {
     const full_query = `CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [
-      data.username,
-      data.currency,
-      'DESC',
-      this.Limit,
-    ]);
+    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, 'DESC', this.Limit]);
     return resp[0];
   }
 
-  public async balanceUntilDate(data: DataParams) {
+  async getBalanceUntilDate(username: string, currency: string): Promise<any[]> {
     try {
-      // Intentar usar el stored procedure primero
       const full_query = `CALL proc_view_balance_until_date(?, ?, ?, ?, ?)`;
-      const arr = [data.username, data.currency, 'date_movement', 'DESC', this.Limit];
-      const resp = await this.Database.executeSafeQuery(full_query, arr);
+      const resp = await this.Database.executeSafeQuery(full_query, [
+        username,
+        currency,
+        'date_movement',
+        'DESC',
+        this.Limit,
+      ]);
       return resp[0];
     } catch (error) {
-      // Si el stored procedure no existe, usar consulta directa
-      console.log('Stored procedure not found, using direct query for balanceUntilDate');
-      const table_name = `movements_${data.username}`;
-      const direct_query = `
-        SELECT 
-          DATE_FORMAT(date_movement, '%Y-%m-%d') as date_movement,
-          SUM(movement_val) as total_balance
-        FROM ${table_name}
+      console.log('Stored procedure not found, using direct query');
+      const tableName = `movements_${username}`;
+      const query = `
+        SELECT DATE_FORMAT(date_movement, '%Y-%m-%d') as date_movement,
+               SUM(value) as total_balance
+        FROM ${tableName}
         WHERE currency = ?
         GROUP BY DATE_FORMAT(date_movement, '%Y-%m-%d')
         ORDER BY date_movement DESC
         LIMIT ?
       `;
-      const resp = await this.Database.executeSafeQuery(direct_query, [data.currency, this.Limit]);
-      return resp;
+      return await this.Database.executeSafeQuery(query, [currency, this.Limit]);
     }
   }
 
-  public async generalInfo() {
-    const full_query = `SELECT * FROM view_general_info`;
-    return await this.Database.executeSafeQuery(full_query);
-  }
-
-  public async tripInfo() {
-    const full_query = `SELECT * FROM view_final_trip_info`;
-    return await this.Database.executeSafeQuery(full_query);
-  }
-
-  public async monthlyExpensesUntilCurrentDay(data: DataParams) {
+  async getMonthlyExpensesUntilCurrentDay(username: string, currency: string): Promise<any[]> {
     try {
-      // Intentar usar el stored procedure primero
       const full_query = `CALL proc_monthly_expenses_until_day(?, ?, ?, ?)`;
-      const resp = await this.Database.executeSafeQuery(full_query, [
-        data.username,
-        data.currency,
-        'ASC',
-        this.Limit,
-      ]);
+      const resp = await this.Database.executeSafeQuery(full_query, [username, currency, 'ASC', this.Limit]);
       return resp[0];
     } catch (error) {
-      // Si el stored procedure no existe, usar consulta directa
-      console.log('Stored procedure not found, using direct query for monthlyExpensesUntilCurrentDay');
-      const table_name = `movements_${data.username}`;
-      const direct_query = `
-        SELECT 
-          DATE_FORMAT(date_movement, '%Y-%m') as month_year,
-          SUM(movement_val) as total_expenses
-        FROM ${table_name}
-        WHERE currency = ? 
-        AND date_movement <= CURDATE()
+      console.log('Stored procedure not found, using direct query');
+      const tableName = `movements_${username}`;
+      const query = `
+        SELECT DATE_FORMAT(date_movement, '%Y-%m') as month_year,
+               SUM(value) as total_expenses
+        FROM ${tableName}
+        WHERE currency = ? AND date_movement <= CURDATE()
         GROUP BY DATE_FORMAT(date_movement, '%Y-%m')
         ORDER BY month_year ASC
         LIMIT ?
       `;
-      const resp = await this.Database.executeSafeQuery(direct_query, [data.currency, this.Limit]);
-      return resp;
+      return await this.Database.executeSafeQuery(query, [currency, this.Limit]);
     }
   }
 
-  public async operateFor(parameters: any) {
-    const { operate_for, movement_val, username, movement_type } = parameters;
-    let full_query = `SELECT * FROM movements_${username} WHERE id = ? `;
-    const prev_reg = await this.Database.executeSafeQuery(full_query, operate_for);
-    let newVal = null;
-    if (isNumber(prev_reg[0].value)) {
-      if (movement_type == 1) {
-        newVal = prev_reg[0].value + movement_val;
-      } else if (movement_type == 2) {
-        newVal = prev_reg[0].value - movement_val;
-      } else if (movement_type == 8) {
-        newVal = prev_reg[0].value - movement_val;
+  // ==================== MÉTODOS ESPECIALES ====================
+
+  async getGeneralInfo(): Promise<any[]> {
+    const query = `SELECT * FROM view_general_info`;
+    return await this.Database.executeSafeQuery(query);
+  }
+
+  async getTripInfo(): Promise<any[]> {
+    const query = `SELECT * FROM view_final_trip_info`;
+    return await this.Database.executeSafeQuery(query);
+  }
+
+  async operateForLinkedMovement(
+    id: number,
+    value: number,
+    movementType: number,
+    username: string
+  ): Promise<void> {
+    const tableName = `movements_${username}`;
+    const selectQuery = `SELECT * FROM ${tableName} WHERE id = ?`;
+    const prevReg = await this.Database.executeSafeQuery(selectQuery, [id]);
+
+    if (!prevReg || prevReg.length === 0) {
+      throw new Error('Linked movement not found');
+    }
+
+    let newValue = null;
+    if (isNumber(prevReg[0].value)) {
+      if (movementType === 1) {
+        newValue = prevReg[0].value + value;
+      } else if (movementType === 2 || movementType === 8) {
+        newValue = prevReg[0].value - value;
       }
 
-      let full_query = `UPDATE  movements_${username} SET value = ? WHERE id = ? `;
-      if (newVal !== null) await this.Database.executeSafeQuery(full_query, [newVal, operate_for]);
+      if (newValue !== null) {
+        const updateQuery = `UPDATE ${tableName} SET value = ? WHERE id = ?`;
+        await this.Database.executeSafeQuery(updateQuery, [newValue, id]);
+      }
     }
-  }
-
-  public async putMovement(parameters: any) {
-    let { movement_name, movement_val, movement_date, operate_for } = parameters;
-    const { movement_type, movement_tag, currency, username } = parameters;
-
-    operate_for = operate_for === undefined || operate_for === '' ? 0 : operate_for;
-    if (operate_for) await this.operateFor(parameters);
-
-    const tableName = `movements_${username}`;
-    const query = `INSERT INTO ${tableName}
-    (name, value, date_movement, type_source_id, tag, currency, user, log)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-
-    const values = [
-      movement_name,
-      movement_val,
-      movement_date,
-      movement_type || null,
-      movement_tag || null,
-      currency || null,
-      username,
-      operate_for || null,
-    ];
-
-    return await this.Database.executeSafeQuery(query, values);
-  }
-
-  public async updateMovementById(id: number, parameters: any) {
-    let { movement_name, movement_val, movement_date, operate_for } = parameters;
-    const { movement_type, movement_tag, currency, username } = parameters;
-    const tableName = `movements_${username}`;
-
-    operate_for = operate_for === undefined || operate_for === '' ? 0 : operate_for;
-
-    const query = `
-      UPDATE ${tableName}
-      SET
-        name = ?,
-        value = ?,
-        date_movement = ?,
-        type_source_id = ?,
-        tag = ?,
-        currency = ?,
-        user = ?,
-        log = ?
-      WHERE id = ?
-    `;
-
-    const values = [
-      movement_name,
-      movement_val,
-      movement_date,
-      movement_type || null,
-      movement_tag || null,
-      currency || null,
-      username,
-      operate_for || null,
-      id,
-    ];
-
-    return await this.Database.executeSafeQuery(query, values);
-  }
-
-  public async deleteMovementById(id: number, username: string) {
-    const tableName = `movements_${username}`;
-    const query = `DELETE FROM ${tableName} WHERE id = ?`;
-    return await this.Database.executeSafeQuery(query, [id]);
   }
 }

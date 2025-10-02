@@ -23,6 +23,10 @@ const options = {
     },
     servers: [
       {
+        url: 'https://info.animecream.com',
+        description: 'Servidor de producción',
+      },
+      {
         url: 'http://localhost:3001',
         description: 'Servidor de desarrollo',
       },

@@ -1,16 +1,26 @@
 import { ProductionRepository } from '../ports/series.repository';
-import { ProductionMysqlRepository } from '../../infrastructure/persistence/series.mysql';
+import Year from '../../domain/entities/year.entity';
 
+/**
+ * Caso de uso para obtener todos los años de producción disponibles
+ * Utilizado para catálogos y filtros
+ */
 export class GetProductionYearsUseCase {
-  private repository: ProductionRepository;
+  constructor(private readonly repository: ProductionRepository) {}
 
-  constructor(repository?: ProductionRepository) {
-    // Usar el repositorio inyectado o crear uno por defecto
-    this.repository = repository || new ProductionMysqlRepository();
-  }
+  async execute(): Promise<{ years: Year[]; total: number }> {
+    try {
+      // Obtener años
+      const years = await this.repository.getProductionYears();
 
-  async execute(): Promise<any> {
-    // Usar la lógica existente del repositorio
-    return await this.repository.getProductionYears();
+      return {
+        years,
+        total: years.length,
+      };
+    } catch (error) {
+      throw new Error(
+        `Error getting production years: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 }

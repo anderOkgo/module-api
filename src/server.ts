@@ -7,7 +7,10 @@ import { Database } from './infrastructure/my.database.helper';
 dotenv.config();
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './infrastructure/services/swagger';
-import { buildSeriesModule } from './modules/series/infrastructure/config/series.module';
+import {
+  buildSeriesModule,
+  buildSeriesModuleWithCQRS,
+} from './modules/series/infrastructure/config/series.module';
 // Removed default routes - using direct endpoint
 import { buildAuthModule } from './modules/auth/infrastructure/config/auth.module';
 import { buildFinanModule } from './modules/finan/infrastructure/config/finan.module';
@@ -145,7 +148,8 @@ class Server {
     this.app.get('/api', (req: Request, res: Response) => {
       res.json({ msg: 'API Working' });
     });
-    this.app.use('/api/series', buildSeriesModule().router);
+    // Usando CQRS en lugar del módulo antiguo
+    this.app.use('/api/series', buildSeriesModuleWithCQRS().router);
     this.app.use('/api/users', buildAuthModule().router);
     this.app.use('/api/finan', buildFinanModule().router);
     this.app.use(this.errorHandlerMiddleware);

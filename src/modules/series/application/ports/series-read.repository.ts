@@ -19,7 +19,7 @@ export interface SeriesReadRepository {
 
   // Búsquedas
   search(filters: SeriesSearchFilters): Promise<SeriesResponse[]>;
-  getProductions(filters: any): Promise<SeriesResponse[]>;
+  getProductions(filters: any): Promise<any[]>; // Retorna formato legacy para compatibilidad frontend
 
   // Catálogos (lectura pura)
   getGenres(): Promise<Genre[]>;

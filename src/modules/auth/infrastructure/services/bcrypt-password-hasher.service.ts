@@ -1,5 +1,5 @@
-import bcrypt from 'bcrypt';
 import { PasswordHasherPort } from '../../domain/ports/password-hasher.port';
+const bcrypt = require('bcryptjs');
 
 /**
  * Adaptador de infraestructura para hash de contraseñas usando bcrypt

@@ -1,4 +1,4 @@
-import { Database } from '../../../../infrastructure/my.database.helper';
+import { Database, HDB } from '../../../../infrastructure/my.database.helper';
 import { SeriesReadRepository } from '../../application/ports/series-read.repository';
 import { SeriesResponse } from '../../domain/entities/series.entity';
 
@@ -150,11 +150,61 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
   }
 
   /**
-   * Obtiene producciones (legacy)
+   * Obtiene producciones (transplantado del repositorio legacy)
+   * Usa la vista view_all_info_produtions con la misma lógica exacta
    */
-  async getProductions(filters: any): Promise<SeriesResponse[]> {
-    // Similar a search, mantiene compatibilidad
-    return this.search(filters);
+  async getProductions(filters: any): Promise<any[]> {
+    // Transplantado del repositorio legacy - usa la misma lógica exacta
+    const viewName = 'view_all_info_produtions';
+    const initialQuery = `SELECT * FROM ${viewName} WHERE 1`;
+    const conditions: string[] = [];
+    const conditionsVals: any[] = [];
+
+    // Mapeo de condiciones (transplantado del legacy)
+    const conditionMap: Record<string, (label: string, value: any) => string> = {
+      production_name: HDB.generateLikeCondition,
+      production_number_chapters: HDB.generateBetweenCondition,
+      production_description: HDB.generateLikeCondition,
+      production_year: HDB.generateBetweenCondition,
+      demographic_name: HDB.generateEqualCondition,
+      genre_names: HDB.generateAndCondition,
+      id: HDB.generateInCondition,
+    };
+
+    // Aplicar filtros usando la misma lógica del legacy
+    for (const [key, value] of Object.entries(filters)) {
+      if (conditionMap[key]) {
+        conditions.push(conditionMap[key](key, value));
+        conditionsVals.push(value);
+      }
+    }
+
+    // Agregar ordenamiento y límite (transplantado del legacy)
+    conditions.push(HDB.generateOrderBy('production_ranking_number', 'ASC'));
+    conditions.push(HDB.generateLimit());
+    const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
+
+    // Normalizar limit si existe (transplantado del legacy)
+    const limit = filters.limit;
+    if (limit) {
+      conditionsVals.push(parseInt(limit));
+    }
+
+    // Merge de arrays (transplantado del legacy)
+    const mergedArray: any[] = [];
+    conditionsVals.forEach((element) => {
+      if (Array.isArray(element)) {
+        mergedArray.push(...element);
+      } else {
+        mergedArray.push(element);
+      }
+    });
+
+    const result = await this.database.executeSafeQuery(fullQuery, mergedArray);
+    if (result.errorSys) {
+      throw new Error(result.message);
+    }
+    return result;
   }
 
   private mapToResponse(row: any): SeriesResponse {

@@ -32,12 +32,15 @@ export class GetProductionsHandler implements QueryHandler<GetProductionsQuery, 
       throw new Error('Filters must be an object');
     }
 
-    // Validar límite si se proporciona
-    if (filters.limit !== undefined) {
-      const limit = parseInt(filters.limit, 10);
-      if (isNaN(limit) || limit < 1 || limit > 1000) {
-        throw new Error('Limit must be between 1 and 1000');
-      }
+    // Establecer límite por defecto si no se proporciona
+    if (filters.limit === undefined) {
+      filters.limit = 500; // Valor por defecto para el frontend
+    }
+
+    // Validar límite (ahora siempre existe)
+    const limit = parseInt(filters.limit, 10);
+    if (isNaN(limit) || limit < 1 || limit > 10000) {
+      throw new Error(`Limit must be between 1 and 10000. Received: ${filters.limit}, parsed: ${limit}`);
     }
 
     // Validar offset si se proporciona

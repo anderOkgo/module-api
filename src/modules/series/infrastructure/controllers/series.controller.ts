@@ -1,63 +1,258 @@
 import { Request, Response } from 'express';
-import { GetProductionsUseCase } from '../../application/use-cases/get-productions.use-case';
-import { GetProductionYearsUseCase } from '../../application/use-cases/get-production-years.use-case';
-import { CreateSeriesUseCase } from '../../application/use-cases/create-series.use-case';
-import { GetSeriesByIdUseCase } from '../../application/use-cases/get-series-by-id.use-case';
-import { UpdateSeriesImageUseCase } from '../../application/use-cases/update-series-image.use-case';
-import { UpdateSeriesUseCase } from '../../application/use-cases/update-series.use-case';
-import { GetAllSeriesUseCase } from '../../application/use-cases/get-all-series.use-case';
-import { DeleteSeriesUseCase } from '../../application/use-cases/delete-series.use-case';
-import { SearchSeriesUseCase } from '../../application/use-cases/search-series.use-case';
-import {
-  CreateSeriesCompleteUseCase,
-  CreateSeriesCompleteRequest,
-} from '../../application/use-cases/create-series-complete.use-case';
-import { AssignGenresUseCase } from '../../application/use-cases/assign-genres.use-case';
-import { RemoveGenresUseCase } from '../../application/use-cases/remove-genres.use-case';
-import { AddTitlesUseCase } from '../../application/use-cases/add-titles.use-case';
-import { RemoveTitlesUseCase } from '../../application/use-cases/remove-titles.use-case';
-import { GetGenresUseCase } from '../../application/use-cases/get-genres.use-case';
-import { GetDemographicsUseCase } from '../../application/use-cases/get-demographics.use-case';
-import { validateProduction } from '../validation/series.validation';
+// Commands
+import { CreateSeriesCommand } from '../../application/commands/create-series.command';
+import { UpdateSeriesCommand } from '../../application/commands/update-series.command';
+import { DeleteSeriesCommand } from '../../application/commands/delete-series.command';
+import { CreateSeriesCompleteCommand } from '../../application/commands/create-series-complete.command';
+import { UpdateSeriesImageCommand } from '../../application/commands/update-series-image.command';
+import { AssignGenresCommand } from '../../application/commands/assign-genres.command';
+import { RemoveGenresCommand } from '../../application/commands/remove-genres.command';
+import { AddTitlesCommand } from '../../application/commands/add-titles.command';
+import { RemoveTitlesCommand } from '../../application/commands/remove-titles.command';
+// Queries
+import { GetSeriesByIdQuery } from '../../application/queries/get-series-by-id.query';
+import { SearchSeriesQuery } from '../../application/queries/search-series.query';
+import { GetAllSeriesQuery } from '../../application/queries/get-all-series.query';
+import { GetProductionsQuery } from '../../application/queries/get-productions.query';
+import { GetGenresQuery } from '../../application/queries/get-genres.query';
+import { GetDemographicsQuery } from '../../application/queries/get-demographics.query';
+import { GetProductionYearsQuery } from '../../application/queries/get-production-years.query';
+// Handlers
+import { CreateSeriesHandler } from '../../application/handlers/commands/create-series.handler';
+import { UpdateSeriesHandler } from '../../application/handlers/commands/update-series.handler';
+import { DeleteSeriesHandler } from '../../application/handlers/commands/delete-series.handler';
+import { AssignGenresHandler } from '../../application/handlers/commands/assign-genres.handler';
+import { RemoveGenresHandler } from '../../application/handlers/commands/remove-genres.handler';
+import { AddTitlesHandler } from '../../application/handlers/commands/add-titles.handler';
+import { RemoveTitlesHandler } from '../../application/handlers/commands/remove-titles.handler';
+import { CreateSeriesCompleteHandler } from '../../application/handlers/commands/create-series-complete.handler';
+import { UpdateSeriesImageHandler } from '../../application/handlers/commands/update-series-image.handler';
+import { GetSeriesByIdHandler } from '../../application/handlers/queries/get-series-by-id.handler';
+import { SearchSeriesHandler } from '../../application/handlers/queries/search-series.handler';
+import { GetAllSeriesHandler } from '../../application/handlers/queries/get-all-series.handler';
+import { GetGenresHandler } from '../../application/handlers/queries/get-genres.handler';
+import { GetDemographicsHandler } from '../../application/handlers/queries/get-demographics.handler';
+import { GetProductionYearsHandler } from '../../application/handlers/queries/get-production-years.handler';
+import { GetProductionsHandler } from '../../application/handlers/queries/get-productions.handler';
+// Utils
 import { uploadMiddleware } from '../../../../infrastructure/services/upload';
-import { SeriesCreateRequest, SeriesUpdateRequest } from '../../domain/entities/series.entity';
+import { validateProduction } from '../validation/series.validation';
 
 /**
- * SeriesController con inyección de dependencias
- * Sigue el patrón hexagonal/clean architecture
- * Documentación Swagger: series.swagger.ts
+ * SeriesController con CQRS Pattern
+ * Separación clara entre Commands (Write) y Queries (Read)
+ * Completamente migrado a CQRS
  */
 export class SeriesController {
+  // Middleware para upload de imágenes
+  public uploadImageMiddleware = uploadMiddleware;
+
   constructor(
-    private readonly getProductionsUseCase: GetProductionsUseCase,
-    private readonly getProductionYearsUseCase: GetProductionYearsUseCase,
-    private readonly createSeriesUseCase: CreateSeriesUseCase,
-    private readonly getSeriesByIdUseCase: GetSeriesByIdUseCase,
-    private readonly updateSeriesImageUseCase: UpdateSeriesImageUseCase,
-    private readonly updateSeriesUseCase: UpdateSeriesUseCase,
-    private readonly getAllSeriesUseCase: GetAllSeriesUseCase,
-    private readonly deleteSeriesUseCase: DeleteSeriesUseCase,
-    private readonly searchSeriesUseCase: SearchSeriesUseCase,
-    private readonly createSeriesCompleteUseCase: CreateSeriesCompleteUseCase,
-    private readonly assignGenresUseCase: AssignGenresUseCase,
-    private readonly removeGenresUseCase: RemoveGenresUseCase,
-    private readonly addTitlesUseCase: AddTitlesUseCase,
-    private readonly removeTitlesUseCase: RemoveTitlesUseCase,
-    private readonly getGenresUseCase: GetGenresUseCase,
-    private readonly getDemographicsUseCase: GetDemographicsUseCase
+    // Command Handlers (Escritura) - CQRS
+    private readonly createSeriesHandler: CreateSeriesHandler,
+    private readonly updateSeriesHandler: UpdateSeriesHandler,
+    private readonly deleteSeriesHandler: DeleteSeriesHandler,
+    private readonly assignGenresHandler: AssignGenresHandler,
+    private readonly removeGenresHandler: RemoveGenresHandler,
+    private readonly addTitlesHandler: AddTitlesHandler,
+    private readonly removeTitlesHandler: RemoveTitlesHandler,
+    private readonly createSeriesCompleteHandler: CreateSeriesCompleteHandler,
+    private readonly updateSeriesImageHandler: UpdateSeriesImageHandler,
+    // Query Handlers (Lectura) - CQRS
+    private readonly getSeriesByIdHandler: GetSeriesByIdHandler,
+    private readonly searchSeriesHandler: SearchSeriesHandler,
+    private readonly getAllSeriesHandler: GetAllSeriesHandler,
+    private readonly getGenresHandler: GetGenresHandler,
+    private readonly getDemographicsHandler: GetDemographicsHandler,
+    private readonly getProductionYearsHandler: GetProductionYearsHandler,
+    private readonly getProductionsHandler: GetProductionsHandler
   ) {}
 
   /**
-   * Obtener producciones con filtros (Boot endpoint)
-   * Documentación Swagger: series.swagger.ts
+   * Command: Crear una nueva serie
+   * POST /api/series/create
+   */
+  createSeries = async (req: Request, res: Response) => {
+    try {
+      const command = new CreateSeriesCommand(
+        req.body.name,
+        parseInt(req.body.chapter_number),
+        parseInt(req.body.year),
+        req.body.description,
+        parseFloat(req.body.qualification),
+        parseInt(req.body.demography_id),
+        req.body.visible === 'true',
+        req.file?.buffer
+      );
+
+      const result = await this.createSeriesHandler.execute(command);
+
+      res.status(201).json({
+        success: true,
+        message: 'Series created successfully',
+        data: result,
+      });
+    } catch (error) {
+      console.error('Error in createSeries:', error);
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Error creating series',
+      });
+    }
+  };
+
+  /**
+   * Command: Actualizar una serie
+   * PUT /api/series/:id
+   */
+  updateSeries = async (req: Request, res: Response) => {
+    try {
+      const command = new UpdateSeriesCommand(
+        parseInt(req.params.id),
+        req.body.name,
+        req.body.chapter_number ? parseInt(req.body.chapter_number) : undefined,
+        req.body.year ? parseInt(req.body.year) : undefined,
+        req.body.description,
+        req.body.qualification ? parseFloat(req.body.qualification) : undefined,
+        req.body.demography_id ? parseInt(req.body.demography_id) : undefined,
+        req.body.visible !== undefined ? req.body.visible === 'true' : undefined
+      );
+
+      const result = await this.updateSeriesHandler.execute(command);
+
+      res.status(200).json({
+        success: true,
+        message: 'Series updated successfully',
+        data: result,
+      });
+    } catch (error) {
+      console.error('Error in updateSeries:', error);
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Error updating series',
+      });
+    }
+  };
+
+  /**
+   * Command: Eliminar una serie
+   * DELETE /api/series/:id
+   */
+  deleteSeries = async (req: Request, res: Response) => {
+    try {
+      const command = new DeleteSeriesCommand(parseInt(req.params.id));
+      const result = await this.deleteSeriesHandler.execute(command);
+
+      if (!result.success) {
+        return res.status(404).json({
+          success: false,
+          message: result.message,
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error) {
+      console.error('Error in deleteSeries:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Error deleting series',
+      });
+    }
+  };
+
+  /**
+   * Query: Obtener serie por ID
+   * GET /api/series/:id
+   */
+  getSeriesById = async (req: Request, res: Response) => {
+    try {
+      const query = new GetSeriesByIdQuery(parseInt(req.params.id));
+      const result = await this.getSeriesByIdHandler.execute(query);
+
+      if (!result) {
+        return res.status(404).json({
+          success: false,
+          message: 'Series not found',
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      console.error('Error in getSeriesById:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Error fetching series',
+      });
+    }
+  };
+
+  /**
+   * Query: Buscar series con filtros
+   * POST /api/series/search
+   */
+  searchSeries = async (req: Request, res: Response) => {
+    try {
+      const query = new SearchSeriesQuery(req.body);
+      const result = await this.searchSeriesHandler.execute(query);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        count: result.length,
+      });
+    } catch (error) {
+      console.error('Error in searchSeries:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Error searching series',
+      });
+    }
+  };
+
+  /**
+   * Query: Listar todas las series con paginación
+   * GET /api/series/list?limit=50&offset=0
+   */
+  getAllSeries = async (req: Request, res: Response) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+
+      const query = new GetAllSeriesQuery(limit, offset);
+      const result = await this.getAllSeriesHandler.execute(query);
+
+      res.status(200).json({
+        success: true,
+        data: result.series,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      console.error('Error in getAllSeries:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Error fetching series list',
+      });
+    }
+  };
+
+  /**
+   * Query: Obtener producciones con filtros (boot endpoint)
+   * POST /api/series/
    */
   getProductions = async (req: Request, res: Response) => {
     const validationResult = validateProduction(req.body);
     if (!validationResult.valid) return res.status(400).json(validationResult.errors);
 
     try {
-      const resp = await this.getProductionsUseCase.execute(validationResult.result);
-      return res.status(200).json(resp);
+      const query = new GetProductionsQuery(validationResult.result);
+      const result = await this.getProductionsHandler.execute(query);
+      return res.status(200).json(result);
     } catch (error) {
       console.error('Error in getProductions:', error);
       return res.status(500).json({ error: true, message: 'Internal server error' });
@@ -65,68 +260,42 @@ export class SeriesController {
   };
 
   /**
-   * Obtener todos los años de producción disponibles
-   * Documentación Swagger: series.swagger.ts
+   * Query: Obtener años de producción disponibles
+   * GET /api/series/years
    */
   getProductionYears = async (req: Request, res: Response) => {
     try {
-      const resp = await this.getProductionYearsUseCase.execute();
-      return res.status(200).json(resp);
+      const query = new GetProductionYearsQuery();
+      const result = await this.getProductionYearsHandler.execute(query);
+
+      return res.status(200).json(result);
     } catch (error) {
       console.error('Error in getProductionYears:', error);
-      return res.status(500).json({ error: true, message: 'Internal server error' });
-    }
-  };
-
-  /**
-   * Crear una nueva serie (multipart/form-data)
-   * Documentación Swagger: series.swagger.ts
-   */
-  createSeries = async (req: Request, res: Response) => {
-    try {
-      const seriesData: SeriesCreateRequest = {
-        name: req.body.name,
-        chapter_number: parseInt(req.body.chapter_number),
-        year: parseInt(req.body.year),
-        description: req.body.description,
-        qualification: parseFloat(req.body.qualification),
-        demography_id: parseInt(req.body.demography_id),
-        visible: req.body.visible === 'true',
-      };
-
-      const imageBuffer = req.file ? req.file.buffer : undefined;
-      const result = await this.createSeriesUseCase.execute(seriesData, imageBuffer);
-
-      res.status(201).json({
-        message: 'Serie creada exitosamente',
-        data: result,
-      });
-    } catch (error) {
-      console.error('Error in createSeries:', error);
       return res.status(500).json({
         error: true,
-        message: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Internal server error',
       });
     }
   };
 
   /**
-   * Crear serie completa con relaciones (JSON)
-   * Documentación Swagger: series.swagger.ts
+   * Command: Crear serie completa con relaciones
+   * POST /api/series/create-complete
    */
   createSeriesComplete = async (req: Request, res: Response) => {
     try {
-      const seriesData: CreateSeriesCompleteRequest = req.body;
-
-      const result = await this.createSeriesCompleteUseCase.execute(seriesData);
+      const command = new CreateSeriesCompleteCommand(req.body);
+      const result = await this.createSeriesCompleteHandler.execute(command);
 
       return res.status(201).json({
-        message: 'Serie creada exitosamente con relaciones',
-        data: result,
+        success: result.success,
+        message: result.message,
+        id: result.id,
       });
     } catch (error) {
       console.error('Error in createSeriesComplete:', error);
       return res.status(500).json({
+        success: false,
         error: 'Error interno del servidor',
         message: error instanceof Error ? error.message : 'Error desconocido',
       });
@@ -134,78 +303,31 @@ export class SeriesController {
   };
 
   /**
-   * Obtener serie por ID
-   * Documentación Swagger: series.swagger.ts
-   */
-  getSeriesById = async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const result = await this.getSeriesByIdUseCase.execute(id);
-
-      if (!result) {
-        return res.status(404).json({
-          error: true,
-          message: 'Series not found',
-        });
-      }
-
-      res.status(200).json({
-        message: 'Serie obtenida exitosamente',
-        data: result,
-      });
-    } catch (error) {
-      console.error('Error in getSeriesById:', error);
-      return res.status(500).json({
-        error: true,
-        message: 'Internal server error',
-      });
-    }
-  };
-
-  /**
-   * Actualizar imagen de una serie
-   * Documentación Swagger: series.swagger.ts
+   * Command: Actualizar imagen de una serie
+   * PUT /api/series/:id/image
    */
   updateSeriesImage = async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-
-      if (!req.file) {
-        return res.status(400).json({
-          error: true,
-          message: 'No image provided',
-        });
+      if (isNaN(id)) {
+        return res.status(400).json({ success: false, error: 'ID inválido' });
       }
 
-      const result = await this.updateSeriesImageUseCase.execute(id, req.file.buffer);
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'No se envió ninguna imagen' });
+      }
 
-      res.status(200).json({
-        message: 'Imagen actualizada exitosamente',
-        data: result,
+      const command = new UpdateSeriesImageCommand(id, req.file);
+      const result = await this.updateSeriesImageHandler.execute(command);
+
+      return res.status(200).json({
+        success: result.success,
+        message: result.message,
       });
     } catch (error) {
       console.error('Error in updateSeriesImage:', error);
       return res.status(500).json({
-        error: true,
-        message: 'Internal server error',
-      });
-    }
-  };
-
-  /**
-   * Obtener todas las series
-   * Documentación Swagger: series.swagger.ts
-   */
-  getAllSeries = async (req: Request, res: Response) => {
-    try {
-      const limit = parseInt(req.query.limit as string) || 50;
-      const offset = parseInt(req.query.offset as string) || 0;
-
-      const series = await this.getAllSeriesUseCase.execute(limit, offset);
-      return res.status(200).json({ data: series });
-    } catch (error) {
-      console.error('Error getting series:', error);
-      return res.status(500).json({
+        success: false,
         error: 'Error interno del servidor',
         message: error instanceof Error ? error.message : 'Error desconocido',
       });
@@ -213,128 +335,22 @@ export class SeriesController {
   };
 
   /**
-   * Actualizar serie existente
-   * Documentación Swagger: series.swagger.ts
-   */
-  updateSeries = async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'ID inválido' });
-      }
-
-      // Procesar datos de multipart/form-data
-      const seriesData: SeriesUpdateRequest = {
-        id,
-        name: req.body.name,
-        chapter_number: req.body.chapter_number ? parseInt(req.body.chapter_number) : undefined,
-        year: req.body.year ? parseInt(req.body.year) : undefined,
-        description: req.body.description,
-        qualification: req.body.qualification ? parseFloat(req.body.qualification) : undefined,
-        demography_id: req.body.demography_id ? parseInt(req.body.demography_id) : undefined,
-        visible:
-          req.body.visible !== undefined ? req.body.visible === 'true' || req.body.visible === true : undefined,
-      };
-
-      // Actualizar datos de la serie
-      const series = await this.updateSeriesUseCase.execute(id, seriesData);
-
-      // Si se envió una imagen, procesarla y actualizar
-      if (req.file) {
-        const imageResult = await this.updateSeriesImageUseCase.execute(id, req.file.buffer);
-        return res.status(200).json({
-          message: 'Serie e imagen actualizadas exitosamente',
-          data: imageResult,
-        });
-      }
-
-      return res.status(200).json({
-        message: 'Serie actualizada exitosamente',
-        data: series,
-      });
-    } catch (error) {
-      console.error('Error updating series:', error);
-      return res.status(500).json({
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
-      });
-    }
-  };
-
-  /**
-   * Eliminar serie
-   * Documentación Swagger: series.swagger.ts
-   */
-  deleteSeries = async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'ID inválido' });
-      }
-
-      const result = await this.deleteSeriesUseCase.execute(id);
-
-      if (!result.success) {
-        return res.status(404).json({
-          error: true,
-          message: result.message,
-        });
-      }
-
-      return res.status(200).json({
-        message: result.message,
-      });
-    } catch (error) {
-      console.error('Error deleting series:', error);
-      return res.status(500).json({
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
-      });
-    }
-  };
-
-  /**
-   * Buscar series con filtros
-   * Documentación Swagger: series.swagger.ts
-   */
-  searchSeries = async (req: Request, res: Response) => {
-    try {
-      const filters = req.body;
-      const series = await this.searchSeriesUseCase.execute(filters);
-      return res.status(200).json({ data: series });
-    } catch (error) {
-      console.error('Error searching series:', error);
-      return res.status(500).json({
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
-      });
-    }
-  };
-
-  /**
-   * Asignar géneros a una serie
-   * Documentación Swagger: series.swagger.ts
+   * Command: Asignar géneros a una serie
+   * POST /api/series/:id/genres
    */
   assignGenres = async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'ID inválido' });
-      }
+      const genreIds: number[] = req.body.genreIds || req.body.genre_ids || req.body.genres || [];
 
-      const { genres } = req.body;
-      if (!Array.isArray(genres)) {
-        return res.status(400).json({ error: 'Géneros debe ser un array' });
-      }
+      const command = new AssignGenresCommand(id, genreIds);
 
-      await this.assignGenresUseCase.execute(id, genres);
+      const result = await this.assignGenresHandler.execute(command);
 
-      return res.status(200).json({
-        message: 'Géneros asignados exitosamente',
-      });
+      return res.status(200).json(result);
     } catch (error) {
       console.error('Error in assignGenres:', error);
-      return res.status(500).json({
+      return res.status(400).json({
         error: 'Error interno del servidor',
         message: error instanceof Error ? error.message : 'Error desconocido',
       });
@@ -342,29 +358,22 @@ export class SeriesController {
   };
 
   /**
-   * Remover géneros de una serie
-   * Documentación Swagger: series.swagger.ts
+   * Command: Remover géneros de una serie
+   * DELETE /api/series/:id/genres
    */
   removeGenres = async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'ID inválido' });
-      }
+      const genreIds: number[] = req.body.genreIds || req.body.genre_ids || req.body.genres || [];
 
-      const { genres } = req.body;
-      if (!Array.isArray(genres)) {
-        return res.status(400).json({ error: 'Géneros debe ser un array' });
-      }
+      const command = new RemoveGenresCommand(id, genreIds);
 
-      await this.removeGenresUseCase.execute(id, genres);
+      const result = await this.removeGenresHandler.execute(command);
 
-      return res.status(200).json({
-        message: 'Géneros removidos exitosamente',
-      });
+      return res.status(200).json(result);
     } catch (error) {
       console.error('Error in removeGenres:', error);
-      return res.status(500).json({
+      return res.status(400).json({
         error: 'Error interno del servidor',
         message: error instanceof Error ? error.message : 'Error desconocido',
       });
@@ -372,29 +381,22 @@ export class SeriesController {
   };
 
   /**
-   * Agregar títulos alternativos a una serie
-   * Documentación Swagger: series.swagger.ts
+   * Command: Agregar títulos alternativos a una serie
+   * POST /api/series/:id/titles
    */
   addTitles = async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'ID inválido' });
-      }
+      const titles: string[] = req.body.titles || [];
 
-      const { titles } = req.body;
-      if (!Array.isArray(titles)) {
-        return res.status(400).json({ error: 'Títulos debe ser un array' });
-      }
+      const command = new AddTitlesCommand(id, titles);
 
-      await this.addTitlesUseCase.execute(id, titles);
+      const result = await this.addTitlesHandler.execute(command);
 
-      return res.status(200).json({
-        message: 'Títulos agregados exitosamente',
-      });
+      return res.status(200).json(result);
     } catch (error) {
       console.error('Error in addTitles:', error);
-      return res.status(500).json({
+      return res.status(400).json({
         error: 'Error interno del servidor',
         message: error instanceof Error ? error.message : 'Error desconocido',
       });
@@ -402,29 +404,22 @@ export class SeriesController {
   };
 
   /**
-   * Remover títulos alternativos de una serie
-   * Documentación Swagger: series.swagger.ts
+   * Command: Remover títulos alternativos de una serie
+   * DELETE /api/series/:id/titles
    */
   removeTitles = async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'ID inválido' });
-      }
+      const titleIds: number[] = req.body.titleIds || req.body.title_ids || req.body.titles || [];
 
-      const { titleIds } = req.body;
-      if (!Array.isArray(titleIds)) {
-        return res.status(400).json({ error: 'TitleIds debe ser un array' });
-      }
+      const command = new RemoveTitlesCommand(id, titleIds);
 
-      await this.removeTitlesUseCase.execute(id, titleIds);
+      const result = await this.removeTitlesHandler.execute(command);
 
-      return res.status(200).json({
-        message: 'Títulos removidos exitosamente',
-      });
+      return res.status(200).json(result);
     } catch (error) {
       console.error('Error in removeTitles:', error);
-      return res.status(500).json({
+      return res.status(400).json({
         error: 'Error interno del servidor',
         message: error instanceof Error ? error.message : 'Error desconocido',
       });
@@ -432,17 +427,15 @@ export class SeriesController {
   };
 
   /**
-   * Obtener lista de géneros disponibles
-   * Documentación Swagger: series.swagger.ts
+   * Query: Obtener lista de géneros disponibles
+   * GET /api/series/genres
    */
   getGenres = async (req: Request, res: Response) => {
     try {
-      const genres = await this.getGenresUseCase.execute();
+      const query = new GetGenresQuery();
+      const result = await this.getGenresHandler.execute(query);
 
-      return res.status(200).json({
-        message: 'Géneros obtenidos exitosamente',
-        data: genres,
-      });
+      return res.status(200).json(result);
     } catch (error) {
       console.error('Error in getGenres:', error);
       return res.status(500).json({
@@ -453,17 +446,15 @@ export class SeriesController {
   };
 
   /**
-   * Obtener lista de demografías disponibles
-   * Documentación Swagger: series.swagger.ts
+   * Query: Obtener lista de demografías disponibles
+   * GET /api/series/demographics
    */
   getDemographics = async (req: Request, res: Response) => {
     try {
-      const demographics = await this.getDemographicsUseCase.execute();
+      const query = new GetDemographicsQuery();
+      const result = await this.getDemographicsHandler.execute(query);
 
-      return res.status(200).json({
-        message: 'Demografías obtenidas exitosamente',
-        data: demographics,
-      });
+      return res.status(200).json(result);
     } catch (error) {
       console.error('Error in getDemographics:', error);
       return res.status(500).json({
@@ -472,7 +463,4 @@ export class SeriesController {
       });
     }
   };
-
-  // Middleware para subida de imágenes
-  uploadImageMiddleware = uploadMiddleware;
 }

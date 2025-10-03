@@ -12,8 +12,8 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
   async create(series: SeriesCreateRequest): Promise<{ id: number; [key: string]: any }> {
     const query = `
       INSERT INTO productions
-      (name, chapter_numer, year, description, qualification, demography_id, visible, image)
-      VALUES (?, ?, ?, ?, ?, ?, ?, '')
+      (name, chapter_numer, year, description, description_en, qualification, demography_id, visible, image)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, '')
     `;
 
     const params = [
@@ -21,6 +21,7 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
       series.chapter_number,
       series.year,
       series.description,
+      series.description_en,
       series.qualification,
       series.demography_id,
       series.visible,

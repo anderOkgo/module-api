@@ -79,6 +79,7 @@ export class SeriesController {
         parseInt(req.body.chapter_number),
         parseInt(req.body.year),
         req.body.description,
+        req.body.description_en,
         parseFloat(req.body.qualification),
         parseInt(req.body.demography_id),
         req.body.visible === 'true',
@@ -113,6 +114,7 @@ export class SeriesController {
         req.body.chapter_number ? parseInt(req.body.chapter_number) : undefined,
         req.body.year ? parseInt(req.body.year) : undefined,
         req.body.description,
+        req.body.description_en,
         req.body.qualification ? parseFloat(req.body.qualification) : undefined,
         req.body.demography_id ? parseInt(req.body.demography_id) : undefined,
         req.body.visible !== undefined ? req.body.visible === 'true' : undefined

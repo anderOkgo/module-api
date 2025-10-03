@@ -38,6 +38,7 @@ export class CreateSeriesCompleteHandler
         chapter_number: normalized.chapter_number,
         year: normalized.year,
         description: normalized.description,
+        description_en: normalized.description_en,
         qualification: normalized.qualification,
         demography_id: normalized.demography_id,
         visible: normalized.visible,
@@ -116,6 +117,7 @@ export class CreateSeriesCompleteHandler
       ...data,
       name: data.name.trim(),
       description: data.description?.trim() ?? '',
+      description_en: data.description_en?.trim() ?? '',
       visible: data.visible ?? true,
     };
 

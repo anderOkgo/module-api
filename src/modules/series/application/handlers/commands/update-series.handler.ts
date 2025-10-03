@@ -76,12 +76,17 @@ export class UpdateSeriesHandler implements CommandHandler<UpdateSeriesCommand, 
       throw new Error('Description must not exceed 5000 characters');
     }
 
+    if (command.description_en !== undefined && command.description_en.length > 5000) {
+      throw new Error('Description_en must not exceed 5000 characters');
+    }
+
     // Verificar que al menos un campo se actualice
     const hasUpdates =
       command.name !== undefined ||
       command.chapter_number !== undefined ||
       command.year !== undefined ||
       command.description !== undefined ||
+      command.description_en !== undefined ||
       command.qualification !== undefined ||
       command.demography_id !== undefined ||
       command.visible !== undefined;
@@ -105,6 +110,9 @@ export class UpdateSeriesHandler implements CommandHandler<UpdateSeriesCommand, 
     }
     if (command.description !== undefined) {
       normalized.description = command.description.trim();
+    }
+    if (command.description_en !== undefined) {
+      normalized.description_en = command.description_en.trim();
     }
     if (command.qualification !== undefined) {
       normalized.qualification = command.qualification;

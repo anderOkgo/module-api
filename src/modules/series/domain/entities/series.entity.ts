@@ -8,6 +8,7 @@ export default interface Series {
   chapter_numer: number; // Mantener nombre de columna DB
   year: number;
   description: string;
+  description_en: string;
   qualification: number;
   demography_id: number;
   demographic_name?: string; // Del JOIN
@@ -26,6 +27,7 @@ export interface SeriesCreateRequest {
   chapter_number: number;
   year: number;
   description: string;
+  description_en: string;
   qualification: number;
   demography_id: number;
   visible: boolean;
@@ -40,6 +42,7 @@ export interface SeriesUpdateRequest {
   chapter_number?: number;
   year?: number;
   description?: string;
+  description_en?: string;
   qualification?: number;
   demography_id?: number;
   visible?: boolean;
@@ -54,6 +57,7 @@ export interface SeriesResponse {
   chapter_number: number;
   year: number;
   description: string;
+  description_en: string;
   qualification: number;
   demography_id: number;
   demographic_name?: string;

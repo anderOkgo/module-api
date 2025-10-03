@@ -41,6 +41,7 @@ export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, 
       chapter_number: normalizedData.chapter_number,
       year: normalizedData.year,
       description: normalizedData.description,
+      description_en: normalizedData.description_en,
       qualification: normalizedData.qualification,
       demography_id: normalizedData.demography_id,
       visible: normalizedData.visible,
@@ -70,6 +71,9 @@ export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, 
     if (command.description && command.description.length > 5000) {
       throw new Error('Description must not exceed 5000 characters');
     }
+    if (command.description_en && command.description_en.length > 5000) {
+      throw new Error('Description_en must not exceed 5000 characters');
+    }
   }
 
   private normalize(command: CreateSeriesCommand) {
@@ -78,6 +82,7 @@ export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, 
       chapter_number: command.chapter_number,
       year: command.year,
       description: command.description?.trim() || '',
+      description_en: command.description_en?.trim() || '',
       qualification: command.qualification,
       demography_id: command.demography_id,
       visible: command.visible ?? true,

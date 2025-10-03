@@ -172,6 +172,11 @@ export const seriesSwaggerDocumentation = {
                     description: 'Descripción de la serie',
                     example: 'Una serie de anime sobre la humanidad luchando contra titanes',
                   },
+                  description_en: {
+                    type: 'string',
+                    description: 'Descripción de la serie en inglés',
+                    example: 'An anime series about humanity fighting against titans',
+                  },
                   qualification: {
                     type: 'number',
                     minimum: 0,
@@ -293,6 +298,11 @@ export const seriesSwaggerDocumentation = {
                     type: 'string',
                     description: 'Descripción de la serie',
                     example: 'Una serie de anime sobre la humanidad luchando contra titanes',
+                  },
+                  description_en: {
+                    type: 'string',
+                    description: 'Descripción de la serie en inglés',
+                    example: 'An anime series about humanity fighting against titans',
                   },
                   qualification: {
                     type: 'number',
@@ -664,6 +674,11 @@ export const seriesSwaggerDocumentation = {
                     type: 'string',
                     description: 'Descripción de la serie',
                     example: 'Segunda temporada de Attack on Titan',
+                  },
+                  description_en: {
+                    type: 'string',
+                    description: 'Descripción de la serie en inglés',
+                    example: 'Second season of Attack on Titan',
                   },
                   qualification: {
                     type: 'number',

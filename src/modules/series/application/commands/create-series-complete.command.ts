@@ -5,6 +5,7 @@ export interface CreateSeriesCompleteRequest {
   chapter_number: number;
   year: number;
   description: string;
+  description_en: string;
   qualification: number;
   demography_id: number;
   visible: boolean;

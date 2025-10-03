@@ -110,13 +110,13 @@ export class SeriesController {
     try {
       const command = new UpdateSeriesCommand(
         parseInt(req.params.id),
-        req.body.name,
-        req.body.chapter_number ? parseInt(req.body.chapter_number) : undefined,
-        req.body.year ? parseInt(req.body.year) : undefined,
-        req.body.description,
-        req.body.description_en,
-        req.body.qualification ? parseFloat(req.body.qualification) : undefined,
-        req.body.demography_id ? parseInt(req.body.demography_id) : undefined,
+        req.body.name && req.body.name.trim() !== '' ? req.body.name : undefined,
+        req.body.chapter_number && req.body.chapter_number !== '' ? parseInt(req.body.chapter_number) : undefined,
+        req.body.year && req.body.year !== '' ? parseInt(req.body.year) : undefined,
+        req.body.description && req.body.description.trim() !== '' ? req.body.description : undefined,
+        req.body.description_en && req.body.description_en.trim() !== '' ? req.body.description_en : undefined,
+        req.body.qualification && req.body.qualification !== '' ? parseFloat(req.body.qualification) : undefined,
+        req.body.demography_id && req.body.demography_id !== '' ? parseInt(req.body.demography_id) : undefined,
         req.body.visible !== undefined ? req.body.visible === 'true' : undefined
       );
 

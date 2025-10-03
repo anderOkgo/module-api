@@ -1,21 +1,24 @@
-import { Request, Response, NextFunction } from '../../../../src/infrastructure/middle.helper';
-import { defaultUser, addUser, loginUser } from '../../../../src/modules/auth/application/user.controller';
-import { addUserService, loginUserService } from '../../../../src/modules/auth/domain/services/index';
-import { validateUser, validateLogin } from '../../../../src/modules/auth/application/user.validation';
+import { Request, Response } from 'express';
+import { UserController } from '../../../../src/modules/auth/infrastructure/controllers/user.controller';
+import { RegisterUserUseCase } from '../../../../src/modules/auth/application/use-cases/register.use-case';
+import { LoginUserUseCase } from '../../../../src/modules/auth/application/use-cases/login.use-case';
 
-// Mock the dependencies
-jest.mock('../../../../src/modules/auth/domain/services/index', () => ({
-  addUserService: jest.fn(),
-  loginUserService: jest.fn(),
-}));
-jest.mock('../../../../src/modules/auth/application/user.validation');
+// Mock the use cases
+const mockRegisterUserUseCase = {
+  execute: jest.fn(),
+} as jest.Mocked<RegisterUserUseCase>;
 
-describe('User Controller', () => {
+const mockLoginUserUseCase = {
+  execute: jest.fn(),
+} as jest.Mocked<LoginUserUseCase>;
+
+describe('UserController', () => {
+  let userController: UserController;
   let req: Partial<Request>;
   let res: Partial<Response>;
-  let next: NextFunction;
 
   beforeEach(() => {
+    userController = new UserController(mockRegisterUserUseCase, mockLoginUserUseCase);
     req = {
       body: {},
     };
@@ -23,95 +26,159 @@ describe('User Controller', () => {
       json: jest.fn(),
       status: jest.fn(() => res as Response),
     };
-    next = jest.fn();
     jest.clearAllMocks();
   });
 
-  it('should respond with a user when added successfully', async () => {
-    const user = {
+  it('should register a user successfully', async () => {
+    const userData = {
       username: 'testuser',
       email: 'test@example.com',
       password: 'testpassword',
+      first_name: 'Test',
+      last_name: 'User',
     };
 
-    // Mock validation to pass
-    (validateUser as jest.Mock).mockReturnValue({ error: false, data: user });
-    // Mock service to return success
-    (addUserService as jest.Mock).mockResolvedValue({ error: false, message: 'User created successfully' });
+    const expectedResponse = {
+      error: false,
+      message: 'User created successfully',
+      data: {
+        id: 1,
+        username: 'testuser',
+        email: 'test@example.com',
+        first_name: 'Test',
+        last_name: 'User',
+        role: 1,
+        active: true,
+        created: '2023-01-01 00:00:00',
+      },
+    };
 
-    // Simulate a request with a user object in the request body
-    req.body = user;
+    mockRegisterUserUseCase.execute.mockResolvedValue(expectedResponse);
+    req.body = userData;
 
-    await addUser(req as Request, res as Response);
+    await userController.addUser(req as Request, res as Response);
 
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith('User created successfully');
+    expect(mockRegisterUserUseCase.execute).toHaveBeenCalledWith(userData);
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(expectedResponse);
   });
 
-  it('should respond with a 404 error for addUser when user is not added', async () => {
-    const user = {
+  it('should return error when registration fails', async () => {
+    const userData = {
       username: 'testuser',
       email: 'test@example.com',
       password: 'testpassword',
+      first_name: 'Test',
+      last_name: 'User',
     };
 
-    // Mock validation to pass
-    (validateUser as jest.Mock).mockReturnValue({ error: false, data: user });
-    // Mock service to return error
-    (addUserService as jest.Mock).mockResolvedValue({ error: true, message: 'User already exists' });
+    const errorResponse = {
+      error: true,
+      message: 'Email already exists',
+    };
 
-    // Simulate a request with a user object in the request body
-    req.body = user;
+    mockRegisterUserUseCase.execute.mockResolvedValue(errorResponse);
+    req.body = userData;
 
-    await addUser(req as Request, res as Response);
+    await userController.addUser(req as Request, res as Response);
 
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith('User already exists');
+    expect(mockRegisterUserUseCase.execute).toHaveBeenCalledWith(userData);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(errorResponse);
   });
 
-  it('should respond with a token when login is successful', async () => {
-    const login = {
+  it('should login user successfully', async () => {
+    const loginData = {
       username: 'testuser',
       password: 'testpassword',
     };
 
-    // Mock validation to pass
-    (validateLogin as jest.Mock).mockReturnValue({ error: false, data: login });
-    // Mock service to return success
-    (loginUserService as jest.Mock).mockResolvedValue({ error: false, token: 'testtoken' });
+    const expectedResponse = {
+      error: false,
+      token: 'test-token',
+      data: {
+        user: {
+          id: 1,
+          username: 'testuser',
+          email: 'test@example.com',
+          first_name: 'Test',
+          last_name: 'User',
+          role: 1,
+          active: true,
+          created: '2023-01-01 00:00:00',
+        },
+        token: 'test-token',
+        expiresIn: 86400,
+      },
+    };
 
-    // Simulate a request with login credentials in the request body
-    req.body = login;
+    mockLoginUserUseCase.execute.mockResolvedValue(expectedResponse);
+    req.body = loginData;
 
-    await loginUser(req as Request, res as Response);
+    await userController.loginUser(req as Request, res as Response);
 
+    expect(mockLoginUserUseCase.execute).toHaveBeenCalledWith(loginData);
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({ token: 'testtoken' });
+    expect(res.json).toHaveBeenCalledWith(expectedResponse);
   });
 
-  it('should respond with a 404 error for loginUser when user is not found', async () => {
-    const login = {
+  it('should return error when login fails', async () => {
+    const loginData = {
+      username: 'testuser',
+      password: 'wrongpassword',
+    };
+
+    const errorResponse = {
+      error: true,
+      message: 'Invalid credentials',
+    };
+
+    mockLoginUserUseCase.execute.mockResolvedValue(errorResponse);
+    req.body = loginData;
+
+    await userController.loginUser(req as Request, res as Response);
+
+    expect(mockLoginUserUseCase.execute).toHaveBeenCalledWith(loginData);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(errorResponse);
+  });
+
+  it('should handle internal server error during registration', async () => {
+    const userData = {
+      username: 'testuser',
+      email: 'test@example.com',
+      password: 'testpassword',
+      first_name: 'Test',
+      last_name: 'User',
+    };
+
+    mockRegisterUserUseCase.execute.mockRejectedValue(new Error('Database error'));
+    req.body = userData;
+
+    await userController.addUser(req as Request, res as Response);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      error: true,
+      message: 'Internal server error',
+    });
+  });
+
+  it('should handle internal server error during login', async () => {
+    const loginData = {
       username: 'testuser',
       password: 'testpassword',
     };
 
-    // Mock validation to pass
-    (validateLogin as jest.Mock).mockReturnValue({ error: false, data: login });
-    // Mock service to return error
-    (loginUserService as jest.Mock).mockResolvedValue({ error: true, message: 'User does not exist' });
+    mockLoginUserUseCase.execute.mockRejectedValue(new Error('Database error'));
+    req.body = loginData;
 
-    // Simulate a request with login credentials in the request body
-    req.body = login;
+    await userController.loginUser(req as Request, res as Response);
 
-    await loginUser(req as Request, res as Response);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith('User does not exist');
-  });
-
-  it('should respond with a message for defaultUser', async () => {
-    await defaultUser(req as Request, res as Response);
-
-    expect(res.json).toHaveBeenCalledWith({ msg: 'API Users Working' });
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      error: true,
+      message: 'Internal server error',
+    });
   });
 });

@@ -1,13 +1,9 @@
-import { Request, Response, NextFunction } from '../../../src/infrastructure/middle.helper';
-import validateToken from '../../../src/infrastructure/lib/validate-token';
-import { token } from '../../../src/infrastructure/token.helper';
+import { Request, Response, NextFunction } from 'express';
+import validateToken from '../../../src/infrastructure/services/validate-token';
+import jwt from 'jsonwebtoken';
 
-// Mock the token helper
-jest.mock('../../../src/infrastructure/token.helper', () => ({
-  token: {
-    verify: jest.fn(),
-  },
-}));
+// Mock jsonwebtoken
+jest.mock('jsonwebtoken');
 
 describe('validateToken Middleware', () => {
   let req: Partial<Request>;
@@ -60,13 +56,13 @@ describe('validateToken Middleware', () => {
   it('should call next() and set username when token is valid', () => {
     req.headers = { authorization: 'Bearer valid.token' };
 
-    (token.verify as jest.Mock).mockImplementation((token, secret, callback) => {
+    (jwt.verify as jest.Mock).mockImplementation((token, secret, callback) => {
       callback(null, { username: 'testuser' });
     });
 
     validateToken(req as Request, res as Response, next);
 
-    expect(token.verify).toHaveBeenCalledWith(
+    expect(jwt.verify).toHaveBeenCalledWith(
       'valid.token',
       process.env.SECRET_KEY || 'qwertgfdsa',
       expect.any(Function)
@@ -78,7 +74,7 @@ describe('validateToken Middleware', () => {
   it('should return 401 when token verification fails', () => {
     req.headers = { authorization: 'Bearer invalid.token' };
 
-    (token.verify as jest.Mock).mockImplementation((token, secret, callback) => {
+    (jwt.verify as jest.Mock).mockImplementation((token, secret, callback) => {
       callback(new Error('Token verification failed'), null);
     });
 
@@ -95,7 +91,7 @@ describe('validateToken Middleware', () => {
   it('should return 401 when decoded token payload is invalid', () => {
     req.headers = { authorization: 'Bearer invalid.payload.token' };
 
-    (token.verify as jest.Mock).mockImplementation((token, secret, callback) => {
+    (jwt.verify as jest.Mock).mockImplementation((token, secret, callback) => {
       callback(null, { invalidPayload: true });
     });
 
@@ -112,7 +108,7 @@ describe('validateToken Middleware', () => {
   it('should return 500 when token verification throws an error', () => {
     req.headers = { authorization: 'Bearer error.token' };
 
-    (token.verify as jest.Mock).mockImplementation(() => {
+    (jwt.verify as jest.Mock).mockImplementation(() => {
       throw new Error('Unexpected error');
     });
 

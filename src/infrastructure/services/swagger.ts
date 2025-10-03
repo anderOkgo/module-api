@@ -64,7 +64,11 @@ function convertToOpenAPIPaths(documentation: any) {
   Object.keys(documentation).forEach((key) => {
     const endpointDoc = documentation[key];
     Object.keys(endpointDoc).forEach((path) => {
-      paths[path] = endpointDoc[path];
+      if (!paths[path]) {
+        paths[path] = {};
+      }
+      // Combinar métodos HTTP para la misma ruta
+      Object.assign(paths[path], endpointDoc[path]);
     });
   });
 

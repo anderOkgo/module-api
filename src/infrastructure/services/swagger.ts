@@ -42,7 +42,7 @@ const options = {
       schemas: swaggerSchemas,
     },
     paths: {
-      ...convertToOpenAPIPaths(userSwaggerDocumentation),
+      ...convertToOpenAPIPaths(filterUserDocumentation(userSwaggerDocumentation)),
       ...convertToOpenAPIPaths(seriesSwaggerDocumentation),
       ...convertToOpenAPIPaths(finanSwaggerDocumentation),
     },
@@ -54,6 +54,19 @@ const options = {
   },
   apis: [],
 };
+
+/**
+ * Filtra la documentación de usuario según el entorno
+ */
+function filterUserDocumentation(documentation: any) {
+  // En producción, ocultar endpoint de registro
+  if (process.env.NODE_ENV === 'production') {
+    const filtered = { ...documentation };
+    delete filtered.addUser; // Remover documentación del endpoint de registro
+    return filtered;
+  }
+  return documentation;
+}
 
 /**
  * Convierte la documentación de módulos al formato OpenAPI paths

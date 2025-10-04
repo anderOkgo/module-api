@@ -4,6 +4,10 @@ import mysql from 'mysql';
 // Mock mysql module
 jest.mock('mysql');
 jest.mock('dotenv');
+jest.mock('../../../../src/infrastructure/services/email', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => Promise.resolve()),
+}));
 
 describe('Database', () => {
   let database: Database;

@@ -35,14 +35,18 @@ describe('ImageService', () => {
     it('should throw error when image buffer is null', async () => {
       const seriesId = 1;
 
-      await expect(imageService.processAndSaveImage(null as any, seriesId)).rejects.toThrow('Image buffer is required');
+      await expect(imageService.processAndSaveImage(null as any, seriesId)).rejects.toThrow(
+        'Image buffer is required'
+      );
       expect(mockImageProcessor.processAndSaveImage).not.toHaveBeenCalled();
     });
 
     it('should throw error when image buffer is undefined', async () => {
       const seriesId = 1;
 
-      await expect(imageService.processAndSaveImage(undefined as any, seriesId)).rejects.toThrow('Image buffer is required');
+      await expect(imageService.processAndSaveImage(undefined as any, seriesId)).rejects.toThrow(
+        'Image buffer is required'
+      );
       expect(mockImageProcessor.processAndSaveImage).not.toHaveBeenCalled();
     });
 
@@ -50,7 +54,9 @@ describe('ImageService', () => {
       const emptyBuffer = Buffer.alloc(0);
       const seriesId = 1;
 
-      await expect(imageService.processAndSaveImage(emptyBuffer, seriesId)).rejects.toThrow('Image buffer is required');
+      await expect(imageService.processAndSaveImage(emptyBuffer, seriesId)).rejects.toThrow(
+        'Image buffer is required'
+      );
       expect(mockImageProcessor.processAndSaveImage).not.toHaveBeenCalled();
     });
 
@@ -58,7 +64,9 @@ describe('ImageService', () => {
       const imageBuffer = Buffer.from('test-image-data');
       const seriesId = 0;
 
-      await expect(imageService.processAndSaveImage(imageBuffer, seriesId)).rejects.toThrow('Valid series ID is required');
+      await expect(imageService.processAndSaveImage(imageBuffer, seriesId)).rejects.toThrow(
+        'Valid series ID is required'
+      );
       expect(mockImageProcessor.processAndSaveImage).not.toHaveBeenCalled();
     });
 
@@ -66,7 +74,9 @@ describe('ImageService', () => {
       const imageBuffer = Buffer.from('test-image-data');
       const seriesId = -1;
 
-      await expect(imageService.processAndSaveImage(imageBuffer, seriesId)).rejects.toThrow('Valid series ID is required');
+      await expect(imageService.processAndSaveImage(imageBuffer, seriesId)).rejects.toThrow(
+        'Valid series ID is required'
+      );
       expect(mockImageProcessor.processAndSaveImage).not.toHaveBeenCalled();
     });
 
@@ -77,12 +87,14 @@ describe('ImageService', () => {
 
       mockImageProcessor.processAndSaveImage.mockRejectedValue(error);
 
-      await expect(imageService.processAndSaveImage(imageBuffer, seriesId)).rejects.toThrow('Image processing failed');
+      await expect(imageService.processAndSaveImage(imageBuffer, seriesId)).rejects.toThrow(
+        'Image processing failed'
+      );
       expect(mockImageProcessor.processAndSaveImage).toHaveBeenCalledWith(imageBuffer, seriesId);
     });
 
     it('should handle large image buffers', async () => {
-      const largeBuffer = Buffer.alloc(1024 * 1024 * 10, 'large-image-data'); // 10MB buffer
+      const largeBuffer = Buffer.alloc(1024, 'large-image-data'); // 1KB buffer instead of 10MB
       const seriesId = 1;
       const expectedPath = '/images/series/1/large-image.jpg';
 

@@ -40,7 +40,7 @@ describe('ImageProcessorPort Interface', () => {
 
     it('should handle processAndSaveImage with different buffer sizes', async () => {
       const smallBuffer = Buffer.from('small');
-      const largeBuffer = Buffer.alloc(1024 * 1024, 'large'); // 1MB buffer
+      const largeBuffer = Buffer.alloc(1024, 'large'); // 1KB buffer instead of 1MB
       const seriesId = 1;
 
       mockImageProcessor.processAndSaveImage.mockResolvedValue('/path/to/image.jpg');

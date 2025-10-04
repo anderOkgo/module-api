@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import validateToken from '../../../../infrastructure/services/validate-token';
+import validateAdmin from '../../../../infrastructure/services/validate-admin';
 import { SeriesController } from '../controllers/series.controller';
 import { ImageService } from '../../application/services/image.service';
 import { SeriesImageProcessorService } from '../services/image-processor.service';
@@ -89,27 +90,27 @@ export function buildSeriesModule() {
   router.get('/years', seriesController.getProductionYears);
   router.get('/list', validateToken, seriesController.getAllSeries);
   router.post('/search', seriesController.searchSeries);
-  router.post('/create', validateToken, seriesController.uploadImageMiddleware, seriesController.createSeries);
-  router.post('/create-complete', validateToken, seriesController.createSeriesComplete);
+  router.post('/create', validateAdmin, seriesController.uploadImageMiddleware, seriesController.createSeries);
+  router.post('/create-complete', validateAdmin, seriesController.createSeriesComplete);
   router.get('/genres', seriesController.getGenres);
   router.get('/demographics', seriesController.getDemographics);
 
   // Rutas con parámetros - DEBEN ir DESPUÉS
   router.get('/:id', seriesController.getSeriesById);
-  router.put('/:id', validateToken, seriesController.uploadImageMiddleware, seriesController.updateSeries);
-  router.delete('/:id', validateToken, seriesController.deleteSeries);
+  router.put('/:id', validateAdmin, seriesController.uploadImageMiddleware, seriesController.updateSeries);
+  router.delete('/:id', validateAdmin, seriesController.deleteSeries);
   router.put(
     '/:id/image',
-    validateToken,
+    validateAdmin,
     seriesController.uploadImageMiddleware,
     seriesController.updateSeriesImage
   );
 
-  // Rutas para relaciones
-  router.post('/:id/genres', validateToken, seriesController.assignGenres);
-  router.delete('/:id/genres', validateToken, seriesController.removeGenres);
-  router.post('/:id/titles', validateToken, seriesController.addTitles);
-  router.delete('/:id/titles', validateToken, seriesController.removeTitles);
+  // Rutas para relaciones (solo admin puede modificar)
+  router.post('/:id/genres', validateAdmin, seriesController.assignGenres);
+  router.delete('/:id/genres', validateAdmin, seriesController.removeGenres);
+  router.post('/:id/titles', validateAdmin, seriesController.addTitles);
+  router.delete('/:id/titles', validateAdmin, seriesController.removeTitles);
 
   return {
     router,

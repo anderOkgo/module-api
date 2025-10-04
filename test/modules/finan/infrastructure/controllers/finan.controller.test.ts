@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { FinanController } from '../../../../src/modules/finan/infrastructure/controllers/finan.controller';
-import { GetInitialLoadUseCase } from '../../../../src/modules/finan/application/use-cases/get-initial-load.use-case';
-import { PutMovementUseCase } from '../../../../src/modules/finan/application/use-cases/put-movement.use-case';
-import { UpdateMovementUseCase } from '../../../../src/modules/finan/application/use-cases/update-movement.use-case';
-import { DeleteMovementUseCase } from '../../../../src/modules/finan/application/use-cases/delete-movement.use-case';
+import { FinanController } from '../../../../../src/modules/finan/infrastructure/controllers/finan.controller';
+import { GetInitialLoadUseCase } from '../../../../../src/modules/finan/application/use-cases/get-initial-load.use-case';
+import { PutMovementUseCase } from '../../../../../src/modules/finan/application/use-cases/put-movement.use-case';
+import { UpdateMovementUseCase } from '../../../../../src/modules/finan/application/use-cases/update-movement.use-case';
+import { DeleteMovementUseCase } from '../../../../../src/modules/finan/application/use-cases/delete-movement.use-case';
 
 // Mock the use cases
 const mockGetInitialLoadUseCase = {
@@ -135,6 +135,7 @@ describe('FinanController', () => {
 
     await finanController.putMovement(req as Request, res as Response);
 
+    expect(mockPutMovementUseCase.execute).toHaveBeenCalledWith(movement);
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({
       error: true,

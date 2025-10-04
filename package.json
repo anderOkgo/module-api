@@ -1,6 +1,6 @@
 {
   "name": "modulapi",
-  "version": "2.0.9",
+  "version": "3.0.0",
   "description": "This API provides different services like modules.",
   "main": "index.js",
   "scripts": {

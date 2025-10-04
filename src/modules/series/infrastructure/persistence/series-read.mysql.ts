@@ -169,6 +169,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
       production_year: HDB.generateBetweenCondition,
       demographic_name: HDB.generateEqualCondition,
       genre_names: HDB.generateAndCondition,
+      production_ranking_number: HDB.generateOrderBy,
       id: HDB.generateInCondition,
     };
 
@@ -176,12 +177,15 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
     for (const [key, value] of Object.entries(filters)) {
       if (conditionMap[key]) {
         conditions.push(conditionMap[key](key, value));
-        conditionsVals.push(value);
+        // No agregar valor para ORDER BY ya que no necesita parámetros
+        if (key !== 'production_ranking_number') {
+          conditionsVals.push(value);
+        }
       }
     }
 
     // Agregar ordenamiento y límite (transplantado del legacy)
-    conditions.push(HDB.generateOrderBy('production_ranking_number', 'ASC'));
+    //conditions.push(HDB.generateOrderBy('production_ranking_number', 'ASC'));
     conditions.push(HDB.generateLimit());
     const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
 
@@ -200,7 +204,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
         mergedArray.push(element);
       }
     });
-
+    console.log('Executing query:', fullQuery, mergedArray);
     const result = await this.database.executeSafeQuery(fullQuery, mergedArray);
     if (result.errorSys) {
       throw new Error(result.message);

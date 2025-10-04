@@ -50,5 +50,16 @@ export class GetProductionsHandler implements QueryHandler<GetProductionsQuery, 
         throw new Error('Offset must be a non-negative number');
       }
     }
+
+    // Validar production_ranking_number para prevenir SQL injection
+    if (filters.production_ranking_number !== undefined) {
+      const validDirections = ['ASC', 'DESC'];
+      const direction = filters.production_ranking_number?.toString().toUpperCase();
+      if (!validDirections.includes(direction)) {
+        throw new Error(`Invalid sorting direction: ${filters.production_ranking_number}. Must be ASC or DESC.`);
+      }
+      // Normalizar a uppercase para consistencia
+      filters.production_ranking_number = direction;
+    }
   }
 }

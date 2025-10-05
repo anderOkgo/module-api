@@ -4,73 +4,16 @@ import sendEmail from '../../../infrastructure/services/email';
 
 class Database {
   private connection: Connection;
-  private dbName: string;
-  private config: any;
-  private reconnecting: boolean = false;
 
   constructor(dbName: string) {
     dotenv.config();
-    this.dbName = dbName;
-    this.config = {
+    this.connection = mysql.createConnection({
       host: process.env.MYHOST!,
       user: process.env.MYUSER!,
       password: process.env.MYPASSWORD!,
       database: process.env[dbName]!,
       port: parseInt(process.env.MYPORT!, 10),
-    };
-    this.connection = mysql.createConnection(this.config);
-    this.setupConnectionHandlers();
-  }
-
-  private setupConnectionHandlers(): void {
-    // Manejo de errores de conexión
-    this.connection.on('error', (err: MysqlError) => {
-      console.error('MySQL connection error:', err);
-
-      if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-        console.log('⚠️  Connection lost. Attempting to reconnect...');
-        this.handleDisconnect();
-      } else if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
-        console.error('❌ Fatal error detected. Reconnecting...');
-        this.handleDisconnect();
-      } else if (err.fatal) {
-        console.error('❌ Fatal MySQL error. Reconnecting...');
-        this.handleDisconnect();
-      } else {
-        console.error('Non-fatal MySQL error:', err.message);
-      }
     });
-
-    // Manejo de cierre de conexión
-    this.connection.on('end', () => {
-      console.log('MySQL connection ended');
-    });
-  }
-
-  private handleDisconnect(): void {
-    if (this.reconnecting) {
-      return; // Ya hay una reconexión en progreso
-    }
-
-    this.reconnecting = true;
-
-    // Esperar 2 segundos antes de intentar reconectar
-    setTimeout(() => {
-      console.log('🔄 Reconnecting to MySQL...');
-      this.connection = mysql.createConnection(this.config);
-      this.setupConnectionHandlers();
-
-      this.connection.connect((err?: MysqlError) => {
-        this.reconnecting = false;
-        if (err) {
-          console.error('❌ Error reconnecting to MySQL:', err.message);
-          // Intentar reconectar nuevamente
-          this.handleDisconnect();
-        } else {
-          console.log('✅ Reconnected to MySQL successfully!');
-        }
-      });
-    }, 2000);
   }
 
   open(): Promise<void> {
@@ -79,7 +22,7 @@ class Database {
         if (err) {
           reject(new Error(`Error connecting to MySQL: ${err.message}`));
         } else {
-          console.log('✅ Connected to MySQL successfully!');
+          console.log('Connected to MySQL successfully!');
           resolve();
         }
       });

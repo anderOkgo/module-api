@@ -14,9 +14,8 @@ import { buildFinanModule } from './modules/finan/infrastructure/config/finan.mo
 
 class Server {
   public app: Application;
-  private port: string;
   private server: any;
-  private database: Database | null = null;
+  private port: string;
 
   constructor() {
     this.app = express();
@@ -25,7 +24,6 @@ class Server {
     this.routes();
     this.connectDB();
     this.listening();
-    this.setupGracefulShutdown();
   }
 
   private listening() {
@@ -37,84 +35,10 @@ class Server {
 
   private async connectDB() {
     try {
-      this.database = new Database('MYDATABASEANIME');
-      await this.database.open();
+      const database: Database = new Database('MYDATABASEANIME');
+      await database.open();
     } catch (error) {
-      console.error('❌ Database connection failed', error);
-      process.exit(1);
-    }
-  }
-
-  private setupGracefulShutdown(): void {
-    // Manejo de Ctrl+C (SIGINT)
-    process.on('SIGINT', async () => {
-      console.log('\n⚠️  SIGINT received. Starting graceful shutdown...');
-      await this.shutdown();
-    });
-
-    // Manejo de terminación (SIGTERM)
-    process.on('SIGTERM', async () => {
-      console.log('\n⚠️  SIGTERM received. Starting graceful shutdown...');
-      await this.shutdown();
-    });
-
-    // Manejo de errores no capturados
-    process.on('uncaughtException', (error: Error) => {
-      console.error('❌ Uncaught Exception:', error);
-      this.shutdown().then(() => process.exit(1));
-    });
-
-    process.on('unhandledRejection', (reason: any) => {
-      console.error('❌ Unhandled Rejection:', reason);
-      this.shutdown().then(() => process.exit(1));
-    });
-  }
-
-  private async shutdown(): Promise<void> {
-    console.log('🔄 Closing HTTP server...');
-
-    // Timeout de 5 segundos para forzar el cierre
-    const forceTimeout = setTimeout(() => {
-      console.log('⚠️  Force closing after timeout...');
-      process.exit(0);
-    }, 5000);
-
-    try {
-      // Cerrar servidor HTTP con Promise
-      if (this.server) {
-        await new Promise<void>((resolve, reject) => {
-          this.server.close((err: any) => {
-            if (err) {
-              console.error('❌ Error closing HTTP server:', err);
-              reject(err);
-            } else {
-              console.log('✅ HTTP server closed');
-              resolve();
-            }
-          });
-
-          // Destruir todas las conexiones activas inmediatamente
-          this.server.closeAllConnections();
-        });
-      }
-
-      // Cerrar conexión de base de datos
-      if (this.database) {
-        console.log('🔄 Closing database connection...');
-        try {
-          await this.database.close();
-          console.log('✅ Database connection closed');
-        } catch (error) {
-          console.error('❌ Error closing database:', error);
-        }
-      }
-
-      clearTimeout(forceTimeout);
-      console.log('👋 Graceful shutdown complete');
-      process.exit(0);
-    } catch (error) {
-      clearTimeout(forceTimeout);
-      console.error('❌ Error during shutdown:', error);
+      console.error('Database connection failed', error);
       process.exit(1);
     }
   }
@@ -145,7 +69,6 @@ class Server {
     this.app.get('/api', (req: Request, res: Response) => {
       res.json({ msg: 'API Working' });
     });
-    // Usando CQRS en lugar del módulo antiguo
     this.app.use('/api/series', buildSeriesModule().router);
     this.app.use('/api/users', buildAuthModule().router);
     this.app.use('/api/finan', buildFinanModule().router);

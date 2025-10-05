@@ -14,6 +14,12 @@ class Database {
       database: process.env[dbName]!,
       port: parseInt(process.env.MYPORT!, 10),
     });
+
+    // Add error handling to prevent crashes
+    this.connection.on('error', (err: MysqlError) => {
+      console.error('MySQL connection error:', err);
+      // Don't crash the app, just log the error
+    });
   }
 
   open(): Promise<void> {

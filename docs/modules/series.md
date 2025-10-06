@@ -1,262 +1,220 @@
-# Módulo de Series (@series/)
+# Series Module (@series/) - CQRS Implemented
 
-## 📺 Descripción General
+## 📺 General Description
 
-El módulo de series (`@series/`) gestiona todo lo relacionado con series de anime, incluyendo CRUD completo, gestión de imágenes, categorización por géneros y demografías, y funcionalidades de búsqueda y filtrado. Proporciona una interfaz completa para el manejo de contenido de anime.
+The series module (`@series/`) manages everything related to anime series, including complete CRUD operations, image management, categorization by genres and demographics, and search and filtering functionalities. It provides a complete interface for anime content management with **CQRS (Command Query Responsibility Segregation)** architecture.
 
-## 🏗️ Arquitectura del Módulo
+## 🏗️ Module Architecture (CQRS)
 
 ```
 src/modules/series/
 ├── application/
-│   └── series.validation.ts    # Validaciones de aplicación
+│   ├── commands/              # Write operations (CQRS)
+│   │   ├── create-series.command.ts
+│   │   ├── update-series.command.ts
+│   │   ├── delete-series.command.ts
+│   │   └── ...
+│   ├── queries/               # Read operations (CQRS)
+│   │   ├── get-series-by-id.query.ts
+│   │   ├── search-series.query.ts
+│   │   └── ...
+│   ├── handlers/              # Command/Query handlers
+│   │   ├── commands/
+│   │   └── queries/
+│   ├── ports/                 # Repository interfaces
+│   │   ├── series-write.repository.ts
+│   │   └── series-read.repository.ts
+│   └── common/                # Common interfaces
+│       ├── command.interface.ts
+│       └── query.interface.ts
 ├── domain/
-│   ├── models/                 # Modelos de dominio
-│   │   └── Series.ts
-│   └── services/               # Servicios de dominio
-│       ├── series.service.ts
-│       └── series.factory.ts
+│   ├── entities/              # Domain models
+│   │   └── series.entity.ts
+│   └── ports/                 # Domain ports
+│       └── image-processor.port.ts
 └── infrastructure/
-    ├── controllers/            # Controladores
-    │   └── series.controller.ts
-    ├── routes/                # Rutas
-    │   └── series.routes.ts
-    ├── repositories/          # Interfaces de repositorio
-    │   └── series.repository.ts
-    └── series.mysql.ts       # Implementación MySQL
+    ├── controllers/           # CQRS Controllers
+    │   └── series-cqrs.controller.ts
+    ├── persistence/           # Repository implementations
+    │   ├── series-write.mysql.ts
+    │   └── series-read.mysql.ts
+    └── services/              # Infrastructure services
+        └── image-processor.service.ts
 ```
 
-## 📊 Modelos de Datos
+## 📊 Data Models
 
 ### Series Model
 
-```typescript
-interface Series {
-  id: number;
-  name: string;
-  chapter_number: number;
-  year: number;
-  description: string;
-  qualification: number;
-  demography_id: number;
-  visible: boolean;
-  image?: string;
-  created_at: Date;
-  updated_at: Date;
-}
-```
+Contains series information:
+
+- Basic data (name, chapters, year, description)
+- Classification (qualification, demographic)
+- Visibility and image management
+- Audit timestamps
 
 ### Demography Model
 
-```typescript
-interface Demography {
-  id: number;
-  name: string;
-  description: string;
-  created_at: Date;
-}
-```
+Stores demographic classifications:
+
+- Demographic names and descriptions
+- Creation timestamps
 
 ### Genre Model
 
-```typescript
-interface Genre {
-  id: number;
-  name: string;
-  description: string;
-  created_at: Date;
-}
-```
+Manages genre categories:
+
+- Genre names and descriptions
+- Creation timestamps
 
 ### SeriesGenre Model
 
-```typescript
-interface SeriesGenre {
-  series_id: number;
-  genre_id: number;
-  created_at: Date;
-}
-```
+Many-to-many relationship:
 
-## 🔧 Funcionalidades
+- Links series with genres
+- Maintains referential integrity
 
-### 1. CRUD de Series
+## 🔧 Features
 
-**Funcionalidades**:
+### 1. Series CRUD (CQRS)
 
-- Crear nuevas series
-- Leer series individuales
-- Actualizar series existentes
-- Eliminar series
-- Listar todas las series
-- Búsqueda y filtrado
+**Commands (Write Operations)**:
 
-**Validaciones**:
+- Create new series
+- Update existing series
+- Delete series
+- Assign/remove genres
+- Add/remove titles
+- Update series images
 
-- Nombre requerido y único
-- Número de capítulos positivo
-- Año válido (1900-2024)
-- Calificación entre 0 y 10
-- Demografía debe existir
-- Descripción opcional
+**Queries (Read Operations)**:
 
-### 2. Gestión de Imágenes
+- Get series by ID
+- Search series with filters
+- List all series with pagination
+- Get genres and demographics
+- Get production years
 
-**Funcionalidades**:
+**Validations**:
 
-- Subir imágenes de series
-- Optimización automática de imágenes
-- Redimensionamiento a 190x285px
-- Compresión a ~20KB
-- Eliminación de imágenes antiguas
-- Nombres de archivo basados en ID
+- Name required and unique
+- Positive chapter number
+- Valid year (1900-current year)
+- Rating between 0 and 10
+- Demography must exist
+- Optional description
 
-**Especificaciones de Imagen**:
+### 2. Image Management
 
-- **Formato**: JPEG
-- **Dimensiones**: 190x285px
-- **Tamaño**: ~20KB
-- **Calidad**: 90% (ajustable)
-- **Algoritmo**: Lanczos3 + optimizaciones avanzadas
+**Features**:
 
-### 3. Categorización
+- Upload series images
+- Automatic image optimization
+- Resize to 190x285px
+- Compress to ~20KB
+- Delete old images
+- ID-based filenames
 
-**Funcionalidades**:
+**Image Specifications**:
 
-- Asignar géneros a series
-- Asignar demografía a series
-- Gestión de géneros
-- Gestión de demografías
-- Búsqueda por categorías
+- **Format**: JPEG
+- **Dimensions**: 190x285px
+- **Size**: ~20KB
+- **Quality**: 90% (adjustable)
+- **Algorithm**: Lanczos3 + advanced optimizations
 
-**Categorías Predefinidas**:
+### 3. Categorization
 
-- **Géneros**: Acción, Aventura, Comedia, Drama, Romance, etc.
-- **Demografías**: Shounen, Shoujo, Seinen, Josei, Kodomomuke
+**Features**:
 
-### 4. Búsqueda y Filtrado
+- Assign genres to series
+- Assign demographics to series
+- Genre management
+- Demographics management
+- Search by categories
 
-**Funcionalidades**:
+**Predefined Categories**:
 
-- Búsqueda por nombre
-- Filtrado por año
-- Filtrado por género
-- Filtrado por demografía
-- Filtrado por calificación
-- Ordenamiento por diferentes criterios
+- **Genres**: Action, Adventure, Comedy, Drama, Romance, etc.
+- **Demographics**: Shounen, Shoujo, Seinen, Josei, Kodomomuke
 
-## 🗄️ Base de Datos
+### 4. Search and Filtering
 
-### Tabla: productions
+**Features**:
 
-```sql
-CREATE TABLE productions (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  chapter_numer INT DEFAULT NULL,
-  year INT NOT NULL,
-  description TEXT,
-  qualification DECIMAL(3,1) DEFAULT NULL,
-  demography_id INT NOT NULL,
-  visible BOOLEAN NOT NULL DEFAULT TRUE,
-  image VARCHAR(255) DEFAULT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_name (name),
-  INDEX idx_year (year),
-  INDEX idx_demography_id (demography_id),
-  INDEX idx_visible (visible),
-  FOREIGN KEY (demography_id) REFERENCES demographics(id)
-);
-```
+- Search by name
+- Filter by year
+- Filter by genre
+- Filter by demographics
+- Filter by rating
+- Sort by different criteria
 
-### Tabla: demographics
+## 🗄️ Database
 
-```sql
-CREATE TABLE demographics (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+### productions Table
 
-### Tabla: genres
+Stores series information:
 
-```sql
-CREATE TABLE genres (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+- Basic series data (name, chapters, year, description)
+- Classification data (rating, demographic)
+- Visibility and image management
+- Optimized indexes for queries
 
-### Tabla: productions_genres
+### demographics Table
 
-```sql
-CREATE TABLE productions_genres (
-  production_id INT NOT NULL,
-  genre_id INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (production_id, genre_id),
-  FOREIGN KEY (production_id) REFERENCES productions(id) ON DELETE CASCADE,
-  FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
-);
-```
+Manages demographic classifications:
 
-### Datos Iniciales
+- Demographic names and descriptions
+- Creation timestamps
 
-```sql
--- Demografías predefinidas
-INSERT INTO demographics (name, description) VALUES
-('Shounen', 'Anime dirigido a chicos adolescentes'),
-('Shoujo', 'Anime dirigido a chicas adolescentes'),
-('Seinen', 'Anime dirigido a hombres adultos'),
-('Josei', 'Anime dirigido a mujeres adultas'),
-('Kodomomuke', 'Anime dirigido a niños');
+### genres Table
 
--- Géneros predefinidos
-INSERT INTO genres (name, description) VALUES
-('Acción', 'Anime con mucha acción y combates'),
-('Aventura', 'Anime de aventuras y exploración'),
-('Comedia', 'Anime cómico y divertido'),
-('Drama', 'Anime dramático y emotivo'),
-('Romance', 'Anime romántico'),
-('Fantasía', 'Anime de fantasía y magia'),
-('Ciencia Ficción', 'Anime de ciencia ficción'),
-('Horror', 'Anime de terror y suspenso');
-```
+Stores genre categories:
 
-## 🔄 Flujo de Datos
+- Genre names and descriptions
+- Creation timestamps
 
-### Crear Serie
+### productions_genres Table
 
-```
+Many-to-many relationship:
+
+- Links series with genres
+- Maintains referential integrity
+- Cascade deletion support
+
+## 🔄 Data Flow (CQRS)
+
+### Create Series (Command)
+
 1. Request → Controller
-2. Controller → Validator
-3. Validator → Service
-4. Service → Image Processor
-5. Service → Repository
+2. Controller → Command Handler
+3. Handler → Validator
+4. Handler → Image Processor
+5. Handler → Write Repository
 6. Repository → Database
 7. Response ← Controller
-```
 
-### Actualizar Imagen
+### Update Image (Command)
 
-```
 1. Request → Controller
-2. Controller → Service
-3. Service → Image Processor
-4. Service → File System
-5. Service → Repository
+2. Controller → Command Handler
+3. Handler → Image Processor
+4. Handler → File System
+5. Handler → Write Repository
 6. Repository → Database
 7. Response ← Controller
-```
+
+### Search Series (Query)
+
+1. Request → Controller
+2. Controller → Query Handler
+3. Handler → Read Repository
+4. Repository → Database
+5. Response ← Controller
 
 ## 🧪 Testing
 
-### Casos de Prueba
+### Test Cases
 
 ```typescript
 describe('SeriesModule', () => {
@@ -286,26 +244,26 @@ describe('SeriesModule', () => {
 });
 ```
 
-## 📊 Métricas y KPIs
+## 📊 Metrics and KPIs
 
-### Métricas de Contenido
+### Content Metrics
 
-- **Total Series**: Número total de series
-- **Series by Year**: Series por año
-- **Genre Distribution**: Distribución por géneros
-- **Demography Distribution**: Distribución por demografías
-- **Average Rating**: Calificación promedio
+- **Total Series**: Total number of series
+- **Series by Year**: Series by year
+- **Genre Distribution**: Distribution by genres
+- **Demography Distribution**: Distribution by demographics
+- **Average Rating**: Average rating
 
-### Métricas de Imágenes
+### Image Metrics
 
-- **Image Upload Success**: Tasa de éxito de subida
-- **Image Optimization**: Tiempo de optimización
-- **Storage Usage**: Uso de almacenamiento
-- **Image Quality**: Calidad de imágenes
+- **Image Upload Success**: Upload success rate
+- **Image Optimization**: Optimization time
+- **Storage Usage**: Storage usage
+- **Image Quality**: Image quality
 
-## 🚀 Configuración
+## 🚀 Configuration
 
-### Variables de Entorno
+### Environment Variables
 
 ```env
 # Database Configuration
@@ -323,7 +281,7 @@ UPLOAD_DIR=uploads/series/img/tarjeta
 ALLOWED_IMAGE_TYPES=image/jpeg,image/png,image/webp
 ```
 
-### Configuración de Servicios
+### Service Configuration
 
 ```typescript
 // SeriesService Configuration
@@ -342,7 +300,7 @@ const seriesConfig = {
 
 ### POST /api/series
 
-**Descripción**: Crear una nueva serie
+**Description**: Create a new series
 
 **Request Body** (multipart/form-data):
 
@@ -350,11 +308,12 @@ const seriesConfig = {
 name: "Attack on Titan"
 chapter_number: 25
 year: 2013
-description: "Una serie de anime sobre la humanidad luchando contra titanes"
+description: "An anime series about humanity fighting against titans"
+description_en: "An anime series about humanity fighting against titans"
 qualification: 9.5
 demography_id: 1
 visible: true
-image: [archivo de imagen]
+image: [image file]
 ```
 
 **Response**:
@@ -362,13 +321,14 @@ image: [archivo de imagen]
 ```json
 {
   "error": false,
-  "message": "Serie creada exitosamente",
+  "message": "Series created successfully",
   "data": {
     "id": 1,
     "name": "Attack on Titan",
     "chapter_number": 25,
     "year": 2013,
-    "description": "Una serie de anime sobre la humanidad luchando contra titanes",
+    "description": "An anime series about humanity fighting against titans",
+    "description_en": "An anime series about humanity fighting against titans",
     "qualification": 9.5,
     "demography_id": 1,
     "visible": true,
@@ -380,7 +340,7 @@ image: [archivo de imagen]
 
 ### GET /api/series/:id
 
-**Descripción**: Obtener una serie por ID
+**Description**: Get a series by ID
 
 **Response**:
 
@@ -392,7 +352,8 @@ image: [archivo de imagen]
     "name": "Attack on Titan",
     "chapter_number": 25,
     "year": 2013,
-    "description": "Una serie de anime sobre la humanidad luchando contra titanes",
+    "description": "An anime series about humanity fighting against titans",
+    "description_en": "An anime series about humanity fighting against titans",
     "qualification": 9.5,
     "demography_id": 1,
     "visible": true,
@@ -404,7 +365,7 @@ image: [archivo de imagen]
 
 ### PUT /api/series/:id
 
-**Descripción**: Actualizar una serie existente
+**Description**: Update an existing series
 
 **Request Body** (multipart/form-data):
 
@@ -412,7 +373,8 @@ image: [archivo de imagen]
 name: "Attack on Titan - Updated"
 chapter_number: 30
 year: 2013
-description: "Descripción actualizada"
+description: "Updated description"
+description_en: "Updated description in English"
 qualification: 9.8
 demography_id: 1
 visible: true
@@ -423,13 +385,14 @@ visible: true
 ```json
 {
   "error": false,
-  "message": "Serie actualizada exitosamente",
+  "message": "Series updated successfully",
   "data": {
     "id": 1,
     "name": "Attack on Titan - Updated",
     "chapter_number": 30,
     "year": 2013,
-    "description": "Descripción actualizada",
+    "description": "Updated description",
+    "description_en": "Updated description in English",
     "qualification": 9.8,
     "demography_id": 1,
     "visible": true,
@@ -441,28 +404,28 @@ visible: true
 
 ### DELETE /api/series/:id
 
-**Descripción**: Eliminar una serie
+**Description**: Delete a series
 
 **Response**:
 
 ```json
 {
   "error": false,
-  "message": "Serie eliminada exitosamente"
+  "message": "Series deleted successfully"
 }
 ```
 
 ### GET /api/series
 
-**Descripción**: Listar todas las series con filtros
+**Description**: List all series with filters
 
 **Query Parameters**:
 
-- `limit`: Número de resultados (1-10000)
-- `offset`: Desplazamiento
-- `year`: Filtrar por año
-- `demography_id`: Filtrar por demografía
-- `search`: Búsqueda por nombre
+- `limit`: Number of results (1-10000)
+- `offset`: Offset
+- `year`: Filter by year
+- `demography_id`: Filter by demography
+- `search`: Search by name
 
 **Response**:
 
@@ -475,7 +438,8 @@ visible: true
       "name": "Attack on Titan",
       "chapter_number": 25,
       "year": 2013,
-      "description": "Una serie de anime sobre la humanidad luchando contra titanes",
+      "description": "An anime series about humanity fighting against titans",
+      "description_en": "An anime series about humanity fighting against titans",
       "qualification": 9.5,
       "demography_id": 1,
       "visible": true,
@@ -490,7 +454,7 @@ visible: true
 
 ### GET /api/series/years
 
-**Descripción**: Obtener años de producción únicos
+**Description**: Get unique production years
 
 **Response**:
 
@@ -503,12 +467,12 @@ visible: true
 
 ### PUT /api/series/:id/image
 
-**Descripción**: Actualizar imagen de una serie
+**Description**: Update series image
 
 **Request Body** (multipart/form-data):
 
 ```
-image: [archivo de imagen]
+image: [image file]
 ```
 
 **Response**:
@@ -516,7 +480,7 @@ image: [archivo de imagen]
 ```json
 {
   "error": false,
-  "message": "Imagen actualizada exitosamente",
+  "message": "Image updated successfully",
   "data": {
     "id": 1,
     "image": "uploads/series/img/tarjeta/1.jpg",
@@ -525,21 +489,21 @@ image: [archivo de imagen]
 }
 ```
 
-## 🖼️ Gestión de Imágenes
+## 🖼️ Image Management
 
-### Proceso de Optimización
+### Optimization Process
 
-1. **Validación**: Verificar tipo y tamaño de archivo
-2. **Redimensionamiento**: Cambiar a 190x285px
-3. **Compresión**: Reducir a ~20KB
-4. **Optimización**: Aplicar algoritmos avanzados
-5. **Guardado**: Usar ID como nombre de archivo
-6. **Limpieza**: Eliminar imagen anterior
+1. **Validation**: Verify file type and size
+2. **Resizing**: Change to 190x285px
+3. **Compression**: Reduce to ~20KB
+4. **Optimization**: Apply advanced algorithms
+5. **Saving**: Use ID as filename
+6. **Cleanup**: Delete previous image
 
-### Algoritmos de Optimización
+### Optimization Algorithms
 
 ```typescript
-// Configuración de optimización
+// Optimization configuration
 const optimizationConfig = {
   kernel: sharp.kernel.lanczos3,
   jpeg: {
@@ -554,87 +518,87 @@ const optimizationConfig = {
 
 ## 🐛 Troubleshooting
 
-### Problemas Comunes
+### Common Problems
 
-#### Error: "Serie no encontrada"
-
-```bash
-# Verificar que el ID de la serie existe
-# Verificar que la serie está visible
-```
-
-#### Error: "Imagen inválida"
+#### Error: "Series not found"
 
 ```bash
-# Verificar tipo de archivo (JPEG, PNG, WebP)
-# Verificar tamaño de archivo (< 5MB)
-# Verificar que el archivo no está corrupto
+# Verify that the series ID exists
+# Verify that the series is visible
 ```
 
-#### Error: "Optimización fallida"
+#### Error: "Invalid image"
 
 ```bash
-# Verificar que Sharp está instalado
-# Verificar permisos de escritura
-# Verificar espacio en disco
+# Verify file type (JPEG, PNG, WebP)
+# Verify file size (< 5MB)
+# Verify that the file is not corrupted
 ```
 
-#### Error: "Validación fallida"
+#### Error: "Optimization failed"
 
 ```bash
-# Verificar que todos los campos requeridos están presentes
-# Verificar que los tipos de datos son correctos
-# Verificar que los valores están en rangos válidos
+# Verify that Sharp is installed
+# Verify write permissions
+# Verify disk space
 ```
 
-## 📈 Dashboard de Series
+#### Error: "Validation failed"
 
-### Widgets Disponibles
+```bash
+# Verify that all required fields are present
+# Verify that data types are correct
+# Verify that values are in valid ranges
+```
+
+## 📈 Series Dashboard
+
+### Available Widgets
 
 1. **Series Overview**
 
-   - Total de series
-   - Series por año
-   - Series por demografía
+   - Total series
+   - Series by year
+   - Series by demography
 
 2. **Top Series**
 
-   - Series mejor calificadas
-   - Series más populares
-   - Series recientes
+   - Best rated series
+   - Most popular series
+   - Recent series
 
 3. **Genre Distribution**
 
-   - Distribución por géneros
-   - Géneros más populares
-   - Tendencias de géneros
+   - Distribution by genres
+   - Most popular genres
+   - Genre trends
 
 4. **Image Management**
-   - Imágenes optimizadas
-   - Espacio utilizado
-   - Calidad de imágenes
+   - Optimized images
+   - Storage used
+   - Image quality
 
 ## 🚀 Roadmap
 
-### Funcionalidades Futuras
+### Future Features
 
-- [ ] **Advanced Search**: Búsqueda avanzada con múltiples filtros
-- [ ] **Recommendations**: Sistema de recomendaciones
-- [ ] **User Ratings**: Calificaciones de usuarios
-- [ ] **Reviews**: Sistema de reseñas
-- [ ] **Watchlist**: Lista de seguimiento
-- [ ] **Favorites**: Sistema de favoritos
-- [ ] **Social Features**: Funcionalidades sociales
-- [ ] **API Versioning**: Versionado de API
+- [ ] **Advanced Search**: Advanced search with multiple filters
+- [ ] **Recommendations**: Recommendation system
+- [ ] **User Ratings**: User ratings
+- [ ] **Reviews**: Review system
+- [ ] **Watchlist**: Watchlist
+- [ ] **Favorites**: Favorites system
+- [ ] **Social Features**: Social features
+- [ ] **API Versioning**: API versioning
 
-### Mejoras de Rendimiento
+### Performance Improvements
 
-- [ ] **Caching**: Sistema de caché para consultas
-- [ ] **CDN**: Red de distribución de contenido
-- [ ] **Image CDN**: CDN para imágenes
-- [ ] **Database Optimization**: Optimización de base de datos
-- [ ] **Search Indexing**: Indexación de búsqueda
+- [ ] **Caching**: Cache system for queries
+- [ ] **CDN**: Content distribution network
+- [ ] **Image CDN**: CDN for images
+- [ ] **Database Optimization**: Database optimization
+- [ ] **Search Indexing**: Search indexing
 
 ---
 
-**Última actualización**: 2024-09-28
+**Last updated**: 2025-10-05

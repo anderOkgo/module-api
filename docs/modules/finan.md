@@ -1,201 +1,163 @@
-# Módulo Financiero (@finan/)
+# Financial Module (@finan/)
 
-## 💰 Descripción General
+## 💰 General Description
 
-El módulo financiero (`@finan/`) gestiona todo lo relacionado con finanzas personales, incluyendo movimientos de dinero, categorías de gastos, reportes financieros y análisis de gastos. Proporciona una interfaz completa para el manejo de finanzas personales.
+The financial module (`@finan/`) manages everything related to personal finances, including money movements, expense categories, financial reports, and expense analysis. It provides a complete interface for personal finance management.
 
-## 🏗️ Arquitectura del Módulo
+## 🏗️ Module Architecture
 
 ```
 src/modules/finan/
 ├── application/
-│   └── finan.validations.ts    # Validaciones de aplicación
+│   └── finan.validations.ts    # Application validations
 ├── domain/
-│   ├── models/                 # Modelos de dominio
+│   ├── models/                 # Domain models
 │   │   └── Finan.ts
-│   └── services/               # Servicios de dominio
+│   └── services/               # Domain services
 │       ├── finan.service.ts
 │       └── finan.factory.ts
 └── infrastructure/
-    ├── controllers/            # Controladores
+    ├── controllers/            # Controllers
     │   └── finan.controller.ts
-    ├── routes/                # Rutas
+    ├── routes/                # Routes
     │   └── finan.routes.ts
-    ├── repositories/          # Interfaces de repositorio
+    ├── repositories/          # Repository interfaces
     │   └── finan.repository.ts
-    └── finan.mysql.ts         # Implementación MySQL
+    └── finan.mysql.ts         # MySQL implementation
 ```
 
-## 📊 Modelos de Datos
+## 📊 Data Models
 
 ### Movement Model
 
-```typescript
-interface Movement {
-  id: number;
-  user_id: number;
-  amount: number;
-  description: string;
-  date_movement: Date;
-  category: string;
-  created_at: Date;
-  updated_at: Date;
-}
-```
+Contains financial movements:
+
+- Transaction data (amount, description, date)
+- User association
+- Category classification
+- Audit timestamps
 
 ### Category Model
 
-```typescript
-interface Category {
-  id: number;
-  name: string;
-  type: 'income' | 'expense';
-  color: string;
-  created_at: Date;
-}
-```
+Stores financial categories:
+
+- Category names and types (income/expense)
+- Visual representation (colors)
+- Creation timestamps
 
 ### Financial Report Model
 
-```typescript
-interface FinancialReport {
-  total_income: number;
-  total_expenses: number;
-  balance: number;
-  monthly_expenses: number[];
-  categories_breakdown: CategoryBreakdown[];
-}
-```
+Aggregated financial data:
 
-## 🔧 Funcionalidades
+- Total income and expenses
+- Net balance calculations
+- Monthly expense trends
+- Category breakdowns
 
-### 1. Gestión de Movimientos
+## 🔧 Features
 
-**Funcionalidades**:
+### 1. Movement Management
 
-- Crear movimientos de ingresos y gastos
-- Actualizar movimientos existentes
-- Eliminar movimientos
-- Listar movimientos con filtros
-- Búsqueda por descripción, categoría o fecha
+**Features**:
 
-**Validaciones**:
+- Create income and expense movements
+- Update existing movements
+- Delete movements
+- List movements with filters
+- Search by description, category, or date
 
-- Monto debe ser numérico y positivo
-- Descripción requerida
-- Fecha válida
-- Categoría debe existir
+**Validations**:
 
-### 2. Gestión de Categorías
+- Amount must be numeric and positive
+- Description required
+- Valid date
+- Category must exist
 
-**Funcionalidades**:
+### 2. Category Management
 
-- Crear categorías de ingresos y gastos
-- Actualizar categorías
-- Eliminar categorías
-- Asignar colores a categorías
-- Categorías predefinidas del sistema
+**Features**:
 
-**Categorías Predefinidas**:
+- Create income and expense categories
+- Update categories
+- Delete categories
+- Assign colors to categories
+- System predefined categories
 
-- **Ingresos**: Salario, Freelance, Inversiones
-- **Gastos**: Alimentación, Transporte, Entretenimiento, Servicios
+**Predefined Categories**:
 
-### 3. Reportes Financieros
+- **Income**: Salary, Freelance, Investments
+- **Expenses**: Food, Transportation, Entertainment, Services
 
-**Funcionalidades**:
+### 3. Financial Reports
 
-- Balance general
-- Gastos mensuales
-- Ingresos mensuales
-- Análisis por categorías
-- Tendencias temporales
-- Proyecciones financieras
+**Features**:
 
-### 4. Análisis de Gastos
+- General balance
+- Monthly expenses
+- Monthly income
+- Category analysis
+- Temporal trends
+- Financial projections
 
-**Funcionalidades**:
+### 4. Expense Analysis
 
-- Gastos por categoría
-- Gastos por período
-- Comparación de períodos
-- Identificación de patrones
-- Alertas de gastos excesivos
+**Features**:
 
-## 🗄️ Base de Datos
+- Expenses by category
+- Expenses by period
+- Period comparison
+- Pattern identification
+- Excessive expense alerts
 
-### Tabla: movements
+## 🗄️ Database
 
-```sql
-CREATE TABLE movements (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  amount DECIMAL(10,2) NOT NULL,
-  description VARCHAR(255) NOT NULL,
-  date_movement DATE NOT NULL,
-  category VARCHAR(100) DEFAULT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_user_id (user_id),
-  INDEX idx_date_movement (date_movement),
-  INDEX idx_category (category)
-);
-```
+### movements Table
 
-### Tabla: categories
+Stores financial movements:
 
-```sql
-CREATE TABLE categories (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  type ENUM('income', 'expense') NOT NULL,
-  color VARCHAR(7) DEFAULT '#007bff',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY unique_name_type (name, type)
-);
-```
+- Transaction data (amount, description, date)
+- User association
+- Category classification
+- Optimized indexes for queries
 
-### Datos Iniciales
+### categories Table
 
-```sql
--- Categorías predefinidas
-INSERT INTO categories (name, type, color) VALUES
-('Salario', 'income', '#28a745'),
-('Freelance', 'income', '#17a2b8'),
-('Inversiones', 'income', '#6f42c1'),
-('Alimentación', 'expense', '#dc3545'),
-('Transporte', 'expense', '#fd7e14'),
-('Entretenimiento', 'expense', '#e83e8c'),
-('Servicios', 'expense', '#20c997');
-```
+Manages financial categories:
 
-## 🔄 Flujo de Datos
+- Category names and types (income/expense)
+- Visual representation (colors)
+- Unique constraints
 
-### Crear Movimiento
+### Initial Data
 
-```
+Predefined categories include:
+
+- **Income**: Salary, Freelance, Investments
+- **Expenses**: Food, Transportation, Entertainment, Services
+
+## 🔄 Data Flow
+
+### Create Movement
+
 1. Request → Controller
 2. Controller → Validator
 3. Validator → Service
 4. Service → Repository
 5. Repository → Database
 6. Response ← Controller
-```
 
-### Generar Reporte
+### Generate Report
 
-```
 1. Request → Controller
 2. Controller → Service
 3. Service → Repository
 4. Repository → Database
 5. Service → Data Processing
 6. Response ← Controller
-```
 
 ## 🧪 Testing
 
-### Casos de Prueba
+### Test Cases
 
 ```typescript
 describe('FinanModule', () => {
@@ -223,26 +185,26 @@ describe('FinanModule', () => {
 });
 ```
 
-## 📊 Métricas y KPIs
+## 📊 Metrics and KPIs
 
-### Métricas Financieras
+### Financial Metrics
 
-- **Total Income**: Ingresos totales
-- **Total Expenses**: Gastos totales
-- **Net Balance**: Balance neto
-- **Monthly Growth**: Crecimiento mensual
-- **Expense Ratio**: Ratio de gastos
+- **Total Income**: Total income
+- **Total Expenses**: Total expenses
+- **Net Balance**: Net balance
+- **Monthly Growth**: Monthly growth
+- **Expense Ratio**: Expense ratio
 
-### Métricas de Categorías
+### Category Metrics
 
-- **Top Categories**: Categorías más utilizadas
-- **Category Distribution**: Distribución por categorías
-- **Spending Patterns**: Patrones de gasto
-- **Category Trends**: Tendencias por categoría
+- **Top Categories**: Most used categories
+- **Category Distribution**: Distribution by categories
+- **Spending Patterns**: Spending patterns
+- **Category Trends**: Category trends
 
-## 🚀 Configuración
+## 🚀 Configuration
 
-### Variables de Entorno
+### Environment Variables
 
 ```env
 # Database Configuration
@@ -258,7 +220,7 @@ REPORT_PERIOD_DAYS=30
 MAX_CATEGORIES=50
 ```
 
-### Configuración de Servicios
+### Service Configuration
 
 ```typescript
 // FinanService Configuration
@@ -275,7 +237,7 @@ const finanConfig = {
 
 ### POST /api/finan/initial-load
 
-**Descripción**: Carga inicial de datos financieros
+**Description**: Initial financial data load
 
 **Request Body**:
 
@@ -297,7 +259,7 @@ const finanConfig = {
     "categories": [
       {
         "id": 1,
-        "name": "Alimentación",
+        "name": "Food",
         "type": "expense",
         "color": "#dc3545"
       }
@@ -306,9 +268,9 @@ const finanConfig = {
       {
         "id": 1,
         "amount": -50.0,
-        "description": "Supermercado",
+        "description": "Supermarket",
         "date_movement": "2024-09-28",
-        "category": "Alimentación"
+        "category": "Food"
       }
     ]
   }
@@ -317,16 +279,16 @@ const finanConfig = {
 
 ### POST /api/finan/insert
 
-**Descripción**: Crear un nuevo movimiento
+**Description**: Create a new movement
 
 **Request Body**:
 
 ```json
 {
   "amount": -75.5,
-  "description": "Gasolina",
+  "description": "Gasoline",
   "date_movement": "2024-09-28",
-  "category": "Transporte"
+  "category": "Transportation"
 }
 ```
 
@@ -335,13 +297,13 @@ const finanConfig = {
 ```json
 {
   "error": false,
-  "message": "Movimiento creado exitosamente",
+  "message": "Movement created successfully",
   "data": {
     "id": 2,
     "amount": -75.5,
-    "description": "Gasolina",
+    "description": "Gasoline",
     "date_movement": "2024-09-28",
-    "category": "Transporte",
+    "category": "Transportation",
     "created_at": "2024-09-28T10:30:00Z"
   }
 }
@@ -349,15 +311,15 @@ const finanConfig = {
 
 ### PUT /api/finan/update/:id
 
-**Descripción**: Actualizar un movimiento existente
+**Description**: Update an existing movement
 
 **Request Body**:
 
 ```json
 {
   "amount": -80.0,
-  "description": "Gasolina - Actualizado",
-  "category": "Transporte"
+  "description": "Gasoline - Updated",
+  "category": "Transportation"
 }
 ```
 
@@ -366,13 +328,13 @@ const finanConfig = {
 ```json
 {
   "error": false,
-  "message": "Movimiento actualizado exitosamente",
+  "message": "Movement updated successfully",
   "data": {
     "id": 2,
     "amount": -80.0,
-    "description": "Gasolina - Actualizado",
+    "description": "Gasoline - Updated",
     "date_movement": "2024-09-28",
-    "category": "Transporte",
+    "category": "Transportation",
     "updated_at": "2024-09-28T11:00:00Z"
   }
 }
@@ -380,135 +342,135 @@ const finanConfig = {
 
 ### DELETE /api/finan/delete/:id
 
-**Descripción**: Eliminar un movimiento
+**Description**: Delete a movement
 
 **Response**:
 
 ```json
 {
   "error": false,
-  "message": "Movimiento eliminado exitosamente"
+  "message": "Movement deleted successfully"
 }
 ```
 
-## 📈 Reportes y Análisis
+## 📈 Reports and Analysis
 
-### Tipos de Reportes
+### Report Types
 
-1. **Balance General**
+1. **General Balance**
 
-   - Ingresos totales
-   - Gastos totales
-   - Balance neto
-   - Tendencias mensuales
+   - Total income
+   - Total expenses
+   - Net balance
+   - Monthly trends
 
-2. **Gastos por Categoría**
+2. **Expenses by Category**
 
-   - Distribución de gastos
-   - Top categorías
-   - Comparación de períodos
+   - Expense distribution
+   - Top categories
+   - Period comparison
 
-3. **Análisis Temporal**
+3. **Temporal Analysis**
 
-   - Gastos mensuales
-   - Ingresos mensuales
-   - Tendencias anuales
-   - Proyecciones
+   - Monthly expenses
+   - Monthly income
+   - Annual trends
+   - Projections
 
-4. **Alertas Financieras**
-   - Gastos excesivos
-   - Presupuesto excedido
-   - Patrones inusuales
+4. **Financial Alerts**
+   - Excessive expenses
+   - Budget exceeded
+   - Unusual patterns
 
-### Métricas de Rendimiento
+### Performance Metrics
 
-- **Tiempo de respuesta**: < 200ms
+- **Response time**: < 200ms
 - **Throughput**: 1000 requests/min
-- **Disponibilidad**: 99.9%
-- **Precisión de cálculos**: 100%
+- **Availability**: 99.9%
+- **Calculation accuracy**: 100%
 
 ## 🐛 Troubleshooting
 
-### Problemas Comunes
+### Common Problems
 
-#### Error: "Movimiento no encontrado"
-
-```bash
-# Verificar que el ID del movimiento existe
-# Verificar que el usuario tiene acceso al movimiento
-```
-
-#### Error: "Categoría no válida"
+#### Error: "Movement not found"
 
 ```bash
-# Verificar que la categoría existe en la base de datos
-# Verificar que el tipo de categoría es correcto
+# Verify that the movement ID exists
+# Verify that the user has access to the movement
 ```
 
-#### Error: "Monto inválido"
+#### Error: "Invalid category"
 
 ```bash
-# Verificar que el monto es numérico
-# Verificar que el monto es positivo para ingresos
-# Verificar que el monto es negativo para gastos
+# Verify that the category exists in the database
+# Verify that the category type is correct
 ```
 
-#### Error: "Fecha inválida"
+#### Error: "Invalid amount"
 
 ```bash
-# Verificar formato de fecha (YYYY-MM-DD)
-# Verificar que la fecha no es futura
-# Verificar que la fecha es válida
+# Verify that the amount is numeric
+# Verify that the amount is positive for income
+# Verify that the amount is negative for expenses
 ```
 
-## 📊 Dashboard Financiero
+#### Error: "Invalid date"
 
-### Widgets Disponibles
+```bash
+# Verify date format (YYYY-MM-DD)
+# Verify that the date is not in the future
+# Verify that the date is valid
+```
+
+## 📊 Financial Dashboard
+
+### Available Widgets
 
 1. **Balance Widget**
 
-   - Balance actual
-   - Cambio desde el mes anterior
-   - Tendencias
+   - Current balance
+   - Change from previous month
+   - Trends
 
-2. **Gastos Widget**
+2. **Expenses Widget**
 
-   - Gastos del mes actual
-   - Comparación con mes anterior
-   - Proyección mensual
+   - Current month expenses
+   - Comparison with previous month
+   - Monthly projection
 
-3. **Categorías Widget**
+3. **Categories Widget**
 
-   - Top 5 categorías de gastos
-   - Distribución por categorías
-   - Comparación de períodos
+   - Top 5 expense categories
+   - Distribution by categories
+   - Period comparison
 
-4. **Movimientos Widget**
-   - Últimos movimientos
-   - Movimientos pendientes
-   - Alertas financieras
+4. **Movements Widget**
+   - Recent movements
+   - Pending movements
+   - Financial alerts
 
 ## 🚀 Roadmap
 
-### Funcionalidades Futuras
+### Future Features
 
-- [ ] **Budget Management**: Gestión de presupuestos
-- [ ] **Recurring Transactions**: Transacciones recurrentes
-- [ ] **Investment Tracking**: Seguimiento de inversiones
-- [ ] **Debt Management**: Gestión de deudas
-- [ ] **Financial Goals**: Objetivos financieros
-- [ ] **Tax Reporting**: Reportes de impuestos
-- [ ] **Multi-Currency**: Soporte para múltiples monedas
-- [ ] **Data Export**: Exportación de datos
+- [ ] **Budget Management**: Budget management
+- [ ] **Recurring Transactions**: Recurring transactions
+- [ ] **Investment Tracking**: Investment tracking
+- [ ] **Debt Management**: Debt management
+- [ ] **Financial Goals**: Financial goals
+- [ ] **Tax Reporting**: Tax reporting
+- [ ] **Multi-Currency**: Multi-currency support
+- [ ] **Data Export**: Data export
 
-### Mejoras de Rendimiento
+### Performance Improvements
 
-- [ ] **Caching**: Sistema de caché para reportes
-- [ ] **Indexing**: Optimización de índices
-- [ ] **Pagination**: Paginación de resultados
-- [ ] **Real-time Updates**: Actualizaciones en tiempo real
-- [ ] **Background Processing**: Procesamiento en segundo plano
+- [ ] **Caching**: Cache system for reports
+- [ ] **Indexing**: Index optimization
+- [ ] **Pagination**: Result pagination
+- [ ] **Real-time Updates**: Real-time updates
+- [ ] **Background Processing**: Background processing
 
 ---
 
-**Última actualización**: 2024-09-28
+**Last updated**: 2025-10-05

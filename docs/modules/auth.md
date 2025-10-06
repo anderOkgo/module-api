@@ -1,212 +1,164 @@
-# Módulo de Autenticación (@auth/)
+# Authentication Module (@auth/)
 
-## 🔐 Descripción General
+## 🔐 General Description
 
-El módulo de autenticación (`@auth/`) maneja todo lo relacionado con usuarios, autenticación, autorización y seguridad del sistema. Implementa un sistema robusto de autenticación con JWT, gestión de sesiones y medidas de seguridad avanzadas.
+The authentication module (`@auth/`) handles everything related to users, authentication, authorization, and system security. It implements a robust authentication system with JWT, session management, and advanced security measures.
 
-## 🏗️ Arquitectura del Módulo
+## 🏗️ Module Architecture
 
 ```
 src/modules/auth/
 ├── application/
-│   ├── use-cases/           # Casos de uso
+│   ├── use-cases/           # Use cases
 │   │   ├── register-user.use-case.ts
 │   │   └── login-user.use-case.ts
-│   └── validators/          # Validadores de aplicación
+│   └── validators/          # Application validators
 │       └── user-request.validator.ts
 ├── domain/
-│   ├── models/             # Modelos de dominio
+│   ├── models/             # Domain models
 │   │   ├── User.ts
 │   │   └── Login.ts
-│   ├── services/           # Servicios de dominio
+│   ├── services/           # Domain services
 │   │   ├── auth.service.ts
 │   │   └── auth.factory.ts
-│   └── validators/          # Validadores de dominio
+│   └── validators/          # Domain validators
 │       ├── user.validator.ts
 │       └── password.validator.ts
 └── infrastructure/
-    ├── controllers/        # Controladores
+    ├── controllers/        # Controllers
     │   └── user.controller.ts
-    ├── routes/            # Rutas
+    ├── routes/            # Routes
     │   └── user.routes.ts
-    ├── repositories/      # Interfaces de repositorio
+    ├── repositories/      # Repository interfaces
     │   └── user.repository.ts
-    └── user.mysql.ts      # Implementación MySQL
+    └── user.mysql.ts      # MySQL implementation
 ```
 
-## 📊 Modelos de Datos
+## 📊 Data Models
 
 ### User Model
 
-```typescript
-interface User {
-  id: number;
-  first_name: string;
-  last_name: string;
-  username: string;
-  email: string;
-  password: string;
-  role: UserRole;
-  active: boolean;
-  created: Date;
-  modified: Date;
-  last_login?: Date;
-  login_attempts: number;
-  locked_until?: Date;
-}
+Contains user information:
 
-enum UserRole {
-  ADMIN = 'admin',
-  USER = 'user',
-}
-```
+- Personal data (first name, last name, username, email)
+- Authentication data (password hash, role)
+- Security data (login attempts, account lockout)
+- Audit data (creation, modification, last login timestamps)
 
 ### Login Model
 
-```typescript
-interface Login {
-  username?: string;
-  email?: string;
-  password: string;
-}
-```
+Handles authentication requests:
 
-## 🔧 Funcionalidades
+- Login with email or username
+- Password validation
+- Security token generation
 
-### 1. Registro de Usuarios
+## 🔧 Features
+
+### 1. User Registration
 
 **Endpoint**: `POST /api/users/add`
 
-**Funcionalidades**:
+**Features**:
 
-- Validación de datos de entrada
-- Verificación de unicidad de email/username
-- Hash de contraseña con bcrypt
-- Creación de usuario en base de datos
-- Generación de token JWT
+- Input data validation
+- Email/username uniqueness verification
+- Password hashing with bcrypt
+- User creation in database
+- JWT token generation
 
-**Validaciones**:
+**Validations**:
 
-- Email válido y único
-- Username único
-- Contraseña segura (mínimo 8 caracteres, mayúsculas, minúsculas, números, símbolos)
-- Nombres requeridos
+- Valid and unique email
+- Unique username
+- Secure password (minimum 8 characters, uppercase, lowercase, numbers, symbols)
+- Required names
 
-### 2. Autenticación de Usuarios
+### 2. User Authentication
 
 **Endpoint**: `POST /api/users/login`
 
-**Funcionalidades**:
+**Features**:
 
-- Login con email o username
-- Validación de credenciales
-- Control de intentos fallidos
-- Bloqueo de cuenta por intentos excesivos
-- Actualización de último login
-- Generación de token JWT
+- Login with email or username
+- Credential validation
+- Failed attempt control
+- Account lockout for excessive attempts
+- Last login update
+- JWT token generation
 
-**Medidas de Seguridad**:
+**Security Measures**:
 
-- Límite de intentos de login (5 intentos)
-- Bloqueo temporal de cuenta (30 minutos)
-- Hash de contraseñas con salt
-- Tokens JWT con expiración
+- Login attempt limit (5 attempts)
+- Temporary account lockout (30 minutes)
+- Password hashing with salt
+- JWT tokens with expiration
 
-### 3. Gestión de Sesiones
+### 3. Session Management
 
-**Funcionalidades**:
+**Features**:
 
-- Tokens JWT con expiración configurable
-- Refresh tokens (futuro)
-- Invalidación de sesiones
-- Logout seguro
+- JWT tokens with configurable expiration
+- Refresh tokens (future)
+- Session invalidation
+- Secure logout
 
-## 🛡️ Seguridad
+## 🛡️ Security
 
-### Validaciones de Contraseña
+### Password Validations
 
-```typescript
-class PasswordValidator {
-  static validate(password: string): ValidationResult {
-    // Mínimo 8 caracteres
-    // Máximo 128 caracteres
-    // Al menos una mayúscula
-    // Al menos una minúscula
-    // Al menos un número
-    // Al menos un símbolo
-    // No debe ser contraseña común
-  }
-}
-```
+Password security requirements:
 
-### Control de Acceso
+- Minimum 8 characters
+- Maximum 128 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+- At least one symbol
+- Must not be a common password
 
-```typescript
-// Middleware de autenticación
-export const validateToken = (req: Request, res: Response, next: NextFunction) => {
-  // Validar token JWT
-  // Verificar expiración
-  // Verificar usuario activo
-  // Verificar cuenta no bloqueada
-};
-```
+### Access Control
 
-### Medidas de Seguridad
+Authentication middleware features:
 
-- **Rate Limiting**: Límite de intentos de login
-- **Account Lockout**: Bloqueo temporal por intentos fallidos
-- **Password Hashing**: bcrypt con salt rounds
-- **JWT Security**: Tokens firmados y con expiración
-- **Input Validation**: Validación en múltiples capas
+- JWT token validation
+- Expiration verification
+- Active user verification
+- Non-blocked account verification
 
-## 🗄️ Base de Datos
+### Security Measures
 
-### Tabla: users
+- **Rate Limiting**: Login attempt limits
+- **Account Lockout**: Temporary lockout for failed attempts
+- **Password Hashing**: bcrypt with salt rounds
+- **JWT Security**: Signed tokens with expiration
+- **Input Validation**: Multi-layer validation
 
-```sql
-CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  first_name VARCHAR(100) NOT NULL,
-  last_name VARCHAR(100) NOT NULL,
-  username VARCHAR(100) NOT NULL UNIQUE,
-  email VARCHAR(100) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
-  active BOOLEAN NOT NULL DEFAULT TRUE,
-  created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  last_login DATETIME NULL,
-  login_attempts INT NOT NULL DEFAULT 0,
-  locked_until DATETIME NULL
-);
-```
+## 🗄️ Database
 
-### Tabla: email_verification
+### users Table
 
-```sql
-CREATE TABLE email_verification (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  email VARCHAR(255) NOT NULL,
-  verification_code INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+Stores user information:
 
-### Índices
+- Personal data (names, username, email)
+- Authentication data (password hash, role)
+- Security data (login attempts, lockout)
+- Audit timestamps
+- Optimized indexes for queries
 
-```sql
--- Índices para optimización
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_users_locked_until ON users(locked_until);
-CREATE INDEX idx_users_last_login ON users(last_login);
-```
+### email_verification Table
 
-## 🔄 Flujo de Datos
+Manages email verification:
 
-### Registro de Usuario
+- Email addresses pending verification
+- Verification codes
+- Creation timestamps
+- Indexes for optimization
 
-```
+## 🔄 Data Flow
+
+### User Registration
+
 1. Request → Controller
 2. Controller → Use Case
 3. Use Case → Validator
@@ -214,11 +166,9 @@ CREATE INDEX idx_users_last_login ON users(last_login);
 5. Service → Repository
 6. Repository → Database
 7. Response ← Controller
-```
 
-### Login de Usuario
+### User Login
 
-```
 1. Request → Controller
 2. Controller → Use Case
 3. Use Case → Validator
@@ -227,11 +177,10 @@ CREATE INDEX idx_users_last_login ON users(last_login);
 6. Repository → Database
 7. Service → JWT Generator
 8. Response ← Controller
-```
 
 ## 🧪 Testing
 
-### Casos de Prueba
+### Test Cases
 
 ```typescript
 describe('AuthModule', () => {
@@ -259,25 +208,25 @@ describe('AuthModule', () => {
 });
 ```
 
-## 📊 Métricas y Monitoreo
+## 📊 Metrics and Monitoring
 
-### Métricas de Seguridad
+### Security Metrics
 
-- **Failed Login Attempts**: Intentos de login fallidos
-- **Account Lockouts**: Cuentas bloqueadas
-- **Password Strength**: Fuerza de contraseñas
-- **Token Usage**: Uso de tokens JWT
+- **Failed Login Attempts**: Failed login attempts
+- **Account Lockouts**: Locked accounts
+- **Password Strength**: Password strength
+- **Token Usage**: JWT token usage
 
-### Métricas de Usuario
+### User Metrics
 
-- **User Registrations**: Registros de usuarios
-- **Active Users**: Usuarios activos
-- **Login Frequency**: Frecuencia de logins
-- **Session Duration**: Duración de sesiones
+- **User Registrations**: User registrations
+- **Active Users**: Active users
+- **Login Frequency**: Login frequency
+- **Session Duration**: Session duration
 
-## 🚀 Configuración
+## 🚀 Configuration
 
-### Variables de Entorno
+### Environment Variables
 
 ```env
 # JWT Configuration
@@ -295,7 +244,7 @@ LOCKOUT_DURATION=30m
 DB_AUTH_NAME=animecre_auth
 ```
 
-### Configuración de Servicios
+### Service Configuration
 
 ```typescript
 // AuthService Configuration
@@ -312,17 +261,17 @@ const authConfig = {
 
 ### POST /api/users/add
 
-**Descripción**: Registra un nuevo usuario en el sistema
+**Description**: Register a new user in the system
 
 **Request Body**:
 
 ```json
 {
-  "first_name": "Juan",
-  "last_name": "Pérez",
-  "username": "juanperez",
-  "email": "juan@ejemplo.com",
-  "password": "MiPassword123!"
+  "first_name": "John",
+  "last_name": "Doe",
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "MyPassword123!"
 }
 ```
 
@@ -331,14 +280,14 @@ const authConfig = {
 ```json
 {
   "error": false,
-  "message": "Usuario registrado exitosamente",
+  "message": "User registered successfully",
   "data": {
     "user": {
       "id": 1,
-      "first_name": "Juan",
-      "last_name": "Pérez",
-      "username": "juanperez",
-      "email": "juan@ejemplo.com",
+      "first_name": "John",
+      "last_name": "Doe",
+      "username": "johndoe",
+      "email": "john@example.com",
       "role": "user",
       "active": true
     }
@@ -348,14 +297,14 @@ const authConfig = {
 
 ### POST /api/users/login
 
-**Descripción**: Autentica un usuario en el sistema
+**Description**: Authenticate a user in the system
 
 **Request Body**:
 
 ```json
 {
-  "email": "juan@ejemplo.com",
-  "password": "MiPassword123!"
+  "email": "john@example.com",
+  "password": "MyPassword123!"
 }
 ```
 
@@ -364,15 +313,15 @@ const authConfig = {
 ```json
 {
   "error": false,
-  "message": "Login exitoso",
+  "message": "Login successful",
   "data": {
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "user": {
       "id": 1,
-      "first_name": "Juan",
-      "last_name": "Pérez",
-      "username": "juanperez",
-      "email": "juan@ejemplo.com",
+      "first_name": "John",
+      "last_name": "Doe",
+      "username": "johndoe",
+      "email": "john@example.com",
       "role": "user"
     }
   }
@@ -381,58 +330,58 @@ const authConfig = {
 
 ## 🐛 Troubleshooting
 
-### Problemas Comunes
+### Common Problems
 
-#### Error: "Usuario ya existe"
+#### Error: "User already exists"
 
 ```bash
-# Verificar que el email/username no esté en uso
-# Verificar unicidad en base de datos
+# Verify that the email/username is not in use
+# Verify uniqueness in database
 ```
 
-#### Error: "Contraseña inválida"
+#### Error: "Invalid password"
 
 ```bash
-# Verificar que cumpla con los requisitos de seguridad
-# Mínimo 8 caracteres, mayúsculas, minúsculas, números, símbolos
+# Verify that it meets security requirements
+# Minimum 8 characters, uppercase, lowercase, numbers, symbols
 ```
 
-#### Error: "Cuenta bloqueada"
+#### Error: "Account locked"
 
 ```bash
-# Verificar login_attempts en base de datos
-# Verificar locked_until
-# Esperar tiempo de bloqueo o contactar administrador
+# Verify login_attempts in database
+# Verify locked_until
+# Wait for lockout time or contact administrator
 ```
 
-#### Error: "Token inválido"
+#### Error: "Invalid token"
 
 ```bash
-# Verificar que el token no haya expirado
-# Verificar que el usuario esté activo
-# Verificar que la cuenta no esté bloqueada
+# Verify that the token has not expired
+# Verify that the user is active
+# Verify that the account is not locked
 ```
 
 ## 📈 Roadmap
 
-### Funcionalidades Futuras
+### Future Features
 
-- [ ] **Email Verification**: Verificación de email
-- [ ] **Password Reset**: Recuperación de contraseña
-- [ ] **Two-Factor Authentication**: Autenticación de dos factores
-- [ ] **Refresh Tokens**: Tokens de renovación
-- [ ] **Role-Based Access Control**: Control de acceso basado en roles
-- [ ] **Audit Logging**: Registro de auditoría
-- [ ] **Session Management**: Gestión avanzada de sesiones
+- [ ] **Email Verification**: Email verification
+- [ ] **Password Reset**: Password recovery
+- [ ] **Two-Factor Authentication**: Two-factor authentication
+- [ ] **Refresh Tokens**: Refresh tokens
+- [ ] **Role-Based Access Control**: Role-based access control
+- [ ] **Audit Logging**: Audit logging
+- [ ] **Session Management**: Advanced session management
 
-### Mejoras de Seguridad
+### Security Improvements
 
-- [ ] **Rate Limiting**: Límite de requests por IP
-- [ ] **IP Whitelisting**: Lista blanca de IPs
-- [ ] **Device Management**: Gestión de dispositivos
-- [ ] **Security Headers**: Headers de seguridad
-- [ ] **Input Sanitization**: Sanitización de entrada
+- [ ] **Rate Limiting**: Request limits per IP
+- [ ] **IP Whitelisting**: IP whitelisting
+- [ ] **Device Management**: Device management
+- [ ] **Security Headers**: Security headers
+- [ ] **Input Sanitization**: Input sanitization
 
 ---
 
-**Última actualización**: 2024-09-28
+**Last updated**: 2025-10-05

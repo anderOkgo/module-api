@@ -1,167 +1,164 @@
-# Module-API - Documentación Completa
+# Module-API - Complete Documentation
 
-## 📋 Índice
+## 📋 Index
 
-- [🏠 Inicio](README.md)
-- [📦 Arquitectura General](architecture.md)
-- [🔧 Configuración del Proyecto](setup.md)
+- [🏠 Home](README.md)
+- [📦 General Architecture](architecture.md)
+- [🔧 Project Configuration](setup.md)
 - [🐳 Docker Setup](docker-setup.md)
-- [🔐 Módulo de Autenticación (@auth/)](modules/auth.md)
-- [💰 Módulo Financiero (@finan/)](modules/finan.md)
-- [📺 Módulo de Series (@series/)](modules/series.md)
-- [🗄️ Bases de Datos](databases.md)
-- [🚀 Despliegue](deployment.md)
+- [🔐 Authentication Module (@auth/)](modules/auth.md)
+- [💰 Finance Module (@finan/)](modules/finan.md)
+- [📺 Series Module (@series/)](modules/series.md)
+- [🗄️ Databases](databases.md)
+- [🚀 Deployment](deployment.md)
 - [🐛 Troubleshooting](troubleshooting.md)
 - [📮 Postman Collection](postman/README.md)
 
-## 📁 Configuración de Archivos en Producción
+## 📁 File Configuration in Production
 
-### Symlinks en cPanel
+### Symlinks in cPanel
 
-El proyecto utiliza symlinks para gestionar archivos de imágenes en producción:
+The project uses symlinks to manage image files in production:
 
-- **Carpeta real**: `/home/animecre/public_html/webroot/img/tarjeta`
-- **Carpeta espejo**: `/home/animecre/info.animecream.com/uploads/series/img/tarjeta`
+- **Real folder**: `/home/animecre/public_html/webroot/img/tarjeta`
+- **Mirror folder**: `/home/animecre/info.animecream.com/uploads/series/img/tarjeta`
 
-Esta configuración permite que los archivos se almacenen físicamente en la carpeta web accesible, pero la aplicación los guarde usando la ruta estándar de uploads. Ver [Deployment](deployment.md#configuración-de-carpetas-y-symlinks-en-cpanel) para más detalles.
+This configuration allows files to be stored physically in the web accessible folder, but the application saves them using the standard upload path. See [Deployment](deployment.md#folder-configuration-and-symlinks-in-cpanel) for more details.
 
 ## 📮 Postman Collection
 
-### Estructura Organizada
+### Organized Structure
 
-Todos los archivos de Postman están organizados en `docs/postman/`:
+All Postman files are organized in `docs/postman/`:
 
-- **`docs/postman/Animecream-API.postman_collection.json`** - Colección completa con todos los endpoints
-- **`docs/postman/Animecream-Local.postman_environment.json`** - Ambiente local (`http://localhost:3001`)
-- **`docs/postman/Animecream-Production.postman_environment.json`** - Ambiente producción (`https://info.animecream.com`)
-- **`docs/postman/Animecream-Environments.postman_environment.json`** - Ambiente base
-- **`docs/postman/README.md`** - Guía completa de uso
+- **`docs/postman/Animecream-API.postman_collection.json`** - Complete collection with all endpoints
+- **`docs/postman/Animecream-Local.postman_environment.json`** - Local environment (`http://localhost:3001`)
+- **`docs/postman/Animecream-Production.postman_environment.json`** - Production environment (`https://info.animecream.com`)
+- **`docs/postman/Animecream-Environments.postman_environment.json`** - Base environment
+- **`docs/postman/README.md`** - Complete usage guide
 
-### Uso Rápido
+### Quick Usage
 
-1. Importar los archivos `.json` desde `docs/postman/` en Postman
-2. Seleccionar el ambiente deseado (Local/Production)
-3. Configurar variables de autenticación
-4. ¡Listo para usar!
+1. Import the `.json` files from `docs/postman/` in Postman
+2. Select the desired environment (Local/Production)
+3. Configure authentication variables
+4. Ready to use!
 
-Ver [Postman Collection](postman/README.md) para documentación completa.
+See [Postman Collection](postman/README.md) for complete documentation.
 
-## 🎯 Descripción General
+## 🎯 General Description
 
-**Module-API** es un proyecto backend desarrollado en Node.js que implementa una arquitectura modular para la gestión de anime y series. El proyecto utiliza Clean Architecture y Hexagonal Architecture para mantener un código limpio, mantenible y escalable.
+**Module-API** is a Node.js backend project that implements a modular architecture for anime and series management. The project uses Clean Architecture and Hexagonal Architecture to maintain clean, maintainable and scalable code.
 
-## 🏗️ Arquitectura del Proyecto
+## 🏗️ Project Architecture
 
 ```
 module-api/
 ├── src/
-│   ├── modules/           # Módulos de la aplicación
-│   │   ├── auth/          # Autenticación y usuarios
-│   │   ├── finan/         # Gestión financiera
-│   │   └── series/        # Gestión de series/anime
-│   ├── infrastructure/    # Capa de infraestructura
-│   └── server.ts         # Punto de entrada
-├── docker/               # Configuración Docker
-├── docs/                 # Documentación
+│   ├── modules/           # Application modules
+│   │   ├── auth/          # Authentication and users
+│   │   ├── finan/         # Financial management
+│   │   └── series/        # Series/anime management
+│   ├── infrastructure/    # Infrastructure layer
+│   └── server.ts         # Entry point
+├── docker/               # Docker configuration
+├── docs/                 # Documentation
 └── package.json
 ```
 
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ Technologies Used
 
 ### Backend
 
-- **Node.js**: 12.22.9 (usando nvm)
-- **TypeScript**: Para tipado estático
-- **Express.js**: Framework web
-- **JWT**: Autenticación
-- **bcrypt**: Encriptación de contraseñas
+- **Node.js**: Latest LTS version
+- **TypeScript**: For static typing
+- **Express.js**: Web framework
+- **JWT**: Authentication
+- **bcrypt**: Password encryption
 
-### Base de Datos
+### Database
 
-- **MariaDB**: 10.3.39 (contenedor Docker)
-- **MySQL**: Compatible con MariaDB
+- **MariaDB**: Latest version (Docker container)
+- **MySQL**: Compatible with MariaDB
 
-### Infraestructura
+### Infrastructure
 
-- **Docker**: Contenedores
-- **Docker Compose**: Orquestación
-- **Sharp**: Procesamiento de imágenes
-- **Multer**: Upload de archivos
+- **Docker**: Containers
+- **Docker Compose**: Orchestration
+- **Sharp**: Image processing
+- **Multer**: File uploads
 
-### Desarrollo
+### Development
 
-- **Swagger**: Documentación de API
+- **Swagger**: API documentation
 - **Jest**: Testing
 - **ESLint**: Linting
-- **Prettier**: Formateo de código
+- **Prettier**: Code formatting
 
-## 🚀 Inicio Rápido
+## 🚀 Quick Start
 
-### Prerrequisitos
+### Prerequisites
 
-- Node.js 12.22.9 (usar `nvm use 12.22.9`)
+- Node.js (latest LTS version)
 - Docker Desktop
 - Git
 
-### Instalación
+### Installation
 
 ```bash
-# Clonar el repositorio
+# Clone the repository
 git clone <repository-url>
 cd module-api
 
-# Configurar Node.js
-nvm use 12.22.9
-
-# Instalar dependencias
+# Install dependencies
 npm install
 
-# Configurar Docker
+# Configure Docker
 cd docker
 docker-compose up -d --build
 
-# Iniciar el servidor
+# Start the server
 npm run dev
 ```
 
-## 📊 Módulos del Sistema
+## 📊 System Modules
 
-### 🔐 @auth/ - Autenticación
+### 🔐 @auth/ - Authentication
 
-- Registro de usuarios
-- Login con JWT
-- Gestión de sesiones
-- Validaciones de seguridad
+- User registration
+- JWT login
+- Session management
+- Security validations
 
-### 💰 @finan/ - Financiero
+### 💰 @finan/ - Finance
 
-- Gestión de movimientos
-- Categorías de gastos
-- Reportes financieros
-- Análisis de gastos
+- Movement management
+- Expense categories
+- Financial reports
+- Expense analysis
 
 ### 📺 @series/ - Series
 
-- CRUD de series/anime
-- Gestión de imágenes
-- Categorización por géneros
-- Búsqueda y filtrado
+- Series/anime CRUD
+- Image management
+- Genre categorization
+- Search and filtering
 
-## 🗄️ Bases de Datos
+## 🗄️ Databases
 
-El sistema utiliza múltiples bases de datos organizadas por módulo:
+The system uses multiple databases organized by module:
 
-- **animecre_auth**: Autenticación y usuarios
-- **animecre_cake514**: Base de datos principal
-- **animecre_finan**: Módulo financiero
-- **animecre_series**: Módulo de series
+- **animecre_auth**: Authentication and users
+- **animecre_cake514**: Main database
+- **animecre_finan**: Finance module
+- **animecre_series**: Series module
 
-## 🔧 Configuración
+## 🔧 Configuration
 
-### Variables de Entorno
+### Environment Variables
 
 ```env
-# Base de datos
+# Database
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=animecream
@@ -170,7 +167,7 @@ DB_PASSWORD=animecream123
 # JWT
 JWT_SECRET=your-secret-key
 
-# Servidor
+# Server
 PORT=3001
 NODE_ENV=development
 ```
@@ -178,74 +175,74 @@ NODE_ENV=development
 ### Docker
 
 ```bash
-# Iniciar contenedores
+# Start containers
 cd docker
 docker-compose up -d
 
-# Ver logs
+# View logs
 docker-compose logs -f mariadb
 ```
 
-## 📚 Documentación de API
+## 📚 API Documentation
 
-La documentación de la API está disponible en Swagger:
+The API documentation is available in Swagger:
 
 - **URL**: http://localhost:3001/api-docs
-- **Autenticación**: Bearer Token (JWT)
+- **Authentication**: Bearer Token (JWT)
 
 ## 🧪 Testing
 
 ```bash
-# Ejecutar tests
+# Run tests
 npm test
 
-# Tests con cobertura
+# Tests with coverage
 npm run test:cov
 
-# Tests en modo watch
+# Tests in watch mode
 npm run test:watch
 ```
 
-## 🚀 Despliegue
+## 🚀 Deployment
 
-### Desarrollo
+### Development
 
 ```bash
 npm run dev
 ```
 
-### Producción
+### Production
 
 ```bash
 npm run build
 npm start
 ```
 
-## 📝 Contribución
+## 📝 Contributing
 
-1. Fork el proyecto
-2. Crear una rama para la feature (`git checkout -b feature/AmazingFeature`)
-3. Commit los cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir un Pull Request
+1. Fork the project
+2. Create a branch for the feature (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📄 Licencia
+## 📄 License
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+This project is under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Autores
+## 👥 Authors
 
-- **Desarrollador Principal**: [Tu Nombre]
-- **Email**: [tu-email@ejemplo.com]
+- **Main Developer**: [Your Name]
+- **Email**: [your-email@example.com]
 
-## 📞 Soporte
+## 📞 Support
 
-Para soporte, por favor contacta:
+For support, please contact:
 
-- **Email**: [soporte@ejemplo.com]
-- **Issues**: [GitHub Issues](https://github.com/tu-usuario/module-api/issues)
+- **Email**: [support@example.com]
+- **Issues**: [GitHub Issues](https://github.com/your-username/module-api/issues)
 
 ---
 
-**Última actualización**: 2024-09-28
-**Versión**: 2.0.9
+**Last updated**: 2025-10-05
+**Version**: 2.0.9

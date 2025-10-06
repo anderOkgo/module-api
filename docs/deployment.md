@@ -1,57 +1,54 @@
-# Despliegue - Module-API
+# Deployment - Module-API
 
-## 🚀 Estrategias de Despliegue
+## 🚀 Deployment Strategies
 
-Este documento describe las diferentes estrategias de despliegue para el proyecto Module-API, desde desarrollo local hasta producción en la nube.
+This document describes different deployment strategies for the Module-API project, from local development to cloud production.
 
-## 📋 Requisitos del Sistema
+## 📋 System Requirements
 
-### Desarrollo
+### Development
 
-- **Node.js**: 12.22.9
+- **Node.js**: Latest LTS version
 - **Docker**: Docker Desktop
-- **RAM**: 4GB mínimo
-- **Disco**: 2GB libre
+- **RAM**: 4GB minimum
+- **Disk**: 2GB free
 
-### Producción
+### Production
 
-- **Node.js**: 12.22.9
+- **Node.js**: Latest LTS version
 - **Docker**: Docker Engine
-- **RAM**: 8GB mínimo, 16GB recomendado
-- **Disco**: 10GB libre
-- **CPU**: 4 cores mínimo
+- **RAM**: 8GB minimum, 16GB recommended
+- **Disk**: 10GB free
+- **CPU**: 4 cores minimum
 
-## 🏠 Despliegue Local
+## 🏠 Local Deployment
 
-### Configuración de Desarrollo
+### Development Configuration
 
 ```bash
-# 1. Clonar repositorio
+# 1. Clone repository
 git clone <repository-url>
 cd module-api
 
-# 2. Configurar Node.js
-nvm use 12.22.9
-
-# 3. Instalar dependencias
+# 2. Install dependencies
 npm install
 
-# 4. Configurar Docker
+# 3. Configure Docker
 cd docker
 docker-compose up -d --build
 
-# 5. Iniciar servidor
+# 4. Start server
 npm run dev
 ```
 
-### Variables de Entorno de Desarrollo
+### Development Environment Variables
 
 ```env
 # .env.development
 NODE_ENV=development
 PORT=3001
 
-# Base de datos
+# Database
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=animecream
@@ -65,45 +62,45 @@ JWT_EXPIRES_IN=24h
 LOG_LEVEL=debug
 ```
 
-## 🐳 Despliegue con Docker
+## 🐳 Docker Deployment
 
-### Dockerfile para Producción
+### Production Dockerfile
 
 ```dockerfile
 # Dockerfile
-FROM node:12.22.9-alpine
+FROM node:latest-alpine
 
-# Crear directorio de trabajo
+# Create working directory
 WORKDIR /app
 
-# Copiar archivos de dependencias
+# Copy dependency files
 COPY package*.json ./
 
-# Instalar dependencias
+# Install dependencies
 RUN npm ci --only=production
 
-# Copiar código fuente
+# Copy source code
 COPY . .
 
-# Compilar TypeScript
+# Compile TypeScript
 RUN npm run build
 
-# Crear usuario no-root
+# Create non-root user
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
-# Cambiar propietario de archivos
+# Change file ownership
 RUN chown -R nodejs:nodejs /app
 USER nodejs
 
-# Exponer puerto
+# Expose port
 EXPOSE 3001
 
-# Comando de inicio
+# Start command
 CMD ["npm", "start"]
 ```
 
-### Docker Compose para Producción
+### Production Docker Compose
 
 ```yaml
 # docker-compose.prod.yml
@@ -167,58 +164,58 @@ networks:
     driver: bridge
 ```
 
-## ☁️ Despliegue en la Nube
+## ☁️ Cloud Deployment
 
 ### AWS EC2
 
-#### Configuración de Instancia
+#### Instance Configuration
 
 ```bash
-# Instalar Node.js
+# Install Node.js
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 source ~/.bashrc
-nvm install 12.22.9
-nvm use 12.22.9
+nvm install --lts
+nvm use --lts
 
-# Instalar Docker
+# Install Docker
 sudo yum update -y
 sudo yum install -y docker
 sudo systemctl start docker
 sudo systemctl enable docker
 sudo usermod -a -G docker ec2-user
 
-# Instalar Docker Compose
+# Install Docker Compose
 sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 ```
 
-#### Configuración de Seguridad
+#### Security Configuration
 
 ```bash
-# Configurar firewall
+# Configure firewall
 sudo ufw allow 22
 sudo ufw allow 80
 sudo ufw allow 443
 sudo ufw enable
 
-# Configurar SSL
+# Configure SSL
 sudo apt install certbot
 sudo certbot --nginx -d yourdomain.com
 ```
 
 ### Google Cloud Platform
 
-#### Configuración de Compute Engine
+#### Compute Engine Configuration
 
 ```bash
-# Crear instancia
+# Create instance
 gcloud compute instances create module-api \
   --image-family=ubuntu-2004-lts \
   --image-project=ubuntu-os-cloud \
   --machine-type=e2-medium \
   --zone=us-central1-a
 
-# Configurar firewall
+# Configure firewall
 gcloud compute firewall-rules create allow-http-https \
   --allow tcp:80,tcp:443 \
   --source-ranges 0.0.0.0/0
@@ -226,13 +223,13 @@ gcloud compute firewall-rules create allow-http-https \
 
 ### Azure
 
-#### Configuración de Virtual Machine
+#### Virtual Machine Configuration
 
 ```bash
-# Crear grupo de recursos
+# Create resource group
 az group create --name module-api-rg --location eastus
 
-# Crear máquina virtual
+# Create virtual machine
 az vm create \
   --resource-group module-api-rg \
   --name module-api-vm \
@@ -242,78 +239,78 @@ az vm create \
   --generate-ssh-keys
 ```
 
-## 🔧 Configuración de Producción
+## 🔧 Production Configuration
 
-### Configuración de Carpetas y Symlinks en cPanel
+### Folder and Symlink Configuration in cPanel
 
-#### Configuración de Carpetas Reales y Symlinks
+#### Real Folder and Symlink Configuration
 
-**Carpeta real (donde se guardan los archivos físicamente):**
+**Real folder (where files are physically stored):**
 
 ```
 /home/animecre/public_html/webroot/img/tarjeta
 ```
 
-**Carpeta espejo (symlink, alias que apunta a la real):**
+**Mirror folder (symlink, alias pointing to the real one):**
 
 ```
 /home/animecre/info.animecream.com/uploads/series/img/tarjeta
 ```
 
-#### Pasos Realizados
+#### Steps Performed
 
-1. **Respaldo de la carpeta anterior en uploads (por seguridad):**
+1. **Backup of the previous folder in uploads (for safety):**
 
 ```bash
 mv /home/animecre/info.animecream.com/uploads/series/img/tarjeta /home/animecre/info.animecream.com/uploads/series/img/tarjeta_backup
 ```
 
-2. **Creación del symlink:**
+2. **Symlink creation:**
 
 ```bash
 ln -s /home/animecre/public_html/webroot/img/tarjeta /home/animecre/info.animecream.com/uploads/series/img/tarjeta
 ```
 
-3. **Verificación:**
+3. **Verification:**
 
 ```bash
 ls -l /home/animecre/info.animecream.com/uploads/series/img | grep tarjeta
 ```
 
-Debe mostrar algo como:
+Should show something like:
 
 ```
 tarjeta -> /home/animecre/public_html/webroot/img/tarjeta
 ```
 
-#### Resultado
+#### Result
 
-- Todos los archivos se guardan realmente en:
+- All files are actually stored in:
   `/home/animecre/public_html/webroot/img/tarjeta`
 
-- Acceder o guardar en la ruta de `uploads/.../tarjeta` también usará la carpeta real gracias al symlink.
+- Accessing or saving to the `uploads/.../tarjeta` path will also use the real folder thanks to the symlink.
 
-Así se puede trabajar indistintamente desde ambas rutas, pero sin duplicar archivos.
+This way you can work from both paths interchangeably, but without duplicating files.
 
-#### Configuración en el Código
+#### Code Configuration
 
-Para que la aplicación use la ruta correcta en producción, asegúrate de que la configuración de uploads esté configurada para usar la ruta del symlink:
+For the application to use the correct path in production, make sure the upload configuration is set to use the symlink path:
 
 ```typescript
 // En series.service.ts
 private readonly UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'series', 'img', 'tarjeta');
 ```
 
-Esto permitirá que la aplicación guarde archivos en la ruta del symlink, que automáticamente los almacenará en la carpeta real.
+This will allow the application to save files in the symlink path, which will automatically store them in the real folder.
 
-### Variables de Entorno de Producción
+### Production Environment Variables
 
 ```env
 # .env.production
 NODE_ENV=production
 PORT=3001
 
-# Base de datos
+# Database
 DB_HOST=production-db-host
 DB_PORT=3306
 DB_USER=production-user
@@ -331,7 +328,7 @@ SSL_CERT_PATH=/etc/nginx/ssl/cert.pem
 SSL_KEY_PATH=/etc/nginx/ssl/key.pem
 ```
 
-### Configuración de Nginx
+### Nginx Configuration
 
 ```nginx
 # nginx.conf
@@ -376,9 +373,9 @@ http {
 }
 ```
 
-## 📊 Monitoreo y Logging
+## 📊 Monitoring and Logging
 
-### Configuración de Logging
+### Logging Configuration
 
 ```typescript
 // logging.config.ts
@@ -406,7 +403,7 @@ const logger = winston.createLogger({
 export default logger;
 ```
 
-### Configuración de PM2
+### PM2 Configuration
 
 ```javascript
 // ecosystem.config.js
@@ -434,12 +431,12 @@ module.exports = {
 };
 ```
 
-## 🔒 Seguridad en Producción
+## 🔒 Production Security
 
-### Configuración de Seguridad
+### Security Configuration
 
 ```bash
-# Configurar firewall
+# Configure firewall
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow ssh
@@ -447,24 +444,24 @@ sudo ufw allow 80
 sudo ufw allow 443
 sudo ufw enable
 
-# Configurar fail2ban
+# Configure fail2ban
 sudo apt install fail2ban
 sudo systemctl enable fail2ban
 sudo systemctl start fail2ban
 ```
 
-### Configuración de SSL
+### SSL Configuration
 
 ```bash
-# Generar certificado SSL
+# Generate SSL certificate
 sudo certbot --nginx -d yourdomain.com
 
-# Renovar certificado automáticamente
+# Automatically renew certificate
 sudo crontab -e
-# Agregar: 0 12 * * * /usr/bin/certbot renew --quiet
+# Add: 0 12 * * * /usr/bin/certbot renew --quiet
 ```
 
-## 📈 Escalabilidad
+## 📈 Scalability
 
 ### Load Balancing
 
@@ -513,24 +510,24 @@ services:
       - app-network
 ```
 
-## 🧪 Testing de Despliegue
+## 🧪 Deployment Testing
 
-### Scripts de Testing
+### Testing Scripts
 
 ```bash
 #!/bin/bash
 # test-deployment.sh
 
-# Verificar que el servidor responde
+# Verify that the server responds
 curl -f http://localhost:3001/health || exit 1
 
-# Verificar que la API responde
+# Verify that the API responds
 curl -f http://localhost:3001/api || exit 1
 
-# Verificar que Swagger responde
+# Verify that Swagger responds
 curl -f http://localhost:3001/api-docs || exit 1
 
-# Verificar que la base de datos está conectada
+# Verify that the database is connected
 curl -f http://localhost:3001/health | grep -q "database.*ok" || exit 1
 
 echo "Deployment test passed!"
@@ -551,7 +548,7 @@ export const healthCheck = async (): Promise<HealthStatus> => {
   };
 
   try {
-    // Verificar conexión a base de datos
+    // Verify database connection
     await database.testConnection();
   } catch (error) {
     status.services.database = 'error';
@@ -584,7 +581,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '12.22.9'
+          node-version: '18'
 
       - name: Install dependencies
         run: npm ci
@@ -632,77 +629,77 @@ deploy:
     - main
 ```
 
-## 📊 Métricas de Producción
+## 📊 Production Metrics
 
-### Métricas de Rendimiento
+### Performance Metrics
 
 - **Response Time**: < 200ms promedio
 - **Throughput**: 1000 requests/min
 - **Uptime**: 99.9%
 - **Error Rate**: < 0.1%
 
-### Métricas de Recursos
+### Resource Metrics
 
 - **CPU Usage**: < 70%
 - **Memory Usage**: < 80%
 - **Disk Usage**: < 85%
-- **Network Usage**: Monitoreo de ancho de banda
+- **Network Usage**: Bandwidth monitoring
 
 ## 🐛 Troubleshooting
 
-### Problemas Comunes
+### Common Problems
 
-#### Error: "Puerto ya en uso"
+#### Error: "Port already in use"
 
 ```bash
-# Verificar procesos usando el puerto
+# Check processes using the port
 sudo lsof -i :3001
 
-# Matar proceso si es necesario
+# Kill process if necessary
 sudo kill -9 <PID>
 ```
 
-#### Error: "Base de datos no accesible"
+#### Error: "Database not accessible"
 
 ```bash
-# Verificar estado de Docker
+# Check Docker status
 docker-compose ps
 
-# Ver logs de base de datos
+# View database logs
 docker-compose logs mariadb
 
-# Reiniciar servicios
+# Restart services
 docker-compose restart
 ```
 
-#### Error: "Memoria insuficiente"
+#### Error: "Insufficient memory"
 
 ```bash
-# Verificar uso de memoria
+# Check memory usage
 free -h
 
-# Limpiar caché
+# Clear cache
 sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches
 
-# Aumentar swap si es necesario
+# Increase swap if necessary
 sudo fallocate -l 2G /swapfile
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
 sudo swapon /swapfile
 ```
 
-### Comandos de Diagnóstico
+### Diagnostic Commands
 
 ```bash
-# Verificar estado del sistema
+# Check system status
 systemctl status nginx
 systemctl status docker
 
-# Verificar logs
+# Check logs
 journalctl -u nginx -f
 journalctl -u docker -f
 
-# Verificar recursos
+# Check resources
 htop
 df -h
 free -h
@@ -710,4 +707,4 @@ free -h
 
 ---
 
-**Última actualización**: 2024-09-28
+**Last updated**: 2025-10-05

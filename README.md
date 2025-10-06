@@ -1,215 +1,209 @@
 # Module-API
 
-API modular construida con **Arquitectura Hexagonal**, **Clean Architecture** y principios **SOLID**. Proyecto backend para el ecosistema Animecream con módulos especializados en autenticación, finanzas y series.
+Modular API built with **Hexagonal Architecture**, **Clean Architecture** and **SOLID** principles. Backend project for the Animecream ecosystem with specialized modules for authentication, finance, and series management.
 
-## 🏗️ Arquitectura
+## 🏗️ Architecture
 
-### Principios Arquitectónicos
+### Architectural Principles
 
-- **Hexagonal Architecture (Ports & Adapters)**: Desacoplamiento del dominio de las dependencias externas
-- **Clean Architecture**: Separación clara entre capas (Domain, Application, Infrastructure)
-- **SOLID Principles**: Código mantenible y extensible
-- **Factory Pattern**: Inyección de dependencias limpia y testeable
+- **Hexagonal Architecture (Ports & Adapters)**: Decoupling domain from external dependencies
+- **Clean Architecture**: Clear separation between layers (Domain, Application, Infrastructure)
+- **SOLID Principles**: Maintainable and extensible code
+- **Factory Pattern**: Clean and testable dependency injection
 
-### Estructura del Proyecto
+### Project Structure
 
 ```
 src/
-├── infrastructure/          # Capa de infraestructura global
-│   ├── lib/                # Implementaciones core
-│   ├── data/               # Conexiones a base de datos
-│   └── routes/             # Rutas globales
-├── modules/                 # Módulos especializados
-│   ├── auth/               # Módulo de autenticación
-│   ├── finan/              # Módulo financiero
-│   └── series/             # Módulo de series
-└── docs/                   # Documentación completa
+├── infrastructure/          # Global infrastructure layer
+│   ├── lib/                # Core implementations
+│   ├── data/               # Database connections
+│   └── routes/             # Global routes
+├── modules/                 # Specialized modules
+│   ├── auth/               # Authentication module
+│   ├── finan/              # Finance module
+│   └── series/             # Series module
+└── docs/                   # Complete documentation
 ```
 
-## 🚀 Tecnologías
+## 🚀 Technologies
 
 ### Backend
 
-- **Node.js**: 12.22.9 (usar `nvm use 12.22.9`)
-- **TypeScript**: 4.9.5 (compatible con Node.js 12)
-- **Express**: Framework web
-- **MySQL/MariaDB**: Base de datos (Docker)
-- **Sharp**: 0.30.7 (procesamiento de imágenes)
-- **JWT**: Autenticación
-- **Swagger**: Documentación API
+- **Node.js**: Latest LTS version
+- **TypeScript**: Latest stable version
+- **Express**: Web framework
+- **MySQL/MariaDB**: Database (Docker)
+- **Sharp**: Image processing
+- **JWT**: Authentication
+- **Swagger**: API documentation
 
-### Base de Datos
+### Database
 
-- **MariaDB**: 10.3.39 (Docker)
-- **Múltiples bases de datos**:
-  - `animecre_auth`: Autenticación
-  - `animecre_cake514`: Base principal
-  - `animecre_finan`: Finanzas
+- **MariaDB**: Latest version (Docker)
+- **Multiple databases**:
+  - `animecre_auth`: Authentication
+  - `animecre_cake514`: Main database
+  - `animecre_finan`: Finance
   - `animecre_series`: Series
 
-## 📦 Módulos
+## 📦 Modules
 
 ### 🔐 Auth Module (`@auth/`)
 
-- **Registro de usuarios** con validaciones robustas
-- **Login** con email o username
-- **Seguridad**: bloqueo de cuentas, intentos de login
-- **JWT**: Tokens de autenticación
+- **User registration** with robust validations
+- **Login** with email or username
+- **Security**: account locking, login attempts
+- **JWT**: Authentication tokens
 
 ### 💰 Finan Module (`@finan/`)
 
-- **Gestión financiera** completa
-- **Procedimientos almacenados** para cálculos complejos
-- **Reportes** de gastos y balances
-- **Autenticación** requerida para operaciones
+- **Complete financial management**
+- **Stored procedures** for complex calculations
+- **Reports** of expenses and balances
+- **Authentication** required for operations
 
 ### 📺 Series Module (`@series/`)
 
-- **CRUD completo** de series
-- **Subida de imágenes** optimizadas (190x285px, ~20KB)
-- **Búsqueda avanzada** con filtros
-- **Autenticación** para operaciones de escritura
+- **Complete CRUD** for series
+- **Optimized image uploads** (190x285px, ~20KB)
+- **Advanced search** with filters
+- **Authentication** for write operations
 
 ## 🐳 Docker Setup
 
-### Requisitos
+### Requirements
 
-- **Docker Desktop** ejecutándose
-- **Node.js 12.22.9** (`nvm use 12.22.9`)
+- **Docker Desktop** running
+- **Node.js** (latest LTS version)
 
-### Inicio Rápido
+### Quick Start
 
 ```bash
-# 1. Configurar Node.js
-nvm use 12.22.9
-
-# 2. Navegar al directorio docker
+# 1. Navigate to docker directory
 cd docker
 
-# 3. Ejecutar contenedor
+# 2. Run container
 docker-compose up -d --build
 
-# 4. Verificar que esté funcionando
+# 3. Verify it's working
 docker ps
 ```
 
-### Acceso a Base de Datos
+### Database Access
 
 - **Host**: localhost
-- **Puerto**: 3306
-- **Usuario root**: root / **Contraseña**: root
-- **Usuario**: animecream / **Contraseña**: animecream123
+- **Port**: 3306
+- **Root user**: root / **Password**: root
+- **User**: animecream / **Password**: animecream123
 
-## 🛠️ Desarrollo
+## 🛠️ Development
 
-### Instalación
+### Installation
 
 ```bash
-# Clonar repositorio
+# Clone repository
 git clone <repository-url>
 cd module-api
 
-# Instalar dependencias
+# Install dependencies
 npm install
-
-# Configurar Node.js
-nvm use 12.22.9
 ```
 
-### Scripts Disponibles
+### Available Scripts
 
 ```bash
-# Desarrollo (compilación + servidor)
+# Development (compilation + server)
 npm run servers
 
-# Solo compilación
+# Compilation only
 npx tsc
 
-# Ejecutar servidor
+# Run server
 node dist/index.js
 ```
 
-### Endpoints Principales
+### Main Endpoints
 
-- **`GET /`**: Estado básico de la API
-- **`GET /health`**: Estado detallado con verificación de BD
-- **`GET /api-docs`**: Documentación Swagger
-- **`POST /api/users/login`**: Autenticación
-- **`POST /api/series/create``**: Crear serie (con imagen)
+- **`GET /`**: Basic API status
+- **`GET /health`**: Detailed status with database verification
+- **`GET /api-docs`**: Swagger documentation
+- **`POST /api/users/login`**: Authentication
+- **`POST /api/series/create`**: Create series (with image)
 
-## 📚 Documentación
+## 📚 Documentation
 
-### Documentación Completa
+### Complete Documentation
 
-- **`docs/README.md`**: Índice general
-- **`docs/architecture.md`**: Arquitectura detallada
-- **`docs/setup.md`**: Configuración del proyecto
-- **`docs/docker-setup.md`**: Configuración Docker
-- **`docs/modules/`**: Documentación por módulo
+- **`docs/README.md`**: General index
+- **`docs/architecture.md`**: Detailed architecture
+- **`docs/setup.md`**: Project configuration
+- **`docs/docker-setup.md`**: Docker configuration
+- **`docs/modules/`**: Module documentation
 
-### Módulos Documentados
+### Documented Modules
 
-- **`docs/modules/auth.md`**: Módulo de autenticación
-- **`docs/modules/finan.md`**: Módulo financiero
-- **`docs/modules/series.md`**: Módulo de series
+- **`docs/modules/auth.md`**: Authentication module
+- **`docs/modules/finan.md`**: Finance module
+- **`docs/modules/series.md`**: Series module
 
-## 🔧 Configuración
+## 🔧 Configuration
 
-### Variables de Entorno
+### Environment Variables
 
-El proyecto usa valores por defecto del `docker-compose.yml`:
+The project uses default values from `docker-compose.yml`:
 
 - **MYSQL_ROOT_PASSWORD**: root
 - **MYSQL_USER**: animecream
 - **MYSQL_PASSWORD**: animecream123
 - **MARIADB_PORT**: 3306
 
-### Compatibilidad
+### Compatibility
 
-- **Node.js**: 12.22.9 (requerido)
-- **TypeScript**: 4.9.5 (compatible con Node.js 12)
-- **Sharp**: 0.30.7 (compatible con Node.js 12)
+- **Node.js**: Latest LTS version
+- **TypeScript**: Latest stable version
+- **Sharp**: Latest stable version
 
 ## 🚨 Troubleshooting
 
-### Problemas Comunes
+### Common Issues
 
-1. **Error de compatibilidad Node.js**: Usar `nvm use 12.22.9`
-2. **Sharp no funciona**: Verificar versión 0.30.7
-3. **Docker no inicia**: Verificar que Docker Desktop esté ejecutándose
-4. **Base de datos no conecta**: Verificar credenciales y puerto
+1. **Node.js compatibility error**: Use latest LTS version
+2. **Sharp doesn't work**: Verify latest stable version
+3. **Docker doesn't start**: Verify Docker Desktop is running
+4. **Database doesn't connect**: Verify credentials and port
 
-### Comandos de Diagnóstico
+### Diagnostic Commands
 
 ```bash
-# Verificar versión de Node.js
+# Verify Node.js version
 node --version
 
-# Verificar contenedores Docker
+# Verify Docker containers
 docker ps
 
-# Verificar conexión a BD
+# Verify database connection
 curl http://localhost:3001/health
 ```
 
-## 📄 Licencia
+## 📄 License
 
-Este proyecto está licenciado bajo la **MIT License**.
+This project is licensed under the **MIT License**.
 
-## 🤝 Contribución
+## 🤝 Contributing
 
-Las contribuciones son bienvenidas. Para contribuir:
+Contributions are welcome. To contribute:
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+1. Fork the project
+2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📞 Soporte
+## 📞 Support
 
-Para soporte técnico o preguntas:
+For technical support or questions:
 
-- Revisar la documentación en `docs/`
-- Verificar la sección de troubleshooting
-- Crear un issue en el repositorio
+- Review the documentation in `docs/`
+- Check the troubleshooting section
+- Create an issue in the repository

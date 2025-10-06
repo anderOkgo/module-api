@@ -1,25 +1,32 @@
-# Arquitectura del Sistema
+# System Architecture
 
-## 🏗️ Arquitectura General
+## 🏗️ General Architecture
 
-Module-API implementa **Clean Architecture** y **Hexagonal Architecture** para mantener un código limpio, mantenible y escalable.
+Module-API implements **Clean Architecture**, **Hexagonal Architecture**, and **CQRS (Command Query Responsibility Segregation)** to maintain clean, maintainable, and scalable code.
 
-## 📐 Principios Arquitectónicos
+## 📐 Architectural Principles
 
 ### 1. Clean Architecture
 
-- **Independencia de frameworks**: El código no depende de frameworks externos
-- **Testabilidad**: Fácil de testear sin dependencias externas
-- **Independencia de UI**: La lógica de negocio no depende de la interfaz
-- **Independencia de base de datos**: Fácil cambio de base de datos
+- **Framework Independence**: Code does not depend on external frameworks
+- **Testability**: Easy to test without external dependencies
+- **UI Independence**: Business logic does not depend on the interface
+- **Database Independence**: Easy to change database
 
 ### 2. Hexagonal Architecture
 
-- **Puertos y Adaptadores**: Separación clara entre lógica de negocio y infraestructura
-- **Inversión de Dependencias**: Las capas internas no dependen de las externas
-- **Testabilidad**: Fácil mockeo de dependencias
+- **Ports and Adapters**: Clear separation between business logic and infrastructure
+- **Dependency Inversion**: Inner layers do not depend on outer layers
+- **Testability**: Easy mocking of dependencies
 
-## 🏛️ Estructura de Capas
+### 3. CQRS (Command Query Responsibility Segregation)
+
+- **Command Separation**: Write operations are separated from read operations
+- **Optimized Models**: Different models for commands and queries
+- **Scalability**: Independent scaling of read and write operations
+- **Performance**: Optimized queries with views and caching capabilities
+
+## 🏛️ Layer Structure
 
 ```
 ┌─────────────────────────────────────┐
@@ -27,7 +34,7 @@ Module-API implementa **Clean Architecture** y **Hexagonal Architecture** para m
 │        (Controllers, Routes)        │
 ├─────────────────────────────────────┤
 │            Application              │
-│        (Use Cases, Services)        │
+│    (Commands, Queries, Handlers)    │
 ├─────────────────────────────────────┤
 │              Domain                 │
 │        (Models, Entities)           │
@@ -37,24 +44,24 @@ Module-API implementa **Clean Architecture** y **Hexagonal Architecture** para m
 └─────────────────────────────────────┘
 ```
 
-## 📁 Estructura de Directorios
+## 📁 Directory Structure
 
 ```
 src/
-├── modules/                           # Módulos de la aplicación
-│   ├── auth/                         # Módulo de autenticación
-│   │   ├── application/              # Capa de aplicación
-│   │   │   ├── ports/               # Interfaces de repositorios (puertos de salida)
-│   │   │   └── use-cases/           # Casos de uso
-│   │   ├── domain/                  # Capa de dominio
-│   │   │   └── entities/            # Entidades de dominio
-│   │   └── infrastructure/          # Capa de infraestructura
-│   │       ├── config/              # Configuración del módulo (Composition Root)
-│   │       ├── controllers/         # Controladores HTTP
-│   │       ├── documentation/       # Documentación Swagger del módulo
-│   │       └── persistence/         # Implementaciones de repositorios
+├── modules/                           # Application modules
+│   ├── auth/                         # Authentication module
+│   │   ├── application/              # Application layer
+│   │   │   ├── ports/               # Repository interfaces (output ports)
+│   │   │   └── use-cases/           # Use cases
+│   │   ├── domain/                  # Domain layer
+│   │   │   └── entities/            # Domain entities
+│   │   └── infrastructure/          # Infrastructure layer
+│   │       ├── config/              # Module configuration (Composition Root)
+│   │       ├── controllers/         # HTTP controllers
+│   │       ├── documentation/       # Module Swagger documentation
+│   │       └── persistence/         # Repository implementations
 │   │
-│   ├── finan/                        # Módulo financiero
+│   ├── finan/                        # Finance module
 │   │   ├── application/
 │   │   │   ├── ports/
 │   │   │   └── use-cases/
@@ -64,82 +71,97 @@ src/
 │   │       ├── config/
 │   │       ├── controllers/
 │   │       ├── documentation/
-│   │       ├── models/              # Modelos adicionales específicos
+│   │       ├── models/              # Additional specific models
 │   │       ├── persistence/
-│   │       └── validation/          # Validaciones específicas del módulo
+│   │       └── validation/          # Module-specific validations
 │   │
-│   └── series/                       # Módulo de series
+│   └── series/                       # Series module (CQRS implemented)
 │       ├── application/
-│       │   ├── ports/               # Interfaces de repositorios
-│       │   ├── services/            # Servicios de aplicación
-│       │   └── use-cases/
+│       │   ├── commands/            # Write operations (CQRS)
+│       │   ├── queries/             # Read operations (CQRS)
+│       │   ├── handlers/            # Command/Query handlers (CQRS)
+│       │   │   ├── commands/        # Command handlers
+│       │   │   └── queries/         # Query handlers
+│       │   ├── ports/               # Repository interfaces
+│       │   │   ├── series-write.repository.ts  # Write operations
+│       │   │   └── series-read.repository.ts   # Read operations
+│       │   ├── services/            # Application services
+│       │   └── common/              # Common interfaces (Command, Query)
 │       ├── domain/
 │       │   ├── entities/
-│       │   └── ports/               # Puertos de dominio (ej: ImageProcessorPort)
+│       │   └── ports/               # Domain ports (e.g., ImageProcessorPort)
 │       └── infrastructure/
 │           ├── config/
 │           ├── controllers/
+│           │   └── series-cqrs.controller.ts  # CQRS controller
 │           ├── documentation/
 │           ├── persistence/
-│           ├── services/            # Servicios de infraestructura (adaptadores)
+│           │   ├── series-write.mysql.ts       # Write repository
+│           │   └── series-read.mysql.ts        # Read repository
+│           ├── services/            # Infrastructure services (adapters)
 │           └── validation/
 │
-├── infrastructure/                   # Infraestructura global
-│   ├── data/                        # Conexiones a base de datos
-│   │   └── mysql/                   # Implementación MySQL
-│   │       ├── database.ts          # Clase Database con manejo de reconexión
-│   │       └── mysql.helper.ts      # Helpers de MySQL
-│   ├── services/                    # Servicios compartidos
-│   │   ├── cyfer.ts                 # Servicio de encriptación
-│   │   ├── email.ts                 # Servicio de email
-│   │   ├── image.ts                 # Procesamiento de imágenes
-│   │   ├── swagger.ts               # Configuración de Swagger
-│   │   ├── swagger-documentation.ts # Documentación adicional
-│   │   ├── swagger.schemas.ts       # Schemas de Swagger
-│   │   ├── upload.ts                # Servicio de upload
-│   │   └── validate-token.ts        # Middleware de validación JWT
-│   ├── validation/                  # Validaciones globales
+├── infrastructure/                   # Global infrastructure
+│   ├── data/                        # Database connections
+│   │   └── mysql/                   # MySQL implementation
+│   │       ├── database.ts          # Database class with reconnection handling
+│   │       └── mysql.helper.ts      # MySQL helpers
+│   ├── services/                    # Shared services
+│   │   ├── cyfer.ts                 # Encryption service
+│   │   ├── email.ts                 # Email service
+│   │   ├── image.ts                 # Image processing
+│   │   ├── swagger.ts               # Swagger configuration
+│   │   ├── swagger-documentation.ts # Additional documentation
+│   │   ├── swagger.schemas.ts       # Swagger schemas
+│   │   ├── upload.ts                # Upload service
+│   │   └── validate-token.ts        # JWT validation middleware
+│   ├── validation/                  # Global validations
 │   │   └── generalValidation.ts
-│   └── helpers/                     # Helpers globales
+│   └── helpers/                     # Global helpers
 │       ├── middle.helper.ts
 │       ├── my.database.helper.ts
 │       └── validatios.helper.ts
 │
-├── index.ts                         # Punto de entrada (inicia Server)
-└── server.ts                        # Clase Server principal
+├── index.ts                         # Entry point (starts Server)
+└── server.ts                        # Main Server class
 ```
 
-## 🔄 Flujo de Datos
+## 🔄 Data Flow
 
-### 1. Request Flow (Detallado)
+### 1. Request Flow (Detailed)
 
 ```
 1. HTTP Request (Express)
    ↓
 2. Middleware (CORS, JSON Parser)
    ↓
-3. Middleware de Autenticación (validateToken) - si aplica
+3. Authentication Middleware (validateToken) - if applicable
    ↓
-4. Middleware de Upload (multer) - si aplica
+4. Upload Middleware (multer) - if applicable
    ↓
 5. Controller (Infrastructure)
-   - Extrae datos del request
-   - Valida formato de entrada
+   - Extracts request data
+   - Validates input format
    ↓
-6. Use Case (Application)
-   - Valida reglas de negocio
-   - Orquesta el flujo
+6. Command/Query Handler (Application - CQRS)
+   - Creates Command/Query object
+   - Delegates to appropriate handler
    ↓
-7. Application Service (si aplica)
-   - Lógica compleja de aplicación
+7. Command/Query Handler (Application)
+   - Validates business rules (Commands only)
+   - Orchestrates the flow
    ↓
-8. Repository (Infrastructure - adaptador)
-   - Implementa acceso a datos
+8. Application Service (if applicable)
+   - Complex application logic
    ↓
-9. Database Class
-   - Ejecuta query SQL
+9. Repository (Infrastructure - adapter)
+   - Implements data access
+   - Write Repository (Commands) / Read Repository (Queries)
    ↓
-10. MySQL Database
+10. Database Class
+    - Executes SQL query
+    ↓
+11. MySQL Database
 ```
 
 ### 2. Response Flow
@@ -149,11 +171,11 @@ MySQL Database
    ↓
 Database Class (executeSafeQuery)
    ↓
-Repository (transforma resultado)
+Repository (transforms result)
    ↓
-Use Case (mapea a DTO/Response)
+Command/Query Handler (maps to DTO/Response)
    ↓
-Controller (formatea respuesta HTTP)
+Controller (formats HTTP response)
    ↓
 HTTP Response (JSON)
 ```
@@ -161,198 +183,309 @@ HTTP Response (JSON)
 ### 3. Error Flow
 
 ```
-Error en cualquier capa
+Error in any layer
    ↓
-Try-Catch en capa superior
+Try-Catch in superior layer
    ↓
-Error Handler Middleware (si no se capturó)
+Error Handler Middleware (if not caught)
    ↓
 HTTP Error Response (4xx/5xx)
    +
-Notificación por email (si es error de sistema)
+Email notification (if system error)
 ```
 
-## 📦 Módulos del Sistema
+## 🎯 CQRS Implementation
 
-### Módulo Auth
+### CQRS Overview
 
-**Propósito**: Gestión de autenticación y usuarios
+**CQRS (Command Query Responsibility Segregation)** has been fully implemented in the **Series** module as a proof of concept. This pattern separates write operations (Commands) from read operations (Queries), providing better scalability, maintainability, and performance optimization.
 
-**Funcionalidades**:
+### CQRS Architecture in Series Module
 
-- Registro de usuarios con verificación por email
-- Login con JWT
-- Gestión de intentos de login fallidos
-- Bloqueo de cuentas por seguridad
-- Hash de contraseñas con bcrypt
+```
+series/
+├── application/
+│   ├── commands/                    # Write operations
+│   │   ├── create-series.command.ts
+│   │   ├── update-series.command.ts
+│   │   ├── delete-series.command.ts
+│   │   └── ...
+│   ├── queries/                     # Read operations
+│   │   ├── get-series-by-id.query.ts
+│   │   ├── search-series.query.ts
+│   │   └── ...
+│   ├── handlers/
+│   │   ├── commands/                # Command handlers
+│   │   └── queries/                 # Query handlers
+│   └── ports/
+│       ├── series-write.repository.ts  # Write repository
+│       └── series-read.repository.ts   # Read repository
+```
+
+### CQRS Benefits
+
+1. **Separation of Concerns**: Commands handle write operations with business logic, Queries handle read operations with optimized projections
+2. **Performance**: Read repository can use optimized views and caching strategies
+3. **Scalability**: Read and write operations can be scaled independently
+4. **Maintainability**: Clear separation makes code easier to understand and maintain
+
+### Command Pattern
+
+```typescript
+export interface Command<TResult = void> {
+  readonly timestamp: Date;
+}
+
+export interface CommandHandler<TCommand extends Command<TResult>, TResult = void> {
+  execute(command: TCommand): Promise<TResult>;
+}
+```
+
+**Example Command:**
+
+```typescript
+export class CreateSeriesCommand implements Command<SeriesResponse> {
+  readonly timestamp: Date = new Date();
+
+  constructor(public readonly name: string, public readonly year: number, public readonly imageBuffer?: Buffer) {}
+}
+```
+
+### Query Pattern
+
+```typescript
+export interface Query<TResult> {
+  readonly cacheKey?: string;
+}
+
+export interface QueryHandler<TQuery extends Query<TResult>, TResult> {
+  execute(query: TQuery): Promise<TResult>;
+}
+```
+
+**Example Query:**
+
+```typescript
+export class GetSeriesByIdQuery implements Query<SeriesResponse | null> {
+  readonly cacheKey: string;
+
+  constructor(public readonly id: number) {
+    this.cacheKey = `series:${id}`;
+  }
+}
+```
+
+### Repository Separation
+
+**Write Repository** (Commands):
+
+- Handles all write operations (CREATE, UPDATE, DELETE)
+- Contains business logic validation
+- Manages transactions
+- Updates rankings and relationships
+
+**Read Repository** (Queries):
+
+- Optimized for read operations
+- Uses database views for complex queries
+- Prepared for caching strategies
+- Minimal validation (only input sanitization)
+
+### CQRS Implementation Status
+
+| Module     | CQRS Status     | Commands | Queries | Benefits                             |
+| ---------- | --------------- | -------- | ------- | ------------------------------------ |
+| **Series** | ✅ **Complete** | 9        | 7       | Full separation, optimized queries   |
+| **Finan**  | 🔄 **Planned**  | 3        | 4       | Analytics and reporting optimization |
+| **Auth**   | ⚠️ **Optional** | 2        | 2       | Simple operations, minimal benefit   |
+
+### Future CQRS Enhancements
+
+1. **Event Sourcing**: Add domain events for audit trails
+2. **Caching Layer**: Implement Redis for query caching
+3. **Read Replicas**: Separate read database for high availability
+4. **Eventual Consistency**: Implement event-driven synchronization
+
+## 📦 System Modules
+
+### Auth Module
+
+**Purpose**: Authentication and user management
+
+**Features**:
+
+- User registration with email verification
+- JWT login
+- Failed login attempt management
+- Account locking for security
+- Password hashing with bcrypt
 
 **Use Cases**:
 
-- `RegisterUserUseCase` - Registro de nuevos usuarios
-- `LoginUserUseCase` - Autenticación de usuarios
+- `RegisterUserUseCase` - Register new users
+- `LoginUserUseCase` - User authentication
 
 **Endpoints**:
 
-- `POST /api/users/add` - Registro de usuario
+- `POST /api/users/add` - User registration
 - `POST /api/users/login` - Login
 
-**Base de Datos**: `MYDATABASEAUTH`
+**Database**: `MYDATABASEAUTH`
 
-### Módulo Series
+### Series Module (CQRS Implemented)
 
-**Propósito**: Gestión de series de anime
+**Purpose**: Anime series management
 
-**Funcionalidades**:
+**Features**:
 
-- CRUD completo de series
-- Gestión de imágenes optimizadas
-- Búsqueda y filtrado de series
-- Gestión de géneros y demografías
-- Gestión de títulos alternativos
-- Años de producción
+- Complete CRUD of series
+- Optimized image management
+- Series search and filtering
+- Genre and demographic management
+- Alternative titles management
+- Production years
 
-**Use Cases** (15 total):
+**CQRS Implementation**:
 
-- Consulta: `GetAllSeriesUseCase`, `GetSeriesByIdUseCase`, `SearchSeriesUseCase`
-- Creación: `CreateSeriesUseCase`, `CreateSeriesCompleteUseCase`
-- Actualización: `UpdateSeriesUseCase`, `UpdateSeriesImageUseCase`
-- Eliminación: `DeleteSeriesUseCase`
-- Catálogos: `GetProductionsUseCase`, `GetGenresUseCase`, `GetDemographicsUseCase`, `GetProductionYearsUseCase`
-- Relaciones: `AssignGenresUseCase`, `RemoveGenresUseCase`, `AddTitlesUseCase`, `RemoveTitlesUseCase`
+- **Commands** (9): `CreateSeriesCommand`, `UpdateSeriesCommand`, `DeleteSeriesCommand`, `AssignGenresCommand`, `RemoveGenresCommand`, `AddTitlesCommand`, `RemoveTitlesCommand`, `CreateSeriesCompleteCommand`, `UpdateSeriesImageCommand`
+- **Queries** (7): `GetSeriesByIdQuery`, `SearchSeriesQuery`, `GetAllSeriesQuery`, `GetGenresQuery`, `GetDemographicsQuery`, `GetProductionYearsQuery`, `GetProductionsQuery`
+- **Handlers**: Separate command and query handlers with optimized logic
+- **Repositories**: `SeriesWriteRepository` and `SeriesReadRepository`
 
-**Servicios**:
+**Services**:
 
-- `ImageService` - Lógica de aplicación para imágenes
-- `SeriesImageProcessorService` - Procesamiento técnico de imágenes
+- `ImageService` - Application logic for images
+- `SeriesImageProcessorService` - Technical image processing
 
 **Endpoints**:
 
-- `GET /api/series/:id` - Obtener serie por ID
-- `POST /api/series` - Listar producciones
-- `POST /api/series/create` - Crear serie (requiere auth)
-- `PUT /api/series/:id` - Actualizar serie (requiere auth)
-- `DELETE /api/series/:id` - Eliminar serie (requiere auth)
-- `GET /api/series/list` - Listar todas (requiere auth)
-- `POST /api/series/search` - Buscar series
-- Y más... (ver documentación Swagger)
+- `GET /api/series/:id` - Get series by ID
+- `POST /api/series` - List productions
+- `POST /api/series/create` - Create series (requires auth)
+- `PUT /api/series/:id` - Update series (requires auth)
+- `DELETE /api/series/:id` - Delete series (requires auth)
+- `GET /api/series/list` - List all (requires auth)
+- `POST /api/series/search` - Search series
+- And more... (see Swagger documentation)
 
-**Base de Datos**: `MYDATABASEANIME`
+**Database**: `MYDATABASEANIME`
 
-### Módulo Finan
+### Finan Module
 
-**Propósito**: Gestión financiera
+**Purpose**: Financial management
 
-**Funcionalidades**:
+**Features**:
 
-- Gestión de movimientos financieros
-- CRUD de transacciones
-- Carga inicial de datos
+- Financial movement management
+- Transaction CRUD
+- Initial data loading
 
 **Use Cases**:
 
-- `GetInitialLoadUseCase` - Carga datos iniciales
-- `PutMovementUseCase` - Crear movimiento
-- `UpdateMovementUseCase` - Actualizar movimiento
-- `DeleteMovementUseCase` - Eliminar movimiento
+- `GetInitialLoadUseCase` - Load initial data
+- `PutMovementUseCase` - Create movement
+- `UpdateMovementUseCase` - Update movement
+- `DeleteMovementUseCase` - Delete movement
 
 **Endpoints**:
 
-- Rutas bajo `/api/finan`
+- Routes under `/api/finan`
 
-**Base de Datos**: `MYDATABASEANIME`
+**Database**: `MYDATABASEANIME`
 
-## 🧩 Componentes Principales
+## 🧩 Main Components
 
 ### Composition Root (Config)
 
-- **Responsabilidad**: Ensamblar y cablear todas las dependencias del módulo
-- **Ubicación**: `modules/{module}/infrastructure/config/{module}.module.ts`
-- **Patrón**: Composition Root, Inyección de Dependencias
-- **Características**:
-  - Función `build{Module}Module()` que construye todo el módulo
-  - Crea instancias de repositorios, servicios, use cases y controladores
-  - Configura las rutas HTTP con middleware de autenticación
-  - Retorna un objeto con el router y todas las instancias creadas
-  - Punto único de configuración para el módulo completo
+- **Responsibility**: Assemble and wire all module dependencies
+- **Location**: `modules/{module}/infrastructure/config/{module}.module.ts`
+- **Pattern**: Composition Root, Dependency Injection
+- **Features**:
+  - `build{Module}Module()` function that builds the entire module
+  - Creates instances of repositories, services, use cases and controllers
+  - Configures HTTP routes with authentication middleware
+  - Returns an object with the router and all created instances
+  - Single point of configuration for the complete module
 
 ### Controllers
 
-- **Responsabilidad**: Manejo de HTTP requests/responses
-- **Ubicación**: `modules/{module}/infrastructure/controllers/`
-- **Patrón**: Thin controllers, delegación a use cases
-- **Características**:
-  - Reciben use cases por inyección de dependencia en constructor
-  - Validan entrada y formatean respuesta
-  - Manejo de errores HTTP
-  - Integración con middleware (multer para uploads, validateToken para auth)
+- **Responsibility**: HTTP request/response handling
+- **Location**: `modules/{module}/infrastructure/controllers/`
+- **Pattern**: Thin controllers, delegation to use cases
+- **Features**:
+  - Receive use cases through dependency injection in constructor
+  - Validate input and format response
+  - HTTP error handling
+  - Integration with middleware (multer for uploads, validateToken for auth)
 
-### Use Cases
+### Use Cases (Legacy) / CQRS Handlers (New)
 
-- **Responsabilidad**: Lógica de aplicación específica
-- **Ubicación**: `modules/{module}/application/use-cases/`
-- **Patrón**: Un caso de uso por operación (Command Pattern)
-- **Características**:
-  - Método `execute()` que implementa el flujo del caso de uso
-  - Reciben repositorios y servicios por inyección de dependencia
-  - Orquestan la lógica de negocio
-  - Validan reglas de negocio
-  - Independientes de la infraestructura HTTP
+- **Responsibility**: Specific application logic
+- **Location**: `modules/{module}/application/use-cases/` (legacy) or `modules/{module}/application/handlers/` (CQRS)
+- **Pattern**: One use case per operation (Command Pattern) / Command/Query Handlers (CQRS)
+- **Features**:
+  - `execute()` method that implements the use case flow
+  - Receive repositories and services through dependency injection
+  - Orchestrate business logic
+  - Validate business rules
+  - Independent of HTTP infrastructure
+  - **CQRS**: Commands handle write operations, Queries handle read operations
 
 ### Application Services
 
-- **Responsabilidad**: Orquestar lógica de aplicación compleja
-- **Ubicación**: `modules/{module}/application/services/`
-- **Patrón**: Application Service Pattern
-- **Ejemplo**: `ImageService` que orquesta el procesamiento de imágenes
+- **Responsibility**: Orchestrate complex application logic
+- **Location**: `modules/{module}/application/services/`
+- **Pattern**: Application Service Pattern
+- **Example**: `ImageService` that orchestrates image processing
 
 ### Domain Entities
 
-- **Responsabilidad**: Representar conceptos de negocio
-- **Ubicación**: `modules/{module}/domain/entities/`
-- **Patrón**: Domain Model, Value Objects
-- **Características**: Interfaces TypeScript que definen la estructura de datos
+- **Responsibility**: Represent business concepts
+- **Location**: `modules/{module}/domain/entities/`
+- **Pattern**: Domain Model, Value Objects
+- **Features**: TypeScript interfaces that define data structure
 
 ### Ports (Interfaces)
 
-- **Responsabilidad**: Definir contratos para adaptadores externos
-- **Ubicación**:
-  - `modules/{module}/application/ports/` - Puertos de repositorios
-  - `modules/{module}/domain/ports/` - Puertos de servicios de dominio
-- **Patrón**: Port and Adapter (Hexagonal Architecture)
-- **Características**:
-  - Interfaces TypeScript que definen métodos
-  - Permiten inversión de dependencias
-  - Facilitan testing con mocks
+- **Responsibility**: Define contracts for external adapters
+- **Location**:
+  - `modules/{module}/application/ports/` - Repository ports
+  - `modules/{module}/domain/ports/` - Domain service ports
+- **Pattern**: Port and Adapter (Hexagonal Architecture)
+- **Features**:
+  - TypeScript interfaces that define methods
+  - Enable dependency inversion
+  - Facilitate testing with mocks
 
 ### Repositories (Adapters)
 
-- **Responsabilidad**: Acceso a datos y persistencia
-- **Ubicación**: `modules/{module}/infrastructure/persistence/`
-- **Patrón**: Repository Pattern
-- **Características**:
-  - Implementan interfaces definidas en `application/ports/`
-  - Usan la clase `Database` global
-  - Métodos CRUD y consultas específicas del dominio
-  - Manejo de errores de base de datos
+- **Responsibility**: Data access and persistence
+- **Location**: `modules/{module}/infrastructure/persistence/`
+- **Pattern**: Repository Pattern
+- **Features**:
+  - Implement interfaces defined in `application/ports/`
+  - Use the global `Database` class
+  - CRUD methods and domain-specific queries
+  - Database error handling
 
-## 🔧 Patrones de Diseño
+## 🔧 Design Patterns
 
 ### 1. Composition Root Pattern
 
 ```typescript
-// Ubicación: modules/{module}/infrastructure/config/{module}.module.ts
+// Location: modules/{module}/infrastructure/config/{module}.module.ts
 export function buildAuthModule() {
-  // 1. Crear repositorio (Infrastructure Layer)
+  // 1. Create repository (Infrastructure Layer)
   const userRepository = new userMysqlRepository();
 
-  // 2. Crear Use Cases (Application Layer) - inyectando dependencias
+  // 2. Create Use Cases (Application Layer) - injecting dependencies
   const registerUserUseCase = new RegisterUserUseCase(userRepository);
   const loginUserUseCase = new LoginUserUseCase(userRepository);
 
-  // 3. Crear Controlador (Infrastructure Layer) - inyectando Use Cases
+  // 3. Create Controller (Infrastructure Layer) - injecting Use Cases
   const userController = new UserController(registerUserUseCase, loginUserUseCase);
 
-  // 4. Configurar rutas
+  // 4. Configure routes
   const router = Router();
   router.post('/add', userController.addUser);
   router.post('/login', userController.loginUser);
@@ -361,26 +494,26 @@ export function buildAuthModule() {
 }
 ```
 
-**Beneficios**:
+**Benefits**:
 
-- Punto único de configuración de dependencias
-- Facilita testing al poder inyectar mocks
-- Hace explícitas las dependencias del módulo
-- Permite inicialización controlada
+- Single point of dependency configuration
+- Facilitates testing by being able to inject mocks
+- Makes module dependencies explicit
+- Allows controlled initialization
 
 ### 2. Ports and Adapters (Hexagonal Architecture)
 
 ```typescript
-// Puerto (Application Layer) - Define el contrato
-// Ubicación: application/ports/user.repository.ts
+// Port (Application Layer) - Define the contract
+// Location: application/ports/user.repository.ts
 export interface UserRepository {
   findById(id: number): Promise<User | null>;
   create(user: UserCreateRequest): Promise<User>;
   findByEmail(email: string): Promise<User | null>;
 }
 
-// Adaptador (Infrastructure Layer) - Implementa el contrato
-// Ubicación: infrastructure/persistence/user.mysql.ts
+// Adapter (Infrastructure Layer) - Implement the contract
+// Location: infrastructure/persistence/user.mysql.ts
 export class userMysqlRepository implements UserRepository {
   private Database: any;
 
@@ -393,22 +526,22 @@ export class userMysqlRepository implements UserRepository {
     const result = await this.Database.executeSafeQuery(query, [id]);
     return result.length > 0 ? result[0] : null;
   }
-  // ... más implementaciones
+  // ... more implementations
 }
 ```
 
-**Ejemplo en Domain Layer**:
+**Example in Domain Layer**:
 
 ```typescript
-// Puerto en Domain - Para servicios de dominio
-// Ubicación: domain/ports/image-processor.port.ts
+// Port in Domain - For domain services
+// Location: domain/ports/image-processor.port.ts
 export interface ImageProcessorPort {
   processAndSaveImage(imageBuffer: Buffer, seriesId: number): Promise<string>;
   deleteImage(imagePath: string): Promise<void>;
 }
 
-// Adaptador en Infrastructure
-// Ubicación: infrastructure/services/image-processor.service.ts
+// Adapter in Infrastructure
+// Location: infrastructure/services/image-processor.service.ts
 export class SeriesImageProcessorService implements ImageProcessorPort {
   async processAndSaveImage(imageBuffer: Buffer, seriesId: number): Promise<string> {
     const optimizedImageBuffer = await ImageProcessor.optimizeImage(imageBuffer);
@@ -419,44 +552,57 @@ export class SeriesImageProcessorService implements ImageProcessorPort {
 }
 ```
 
-### 3. Use Case Pattern (Command Pattern)
+### 3. Use Case Pattern (Command Pattern) / CQRS Pattern
 
 ```typescript
-// Ubicación: application/use-cases/register.use-case.ts
+// Location: application/use-cases/register.use-case.ts (Legacy)
 export class RegisterUserUseCase {
   constructor(private readonly userRepository: UserRepository) {}
 
   async execute(userData: UserCreateRequest): Promise<UserResponse> {
-    // 1. Validaciones de negocio
-    // 2. Orquestación del flujo
-    // 3. Delegación a repositorio
+    // 1. Business validations
+    // 2. Flow orchestration
+    // 3. Repository delegation
     const user = await this.userRepository.create(userData);
     return this.mapToResponse(user);
   }
 }
+
+// Location: application/handlers/commands/create-series.handler.ts (CQRS)
+export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, SeriesResponse> {
+  constructor(private readonly writeRepository: SeriesWriteRepository) {}
+
+  async execute(command: CreateSeriesCommand): Promise<SeriesResponse> {
+    // 1. Validate command
+    // 2. Normalize data
+    // 3. Execute write operation
+    // 4. Return result
+  }
+}
 ```
 
-**Características**:
+**Features**:
 
-- Un caso de uso = Una operación de negocio
-- Independiente de la infraestructura HTTP
-- Fácilmente testeable
-- Recibe dependencias por constructor
+- One use case = One business operation
+- Independent of HTTP infrastructure
+- Easily testable
+- Receives dependencies through constructor
+- **CQRS**: Commands for write operations, Queries for read operations
 
 ### 4. Application Service Pattern
 
 ```typescript
-// Ubicación: application/services/image.service.ts
+// Location: application/services/image.service.ts
 export class ImageService {
   constructor(private readonly imageProcessor: ImageProcessorPort) {}
 
   async processAndSaveImage(imageBuffer: Buffer, seriesId: number): Promise<string> {
-    // Lógica de negocio: validaciones
+    // Business logic: validations
     if (!imageBuffer || imageBuffer.length === 0) {
       throw new Error('Image buffer is required');
     }
 
-    // Delegar al adaptador de infraestructura
+    // Delegate to infrastructure adapter
     return await this.imageProcessor.processAndSaveImage(imageBuffer, seriesId);
   }
 }
@@ -464,15 +610,15 @@ export class ImageService {
 
 ### 5. Dependency Injection Pattern
 
-- **Manual DI**: No usamos contenedores IoC, hacemos inyección manual en Composition Root
-- **Constructor Injection**: Todas las dependencias se inyectan por constructor
-- **Interface-based**: Se inyectan interfaces, no implementaciones concretas
+- **Manual DI**: We don't use IoC containers, we do manual injection in Composition Root
+- **Constructor Injection**: All dependencies are injected through constructor
+- **Interface-based**: Interfaces are injected, not concrete implementations
 
 ### 6. Middleware Pattern
 
 ```typescript
-// Middleware de autenticación JWT
-// Ubicación: infrastructure/services/validate-token.ts
+// JWT authentication middleware
+// Location: infrastructure/services/validate-token.ts
 const validateToken = (req: Request, res: Response, next: NextFunction) => {
   const headerToken = req.headers['authorization'];
   const bearerToken = headerToken.slice(7); // Remove 'Bearer '
@@ -485,103 +631,103 @@ const validateToken = (req: Request, res: Response, next: NextFunction) => {
 };
 ```
 
-**Uso en rutas**:
+**Usage in routes**:
 
 ```typescript
 router.get('/list', validateToken, seriesController.getAllSeries);
 router.post('/create', validateToken, uploadMiddleware, seriesController.createSeries);
 ```
 
-## 🔐 Seguridad
+## 🔐 Security
 
-### Autenticación y Autorización
+### Authentication and Authorization
 
-- **JWT Tokens**: Para autenticación stateless
+- **JWT Tokens**: For stateless authentication
 
-  - Generados con `jsonwebtoken` en el login
-  - Contienen `username` y `role` del usuario
-  - Validados con middleware `validateToken`
-  - Formato: `Bearer {token}` en header `Authorization`
+  - Generated with `jsonwebtoken` on login
+  - Contains user `username` and `role`
+  - Validated with `validateToken` middleware
+  - Format: `Bearer {token}` in `Authorization` header
 
-- **bcrypt**: Para hash de contraseñas
+- **bcrypt**: For password hashing
 
-  - Costo de 10 rounds
-  - Usado en registro y login
+  - Cost of 10 rounds
+  - Used in registration and login
 
-- **Middleware de Autenticación**:
-  - `validateToken` valida JWT en rutas protegidas
-  - Verifica header `Authorization`
-  - Decodifica token y añade `username` al `req.body`
-  - Retorna 401 si el token es inválido
+- **Authentication Middleware**:
+  - `validateToken` validates JWT on protected routes
+  - Verifies `Authorization` header
+  - Decodes token and adds `username` to `req.body`
+  - Returns 401 if token is invalid
 
-### Validación de Datos
+### Data Validation
 
 - **Input Validation**:
-  - Validación en múltiples capas (controller → use case → repository)
-  - Validaciones específicas por módulo en `infrastructure/validation/`
+  - Validation in multiple layers (controller → use case → repository)
+  - Module-specific validations in `infrastructure/validation/`
 - **Domain Validation**:
 
-  - Reglas de negocio en casos de uso
-  - Validaciones de entidades en el dominio
+  - Business rules in use cases
+  - Entity validations in the domain
 
 - **Database Validation**:
-  - Prepared statements con `executeSafeQuery`
-  - Escape de strings con `connection.escape()`
-  - Protección contra SQL injection
+  - Prepared statements with `executeSafeQuery`
+  - String escaping with `connection.escape()`
+  - Protection against SQL injection
 
-### Manejo de Errores
+### Error Handling
 
-- **Error Handling Middleware**: Captura errores globales en `server.ts`
+- **Error Handling Middleware**: Captures global errors in `server.ts`
 - **Database Error Handling**:
-  - `executeSafeQuery` captura errores de BD
-  - Envía email de notificación a administradores
-  - Retorna respuesta genérica al cliente (no expone detalles internos)
-- **Graceful Shutdown**: Manejo de señales SIGINT/SIGTERM para cerrar conexiones correctamente
+  - `executeSafeQuery` captures database errors
+  - Sends email notification to administrators
+  - Returns generic response to client (does not expose internal details)
+- **Graceful Shutdown**: Handling SIGINT/SIGTERM signals to close connections properly
 
 ## 🧪 Testing
 
-### Estrategia de Testing
+### Testing Strategy
 
-- **Unit Tests**: Para servicios y casos de uso
-- **Integration Tests**: Para repositorios y controladores
-- **E2E Tests**: Para flujos completos
+- **Unit Tests**: For services and use cases
+- **Integration Tests**: For repositories and controllers
+- **E2E Tests**: For complete flows
 
 ### Mocking
 
-- **Repository Mocks**: Para aislar lógica de negocio
-- **Service Mocks**: Para testing de controladores
-- **Database Mocks**: Para testing de integración
+- **Repository Mocks**: To isolate business logic
+- **Service Mocks**: For controller testing
+- **Database Mocks**: For integration testing
 
-## 🗄️ Infraestructura de Base de Datos
+## 🗄️ Database Infrastructure
 
-### Clase Database
+### Database Class
 
-**Ubicación**: `infrastructure/data/mysql/database.ts`
+**Location**: `infrastructure/data/mysql/database.ts`
 
-**Características**:
+**Features**:
 
-- **Conexión por Base de Datos**: Constructor acepta nombre de BD
-- **Auto-Reconexión**: Manejo automático de pérdida de conexión
-  - Detecta errores `PROTOCOL_CONNECTION_LOST`
-  - Espera 2 segundos y reconecta automáticamente
-  - Manejo de errores fatales
-- **Métodos Principales**:
-  - `open()`: Abre conexión inicial
-  - `close()`: Cierra conexión gracefully
-  - `executeQuery()`: Ejecuta query sin manejo de errores
-  - `executeSafeQuery()`: Ejecuta query con try-catch y notificación por email
-  - `testConnection()`: Verifica conexión con ping
-  - `myEscape()`: Escapa strings para prevenir SQL injection
+- **Database-specific Connection**: Constructor accepts database name
+- **Auto-Reconnection**: Automatic handling of connection loss
+  - Detects `PROTOCOL_CONNECTION_LOST` errors
+  - Waits 2 seconds and reconnects automatically
+  - Handles fatal errors
+- **Main Methods**:
+  - `open()`: Opens initial connection
+  - `close()`: Closes connection gracefully
+  - `executeQuery()`: Executes query without error handling
+  - `executeSafeQuery()`: Executes query with try-catch and email notification
+  - `testConnection()`: Verifies connection with ping
+  - `myEscape()`: Escapes strings to prevent SQL injection
 
-### Configuración Multi-Base de Datos
+### Multi-Database Configuration
 
-El proyecto usa múltiples bases de datos:
+The project uses multiple databases:
 
-- `MYDATABASEANIME` - Base de datos principal (series)
-- `MYDATABASEAUTH` - Base de datos de autenticación (users)
-- `MYDATABASE` - Base de datos genérica para health checks
+- `MYDATABASEANIME` - Main database (series)
+- `MYDATABASEAUTH` - Authentication database (users)
+- `MYDATABASE` - Generic database for health checks
 
-Las variables se configuran en `.env`:
+The variables are configured in `.env`:
 
 ```env
 MYHOST=localhost
@@ -592,45 +738,45 @@ MYDATABASEANIME=anime_db
 MYDATABASEAUTH=auth_db
 ```
 
-## 📚 Documentación API (Swagger)
+## 📚 API Documentation (Swagger)
 
-### Arquitectura Modular de Documentación
+### Modular Documentation Architecture
 
-**Estructura**:
+**Structure**:
 
-- **Documentación Principal**: `infrastructure/services/swagger.ts`
+- **Main Documentation**: `infrastructure/services/swagger.ts`
 
-  - Define configuración OpenAPI 3.0
-  - Combina documentación de todos los módulos
-  - Define schemas globales y securitySchemes
+  - Defines OpenAPI 3.0 configuration
+  - Combines documentation from all modules
+  - Defines global schemas and securitySchemes
 
-- **Schemas Globales**: `infrastructure/services/swagger.schemas.ts`
+- **Global Schemas**: `infrastructure/services/swagger.schemas.ts`
 
-  - Contiene todos los schemas reutilizables
-  - Usado por múltiples endpoints
+  - Contains all reusable schemas
+  - Used by multiple endpoints
 
-- **Documentación por Módulo**: `modules/{module}/infrastructure/documentation/`
-  - Cada módulo define sus propios endpoints
-  - Se importa y combina en el archivo principal
-  - Ejemplos:
-    - `user.swagger.ts` - Documentación de auth
-    - `series.swagger.ts` - Documentación de series
-    - `finan.swagger.ts` - Documentación de finanzas
+- **Module Documentation**: `modules/{module}/infrastructure/documentation/`
+  - Each module defines its own endpoints
+  - Imported and combined in the main file
+  - Examples:
+    - `user.swagger.ts` - Auth documentation
+    - `series.swagger.ts` - Series documentation
+    - `finan.swagger.ts` - Finance documentation
 
-**Beneficios**:
+**Benefits**:
 
-- Documentación distribuida por módulo
-- Fácil mantenimiento
-- Autocompleta para clientes API
-- UI interactiva en `/api-docs`
+- Documentation distributed by module
+- Easy maintenance
+- Auto-complete for API clients
+- Interactive UI at `/api-docs`
 
-## 📊 Monitoreo y Logging
+## 📊 Monitoring and Logging
 
 ### Health Check Endpoint
 
-**Ruta**: `GET /health`
+**Route**: `GET /health`
 
-**Respuesta**:
+**Response**:
 
 ```json
 {
@@ -646,181 +792,187 @@ MYDATABASEAUTH=auth_db
 }
 ```
 
-**Características**:
+**Features**:
 
-- Verifica conexión a base de datos con `testConnection()`
-- Retorna 200 si todo está UP, 503 si algo está DOWN
-- Incluye uptime del proceso
-- Útil para load balancers y monitoring tools
+- Verifies database connection with `testConnection()`
+- Returns 200 if everything is UP, 503 if something is DOWN
+- Includes process uptime
+- Useful for load balancers and monitoring tools
 
 ### Logging
 
-- **Console Logging**: Para desarrollo
+- **Console Logging**: For development
 
-  - Logs de conexión/desconexión de BD
-  - Logs de errores y excepciones
-  - Logs de inicio del servidor
+  - Database connection/disconnection logs
+  - Error and exception logs
+  - Server startup logs
 
 - **Error Tracking**:
-  - Errores de BD se envían por email
+  - Database errors are sent by email
   - `sendEmail(emailAddress, 'System Error', errorMessage)`
-  - Evita spam con manejo inteligente de errores
+  - Prevents spam with intelligent error handling
 
 ### Graceful Shutdown
 
-**Características**:
+**Features**:
 
-- Captura señales SIGINT (Ctrl+C) y SIGTERM
-- Cierra servidor HTTP primero
-- Cierra todas las conexiones activas
-- Cierra conexiones de BD
-- Timeout de 5 segundos para forzar cierre
-- Logs claros del proceso de shutdown
+- Captures SIGINT (Ctrl+C) and SIGTERM signals
+- Closes HTTP server first
+- Closes all active connections
+- Closes database connections
+- 5 second timeout to force closure
+- Clear logs of the shutdown process
 
-## 🚀 Escalabilidad
+## 🚀 Scalability
 
 ### Horizontal Scaling
 
-- **Stateless Services**: Servicios sin estado
-- **Load Balancing**: Balanceador de carga
-- **Database Sharding**: Particionado de base de datos
+- **Stateless Services**: Stateless services
+- **Load Balancing**: Load balancer
+- **Database Sharding**: Database partitioning
 
 ### Vertical Scaling
 
-- **Resource Optimization**: Optimización de recursos
-- **Caching**: Estrategias de caché
-- **Database Optimization**: Optimización de consultas
+- **Resource Optimization**: Resource optimization
+- **Caching**: Caching strategies
+- **Database Optimization**: Query optimization
 
-## 🔄 Migración y Versionado
+## 🔄 Migration and Versioning
 
 ### Database Migrations
 
-- **Versionado**: Control de versiones de esquema
-- **Rollback**: Capacidad de reversión
-- **Data Migration**: Migración de datos
+- **Versioning**: Schema version control
+- **Rollback**: Reversion capability
+- **Data Migration**: Data migration
 
 ### API Versioning
 
-- **URL Versioning**: Versiones en URL
-- **Header Versioning**: Versiones en headers
-- **Backward Compatibility**: Compatibilidad hacia atrás
+- **URL Versioning**: Versions in URL
+- **Header Versioning**: Versions in headers
+- **Backward Compatibility**: Backward compatibility
 
-## 📈 Métricas y KPIs
+## 📈 Metrics and KPIs
 
 ### Performance Metrics
 
-- **Response Time**: Tiempo de respuesta
-- **Throughput**: Rendimiento
-- **Error Rate**: Tasa de errores
+- **Response Time**: Response time
+- **Throughput**: Performance
+- **Error Rate**: Error rate
 
 ### Business Metrics
 
-- **User Registration**: Registro de usuarios
-- **API Usage**: Uso de API
-- **Feature Adoption**: Adopción de características
+- **User Registration**: User registration
+- **API Usage**: API usage
+- **Feature Adoption**: Feature adoption
 
-## 🎯 Mejores Prácticas Implementadas
+## 🎯 Implemented Best Practices
 
 ### Clean Architecture
 
-✅ **Separación de Capas**:
+✅ **Layer Separation**:
 
-- Domain: Entidades puras sin dependencias externas
-- Application: Casos de uso con lógica de negocio
-- Infrastructure: Detalles técnicos (BD, HTTP, archivos)
+- Domain: Pure entities without external dependencies
+- Application: Use cases with business logic
+- Infrastructure: Technical details (DB, HTTP, files)
 
-✅ **Inversión de Dependencias**:
+✅ **Dependency Inversion**:
 
-- Interfaces (ports) definidas en application/domain
-- Implementaciones (adapters) en infrastructure
-- Dependencias apuntan hacia el dominio
+- Interfaces (ports) defined in application/domain
+- Implementations (adapters) in infrastructure
+- Dependencies point towards the domain
 
 ### Hexagonal Architecture
 
 ✅ **Ports and Adapters**:
 
-- Puertos: Interfaces que definen contratos
-- Adaptadores: Implementaciones concretas
-- Ejemplo: `UserRepository` (port) ← `userMysqlRepository` (adapter)
+- Ports: Interfaces that define contracts
+- Adapters: Concrete implementations
+- Example: `UserRepository` (port) ← `userMysqlRepository` (adapter)
 
 ### SOLID Principles
 
-✅ **Single Responsibility**: Cada clase/función tiene una única responsabilidad
-✅ **Open/Closed**: Extensible sin modificar código existente (via interfaces)
-✅ **Liskov Substitution**: Los adaptadores son intercambiables
-✅ **Interface Segregation**: Interfaces pequeñas y específicas
-✅ **Dependency Inversion**: Depender de abstracciones, no de implementaciones
+✅ **Single Responsibility**: Each class/function has a single responsibility
+✅ **Open/Closed**: Extensible without modifying existing code (via interfaces)
+✅ **Liskov Substitution**: Adapters are interchangeable
+✅ **Interface Segregation**: Small and specific interfaces
+✅ **Dependency Inversion**: Depend on abstractions, not implementations
 
 ### Dependency Injection
 
 ✅ **Manual DI via Composition Root**:
 
-- Sin frameworks de DI (InversifyJS, etc.)
-- Todo cableado en un solo lugar por módulo
-- Fácil de entender y debuggear
-- Testing simplificado con mocks
+- No DI frameworks (InversifyJS, etc.)
+- Everything wired in one place per module
+- Easy to understand and debug
+- Simplified testing with mocks
 
-### Modularidad
+### Modularity
 
-✅ **Módulos Independientes**:
+✅ **Independent Modules**:
 
-- Cada módulo es autocontenido
-- Puede extraerse a un microservicio fácilmente
-- Comunicación via interfaces bien definidas
+- Each module is self-contained
+- Can be easily extracted to a microservice
+- Communication via well-defined interfaces
 
-### Seguridad
+### Security
 
-✅ **Implementaciones**:
+✅ **Implementations**:
 
-- JWT para autenticación stateless
-- bcrypt para hash de contraseñas
-- Prepared statements contra SQL injection
-- Middleware de autenticación centralizado
-- Error handling que no expone información sensible
+- JWT for stateless authentication
+- bcrypt for password hashing
+- Prepared statements against SQL injection
+- Centralized authentication middleware
+- Error handling that does not expose sensitive information
 
-### Observabilidad
+### Observability
 
-✅ **Características**:
+✅ **Features**:
 
 - Health check endpoint
-- Logging estructurado
-- Notificaciones de errores por email
+- Structured logging
+- Error notifications by email
 - Graceful shutdown
 
-## 📝 Notas de Implementación
+## 📝 Implementation Notes
 
-### Convenciones de Nombres
+### Naming Conventions
 
-- **Entities**: `{Entity}.entity.ts` (ej: `user.entity.ts`)
-- **Use Cases**: `{action}-{entity}.use-case.ts` (ej: `register-user.use-case.ts`)
-- **Repositories**: `{entity}.repository.ts` (interface), `{entity}.mysql.ts` (implementación)
+- **Entities**: `{Entity}.entity.ts` (e.g., `user.entity.ts`)
+- **Use Cases**: `{action}-{entity}.use-case.ts` (e.g., `register-user.use-case.ts`)
+- **Repositories**: `{entity}.repository.ts` (interface), `{entity}.mysql.ts` (implementation)
 - **Controllers**: `{entity}.controller.ts`
 - **Modules**: `{module}.module.ts`
+- **CQRS**: `{action}-{entity}.command.ts`, `{action}-{entity}.query.ts`, `{action}-{entity}.handler.ts`
 
-### Flujo de Trabajo para Nuevos Módulos
+### Workflow for New Modules
 
-1. **Domain Layer** - Definir entidades
-2. **Application Layer** - Definir ports (interfaces)
-3. **Application Layer** - Crear use cases
-4. **Infrastructure Layer** - Implementar adapters (repositories)
-5. **Infrastructure Layer** - Crear controllers
-6. **Infrastructure Layer** - Crear documentación Swagger
-7. **Infrastructure Layer** - Crear Composition Root (module.ts)
-8. **Server.ts** - Registrar módulo
+1. **Domain Layer** - Define entities
+2. **Application Layer** - Define ports (interfaces)
+3. **Application Layer** - Create use cases (or CQRS commands/queries)
+4. **Infrastructure Layer** - Implement adapters (repositories)
+5. **Infrastructure Layer** - Create controllers
+6. **Infrastructure Layer** - Create Swagger documentation
+7. **Infrastructure Layer** - Create Composition Root (module.ts)
+8. **Server.ts** - Register module
 
-### Consideraciones de Performance
+### Performance Considerations
 
-- **Connection Pooling**: Considerar implementar pool de conexiones MySQL
-- **Caching**: Considerar agregar Redis para cacheo
-- **Query Optimization**: Revisar queries N+1 y agregar índices
-- **Image Optimization**: Ya implementado con procesamiento de imágenes
+- **Connection Pooling**: Consider implementing MySQL connection pool
+- **Caching**: Consider adding Redis for caching
+- **Query Optimization**: Review N+1 queries and add indexes
+- **Image Optimization**: Already implemented with image processing
+- **CQRS Optimization**: Use database views for complex read operations
 
 ---
 
-**Última actualización**: 2025-10-01
+**Last updated**: 2025-10-05
 
-**Versión del Proyecto**: 2.0.9
+**Project Version**: 2.0.9
 
-**Autor**: Anderokgo
+**Author**: Anderokgo
 
-**Estado**: ✅ Documentación actualizada y verificada contra código fuente
+**Status**: ✅ Documentation updated and verified against source code
+
+**Architecture**: Clean Architecture + Hexagonal Architecture + CQRS
+
+**CQRS Status**: ✅ Series module fully migrated, Finan module planned

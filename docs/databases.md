@@ -1,364 +1,223 @@
-# Bases de Datos - Module-API
+# Databases - Module-API
 
-## 🗄️ Arquitectura de Base de Datos
+## 🗄️ Database Architecture
 
-El sistema Module-API utiliza múltiples bases de datos organizadas por módulo, cada una con su propósito específico y optimizada para su dominio de aplicación.
+The Module-API system uses multiple databases organized by module, each with its specific purpose and optimized for its application domain.
 
-## 📊 Estructura General
+## 📊 General Structure
 
 ```
 MariaDB Container
-├── animecre_auth      # Módulo de autenticación
-├── animecre_cake514   # Base de datos principal
-├── animecre_finan     # Módulo financiero
-└── animecre_series    # Módulo de series
+├── animecre_auth      # Authentication module
+├── animecre_cake514   # Main database
+├── animecre_finan     # Finance module
+└── animecre_series    # Series module
 ```
 
-## 🔐 Base de Datos de Autenticación (animecre_auth)
+## 🔐 Authentication Database (animecre_auth)
 
-### Propósito
+### Purpose
 
-Gestiona usuarios, autenticación, autorización y seguridad del sistema.
+Manages users, authentication, authorization, and system security.
 
-### Tablas Principales
+### Main Tables
 
 #### users
 
-```sql
-CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  first_name VARCHAR(100) NOT NULL,
-  last_name VARCHAR(100) NOT NULL,
-  username VARCHAR(100) NOT NULL UNIQUE,
-  email VARCHAR(100) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
-  active BOOLEAN NOT NULL DEFAULT TRUE,
-  created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  last_login DATETIME NULL,
-  login_attempts INT NOT NULL DEFAULT 0,
-  locked_until DATETIME NULL,
-  INDEX idx_email (email),
-  INDEX idx_username (username),
-  INDEX idx_locked_until (locked_until),
-  INDEX idx_last_login (last_login)
-);
-```
+Stores user information including:
+
+- Personal data (first name, last name, username, email)
+- Authentication data (password hash, role)
+- Security data (login attempts, account lockout)
+- Audit data (creation, modification, last login timestamps)
 
 #### email_verification
 
-```sql
-CREATE TABLE email_verification (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  email VARCHAR(255) NOT NULL,
-  verification_code INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_email (email),
-  INDEX idx_verification_code (verification_code)
-);
-```
+Manages email verification process:
 
-### Características
+- Email addresses pending verification
+- Verification codes
+- Timestamps for verification tracking
 
-- **Seguridad**: Contraseñas hasheadas con bcrypt
-- **Control de Acceso**: Roles y permisos
-- **Auditoría**: Registro de logins y modificaciones
-- **Protección**: Control de intentos fallidos y bloqueo de cuentas
+### Features
 
-## 🏠 Base de Datos Principal (animecre_cake514)
+- **Security**: Passwords hashed with bcrypt
+- **Access Control**: Roles and permissions
+- **Audit**: Login and modification logging
+- **Protection**: Failed attempt control and account locking
 
-### Propósito
+## 🏠 Main Database (animecre_cake514)
 
-Almacena datos principales del sistema, incluyendo producciones, demografías y géneros.
+### Purpose
 
-### Tablas Principales
+Stores main system data, including productions, demographics, and genres.
+
+### Main Tables
 
 #### productions
 
-```sql
-CREATE TABLE productions (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  chapter_numer INT DEFAULT NULL,
-  year INT NOT NULL,
-  description TEXT,
-  qualification DECIMAL(3,1) DEFAULT NULL,
-  demography_id INT NOT NULL,
-  visible BOOLEAN NOT NULL DEFAULT TRUE,
-  image VARCHAR(255) DEFAULT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_name (name),
-  INDEX idx_year (year),
-  INDEX idx_demography_id (demography_id),
-  INDEX idx_visible (visible),
-  FOREIGN KEY (demography_id) REFERENCES demographics(id)
-);
-```
+Contains production information:
+
+- Basic data (name, chapters, year, description)
+- Classification (qualification, demographic)
+- Visibility and image management
+- Audit timestamps
 
 #### demographics
 
-```sql
-CREATE TABLE demographics (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+Stores demographic classifications:
+
+- Demographic names and descriptions
+- Creation timestamps
 
 #### genres
 
-```sql
-CREATE TABLE genres (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+Manages genre categories:
+
+- Genre names and descriptions
+- Creation timestamps
 
 #### productions_genres
 
-```sql
-CREATE TABLE productions_genres (
-  production_id INT NOT NULL,
-  genre_id INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (production_id, genre_id),
-  FOREIGN KEY (production_id) REFERENCES productions(id) ON DELETE CASCADE,
-  FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
-);
-```
+Many-to-many relationship table:
 
-### Vistas Optimizadas
+- Links productions with genres
+- Maintains referential integrity
+
+### Optimized Views
 
 #### view_all_info_productions
 
-```sql
-CREATE VIEW view_all_info_productions AS
-SELECT
-  p.id,
-  p.name,
-  p.chapter_numer,
-  p.year,
-  p.description,
-  p.qualification,
-  p.visible,
-  p.image,
-  d.name as demography_name,
-  GROUP_CONCAT(g.name) as genres
-FROM productions p
-LEFT JOIN demographics d ON p.demography_id = d.id
-LEFT JOIN productions_genres pg ON p.id = pg.production_id
-LEFT JOIN genres g ON pg.genre_id = g.id
-GROUP BY p.id;
-```
+Combines production data with related information:
+
+- Production details with demographic names
+- Aggregated genre information
+- Optimized for read operations
 
 #### view_all_years_productions
 
-```sql
-CREATE VIEW view_all_years_productions AS
-SELECT DISTINCT year
-FROM productions
-WHERE visible = TRUE
-ORDER BY year DESC;
-```
+Provides distinct production years:
 
-### Procedimientos Almacenados
+- Only visible productions
+- Ordered by year (descending)
+- Optimized for filtering and search
+
+### Stored Procedures
 
 #### update_rank()
 
-```sql
-DELIMITER //
-CREATE PROCEDURE update_rank()
-BEGIN
-  UPDATE productions
-  SET qualification = (
-    SELECT AVG(qualification)
-    FROM productions p2
-    WHERE p2.id = productions.id
-  );
-END //
-DELIMITER ;
-```
+Updates production rankings:
 
-## 💰 Base de Datos Financiera (animecre_finan)
+- Calculates average qualifications
+- Maintains ranking consistency
+- Called automatically after data modifications
 
-### Propósito
+## 💰 Finance Database (animecre_finan)
 
-Gestiona movimientos financieros, categorías y reportes del módulo financiero.
+### Purpose
 
-### Tablas Principales
+Manages financial movements, categories, and reports for the finance module.
+
+### Main Tables
 
 #### movements
 
-```sql
-CREATE TABLE movements (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  amount DECIMAL(10,2) NOT NULL,
-  description VARCHAR(255) NOT NULL,
-  date_movement DATE NOT NULL,
-  category VARCHAR(100) DEFAULT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_user_id (user_id),
-  INDEX idx_date_movement (date_movement),
-  INDEX idx_category (category)
-);
-```
+Stores financial transactions:
+
+- User-specific movements
+- Amount, description, and date
+- Category classification
+- Audit timestamps
+- Optimized indexes for queries
 
 #### categories
 
-```sql
-CREATE TABLE categories (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  type ENUM('income', 'expense') NOT NULL,
-  color VARCHAR(7) DEFAULT '#007bff',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY unique_name_type (name, type)
-);
-```
+Manages movement categories:
 
-### Procedimientos Almacenados
+- Category names and types (income/expense)
+- Color coding for UI display
+- Unique constraints for data integrity
+
+### Stored Procedures
 
 #### proc_monthly_expenses_until_day
 
-```sql
-DELIMITER //
-CREATE PROCEDURE proc_monthly_expenses_until_day(
-  IN p_user_id INT,
-  IN p_currency VARCHAR(3),
-  IN p_order VARCHAR(4),
-  IN p_limit INT
-)
-BEGIN
-  SELECT
-    DATE_FORMAT(date_movement, '%Y-%m') as month,
-    SUM(ABS(amount)) as total_expenses
-  FROM movements
-  WHERE user_id = p_user_id
-    AND amount < 0
-    AND date_movement <= CURDATE()
-  GROUP BY DATE_FORMAT(date_movement, '%Y-%m')
-  ORDER BY month DESC
-  LIMIT p_limit;
-END //
-DELIMITER ;
-```
+Calculates monthly expenses:
+
+- Groups expenses by month
+- Filters by user and date range
+- Returns ordered results with limits
+- Optimized for reporting
 
 #### proc_view_balance_until_date
 
-```sql
-DELIMITER //
-CREATE PROCEDURE proc_view_balance_until_date(
-  IN p_user_id INT,
-  IN p_currency VARCHAR(3),
-  IN p_date DATE
-)
-BEGIN
-  SELECT
-    COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as total_income,
-    COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) as total_expenses,
-    COALESCE(SUM(amount), 0) as balance
-  FROM movements
-  WHERE user_id = p_user_id
-    AND date_movement <= p_date;
-END //
-DELIMITER ;
-```
+Computes balance calculations:
 
-## 📺 Base de Datos de Series (animecre_series)
+- Separates income and expenses
+- Calculates total balance
+- Filters by user and date
+- Returns comprehensive financial summary
 
-### Propósito
+## 📺 Series Database (animecre_series)
 
-Gestiona series de anime, incluyendo CRUD completo, imágenes y categorización.
+### Purpose
 
-### Tablas Principales
+Manages anime series, including complete CRUD operations, images, and categorization.
+
+### Main Tables
 
 #### productions
 
-```sql
-CREATE TABLE productions (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  chapter_number INT DEFAULT NULL,
-  year INT NOT NULL,
-  description TEXT,
-  qualification DECIMAL(3,1) DEFAULT NULL,
-  demography_id INT NOT NULL,
-  visible BOOLEAN NOT NULL DEFAULT TRUE,
-  image VARCHAR(255) DEFAULT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_name (name),
-  INDEX idx_year (year),
-  INDEX idx_demography_id (demography_id),
-  INDEX idx_visible (visible),
-  FOREIGN KEY (demography_id) REFERENCES demographics(id)
-);
-```
+Contains series information:
+
+- Basic data (name, chapters, year, description)
+- Classification (qualification, demographic)
+- Visibility and image management
+- Audit timestamps
 
 #### demographics
 
-```sql
-CREATE TABLE demographics (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+Stores demographic classifications:
+
+- Demographic names and descriptions
+- Creation timestamps
 
 #### genres
 
-```sql
-CREATE TABLE genres (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+Manages genre categories:
+
+- Genre names and descriptions
+- Creation timestamps
 
 #### productions_genres
 
-```sql
-CREATE TABLE productions_genres (
-  production_id INT NOT NULL,
-  genre_id INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (production_id, genre_id),
-  FOREIGN KEY (production_id) REFERENCES productions(id) ON DELETE CASCADE,
-  FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE CASCADE
-);
-```
+Many-to-many relationship table:
 
-## 🔧 Configuración de Conexión
+- Links productions with genres
+- Maintains referential integrity
 
-### Variables de Entorno
+## 🔧 Connection Configuration
+
+### Environment Variables
 
 ```env
-# Configuración base
+# Base configuration
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=animecream
 DB_PASSWORD=animecream123
 
-# Bases de datos por módulo
+# Databases by module
 DB_AUTH_NAME=animecre_auth
 DB_MAIN_NAME=animecre_cake514
 DB_FINAN_NAME=animecre_finan
 DB_SERIES_NAME=animecre_series
 ```
 
-### Configuración de Conexión por Módulo
+### Module-specific Connection Configuration
 
 ```typescript
-// Configuración base
+// Base configuration
 const baseConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306'),
@@ -368,7 +227,7 @@ const baseConfig = {
   timezone: 'Z',
 };
 
-// Configuraciones específicas por módulo
+// Module-specific configurations
 const dbConfigs = {
   auth: { ...baseConfig, database: 'animecre_auth' },
   main: { ...baseConfig, database: 'animecre_cake514' },
@@ -377,62 +236,52 @@ const dbConfigs = {
 };
 ```
 
-## 📊 Optimizaciones de Base de Datos
+## 📊 Database Optimizations
 
-### Índices Estratégicos
+### Strategic Indexes
 
-```sql
--- Índices para optimización de consultas
-CREATE INDEX idx_productions_year ON productions(year);
-CREATE INDEX idx_productions_visible ON productions(visible);
-CREATE INDEX idx_movements_user_date ON movements(user_id, date_movement);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_username ON users(username);
-```
+Optimized indexes for query performance:
 
-### Configuración de Rendimiento
+- Production year and visibility indexes
+- User and date movement indexes
+- Email and username indexes for authentication
+- Composite indexes for complex queries
 
-```sql
--- Configuración optimizada para MariaDB
-SET innodb_buffer_pool_size = 256M;
-SET max_connections = 100;
-SET query_cache_size = 32M;
-SET query_cache_type = 1;
-```
+### Performance Configuration
 
-## 🔄 Migraciones y Versionado
+Optimized MariaDB settings:
 
-### Scripts de Migración
+- InnoDB buffer pool configuration
+- Connection limits and caching
+- Query cache optimization
+- Memory allocation tuning
+
+## 🔄 Migrations and Versioning
+
+### Migration Scripts
 
 ```
 sql/
-├── 00-create-module-databases.sql    # Crear todas las bases de datos
-├── 01-setup-auth-module.sql          # Configurar módulo de autenticación
-├── 02-setup-main-database.sql        # Configurar base de datos principal
-├── 03-setup-finan-module.sql         # Configurar módulo financiero
-├── 04-setup-series-module.sql        # Configurar módulo de series
-└── 99-verify-databases.sql           # Verificar que todo se creó correctamente
+├── 00-create-module-databases.sql    # Create all databases
+├── 01-setup-auth-module.sql          # Configure authentication module
+├── 02-setup-main-database.sql        # Configure main database
+├── 03-setup-finan-module.sql         # Configure finance module
+├── 04-setup-series-module.sql        # Configure series module
+└── 99-verify-databases.sql           # Verify everything was created correctly
 ```
 
-### Migración de Seguridad
+### Security Migration
 
-```sql
--- migration-add-security-fields.sql
--- Agregar campos de seguridad a la tabla users
-ALTER TABLE users
-ADD COLUMN login_attempts INT NOT NULL DEFAULT 0,
-ADD COLUMN last_login DATETIME NULL,
-ADD COLUMN locked_until DATETIME NULL;
+Security enhancements for user management:
 
--- Crear índices para optimización
-CREATE INDEX idx_users_login_attempts ON users(login_attempts);
-CREATE INDEX idx_users_last_login ON users(last_login);
-CREATE INDEX idx_users_locked_until ON users(locked_until);
-```
+- Added login attempt tracking
+- Implemented last login timestamps
+- Added account lockout functionality
+- Created optimization indexes for security queries
 
-## 🧪 Testing de Base de Datos
+## 🧪 Database Testing
 
-### Casos de Prueba
+### Test Cases
 
 ```typescript
 describe('Database Tests', () => {
@@ -458,135 +307,105 @@ describe('Database Tests', () => {
 });
 ```
 
-## 📊 Monitoreo y Métricas
+## 📊 Monitoring and Metrics
 
-### Métricas de Base de Datos
+### Database Metrics
 
-- **Connection Pool**: Número de conexiones activas
-- **Query Performance**: Tiempo de ejecución de consultas
-- **Database Size**: Tamaño de cada base de datos
-- **Index Usage**: Uso de índices
-- **Lock Contention**: Contención de bloqueos
+- **Connection Pool**: Number of active connections
+- **Query Performance**: Query execution time
+- **Database Size**: Size of each database
+- **Index Usage**: Index utilization
+- **Lock Contention**: Lock contention
 
-### Herramientas de Monitoreo
+### Monitoring Tools
 
-```sql
--- Verificar estado de conexiones
-SHOW PROCESSLIST;
+Key monitoring queries:
 
--- Verificar uso de índices
-SHOW INDEX FROM productions;
+- Check connection status and active processes
+- Verify index usage and optimization
+- Monitor database sizes and growth
+- Track performance metrics
+- Analyze query execution plans
 
--- Verificar tamaño de bases de datos
-SELECT
-  table_schema,
-  ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)'
-FROM information_schema.tables
-WHERE table_schema LIKE 'animecre_%'
-GROUP BY table_schema;
-```
+## 🚀 Scalability
 
-## 🚀 Escalabilidad
+### Scalability Strategies
 
-### Estrategias de Escalabilidad
+1. **Horizontal Scaling**: Multiple database instances
+2. **Read Replicas**: Read-only replicas
+3. **Sharding**: Partitioning by module
+4. **Caching**: Frequent query caching
 
-1. **Horizontal Scaling**: Múltiples instancias de base de datos
-2. **Read Replicas**: Réplicas de solo lectura
-3. **Sharding**: Particionado por módulo
-4. **Caching**: Caché de consultas frecuentes
+### High Availability Configuration
 
-### Configuración de Alta Disponibilidad
+Production setup for high availability:
 
-```yaml
-# docker-compose.yml para producción
-services:
-  mariadb-master:
-    image: mariadb:10.3.39
-    environment:
-      MYSQL_REPLICATION_MODE: master
-      MYSQL_REPLICATION_USER: replicator
-      MYSQL_REPLICATION_PASSWORD: replicator_password
+- Master-slave replication configuration
+- Automatic failover mechanisms
+- Load balancing for read operations
+- Backup and recovery strategies
+- Monitoring and alerting systems
 
-  mariadb-slave:
-    image: mariadb:10.3.39
-    environment:
-      MYSQL_REPLICATION_MODE: slave
-      MYSQL_MASTER_HOST: mariadb-master
-      MYSQL_REPLICATION_USER: replicator
-      MYSQL_REPLICATION_PASSWORD: replicator_password
-```
+## 🔒 Database Security
 
-## 🔒 Seguridad de Base de Datos
+### Security Measures
 
-### Medidas de Seguridad
+1. **Encryption**: SSL/TLS connections
+2. **Authentication**: Secure users and passwords
+3. **Authorization**: Granular permissions
+4. **Audit**: Access and modification logging
 
-1. **Encriptación**: Conexiones SSL/TLS
-2. **Autenticación**: Usuarios y contraseñas seguras
-3. **Autorización**: Permisos granulares
-4. **Auditoría**: Registro de accesos y modificaciones
+### Security Configuration
 
-### Configuración de Seguridad
+Module-specific user setup:
 
-```sql
--- Crear usuario específico para cada módulo
-CREATE USER 'animecream_auth'@'%' IDENTIFIED BY 'secure_password_auth';
-CREATE USER 'animecream_finan'@'%' IDENTIFIED BY 'secure_password_finan';
-CREATE USER 'animecream_series'@'%' IDENTIFIED BY 'secure_password_series';
-
--- Asignar permisos específicos
-GRANT SELECT, INSERT, UPDATE, DELETE ON animecre_auth.* TO 'animecream_auth'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON animecre_finan.* TO 'animecream_finan'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON animecre_series.* TO 'animecream_series'@'%';
-```
+- Create dedicated users for each module
+- Assign granular permissions per database
+- Implement role-based access control
+- Monitor user activities and access patterns
+- Regular security audits and updates
 
 ## 🐛 Troubleshooting
 
-### Problemas Comunes
+### Common Issues
 
-#### Error: "Base de datos no encontrada"
+#### Error: "Database not found"
 
-```bash
-# Verificar que las bases de datos se crearon
-docker exec -it animecream-mariadb mysql -u root -p -e "SHOW DATABASES;"
+Troubleshooting steps:
 
-# Verificar scripts de inicialización
-docker-compose logs mariadb
-```
+- Verify databases were created successfully
+- Check initialization scripts execution
+- Review Docker container logs
+- Validate database creation process
 
-#### Error: "Conexión rechazada"
+#### Error: "Connection refused"
 
-```bash
-# Verificar que el contenedor esté ejecutándose
-docker ps
+Resolution steps:
 
-# Verificar configuración de red
-docker network ls
-```
+- Verify container is running properly
+- Check network configuration
+- Validate port mappings
+- Review Docker Compose setup
 
-#### Error: "Permisos denegados"
+#### Error: "Access denied"
 
-```bash
-# Verificar usuario y contraseña
-# Verificar permisos de usuario
-# Verificar configuración de autenticación
-```
+Security troubleshooting:
 
-### Comandos de Diagnóstico
+- Verify user credentials
+- Check user permissions
+- Validate authentication configuration
+- Review security policies
 
-```bash
-# Verificar estado de contenedores
-docker-compose ps
+### Diagnostic Commands
 
-# Ver logs detallados
-docker-compose logs --tail=100 mariadb
+Essential troubleshooting commands:
 
-# Acceder a la base de datos
-docker exec -it animecream-mariadb mysql -u root -p
-
-# Verificar configuración
-docker exec -it animecream-mariadb mysql -u root -p -e "SHOW VARIABLES;"
-```
+- Check container status and health
+- Review detailed application logs
+- Access database for direct queries
+- Verify database configuration
+- Monitor system resources and performance
 
 ---
 
-**Última actualización**: 2024-09-28
+**Last updated**: 2025-10-05

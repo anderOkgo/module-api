@@ -1,103 +1,99 @@
-# Configuración del Proyecto
+# Project Configuration
 
-## 📋 Requisitos del Sistema
+## 📋 System Requirements
 
-### Software Requerido
+### Required Software
 
-- **Node.js**: 12.22.9 (usando nvm)
-- **Docker Desktop**: Para contenedores
-- **Git**: Control de versiones
-- **MySQL Client**: Para administración de BD (opcional)
+- **Node.js**: Latest LTS version
+- **Docker Desktop**: For containers
+- **Git**: Version control
+- **MySQL Client**: For database administration (optional)
 
-### Hardware Mínimo
+### Minimum Hardware
 
-- **RAM**: 4GB mínimo, 8GB recomendado
-- **Disco**: 2GB de espacio libre
-- **CPU**: 2 cores mínimo
+- **RAM**: 4GB minimum, 8GB recommended
+- **Disk**: 2GB free space
+- **CPU**: 2 cores minimum
 
-## 🚀 Instalación Paso a Paso
+## 🚀 Step-by-Step Installation
 
-### 1. Configurar Node.js
+### 1. Configure Node.js
 
 ```bash
-# Instalar nvm (si no lo tienes)
-# Windows: https://github.com/coreybutler/nvm-windows
+# Install Node.js (latest LTS version)
+# Download from https://nodejs.org/
 
-# Instalar Node.js 12.22.9
-nvm install 12.22.9
-nvm use 12.22.9
-
-# Verificar instalación
-node --version  # Debe mostrar v12.22.9
+# Verify installation
+node --version
 npm --version
 ```
 
-### 2. Clonar el Repositorio
+### 2. Clone the Repository
 
 ```bash
-# Clonar el repositorio
+# Clone the repository
 git clone <repository-url>
 cd module-api
 
-# Verificar que estás en la rama correcta
+# Verify you are on the correct branch
 git branch
 ```
 
-### 3. Instalar Dependencias
+### 3. Install Dependencies
 
 ```bash
-# Instalar dependencias del proyecto
+# Install project dependencies
 npm install
 
-# Verificar que no hay errores
+# Verify there are no errors
 npm run build
 ```
 
-### 4. Configurar Docker
+### 4. Configure Docker
 
 ```bash
-# Navegar al directorio docker
+# Navigate to docker directory
 cd docker
 
-# Verificar que Docker Desktop esté ejecutándose
+# Verify Docker Desktop is running
 docker --version
 docker ps
 
-# Construir y ejecutar contenedores
+# Build and run containers
 docker-compose up -d --build
 
-# Verificar que los contenedores estén ejecutándose
+# Verify containers are running
 docker ps
 ```
 
-### 5. Configurar Variables de Entorno
+### 5. Configure Environment Variables
 
 ```bash
-# Crear archivo .env en la raíz del proyecto
+# Create .env file in project root
 cp .env.example .env
 
-# Editar variables según tu entorno
+# Edit variables according to your environment
 nano .env
 ```
 
-### 6. Inicializar Base de Datos
+### 6. Initialize Database
 
 ```bash
-# Los scripts SQL se ejecutan automáticamente
-# Verificar que las bases de datos se crearon
+# SQL scripts run automatically
+# Verify that databases were created
 docker exec -it animecream-mariadb mysql -u root -p -e "SHOW DATABASES;"
 ```
 
-## 🔧 Configuración de Desarrollo
+## 🔧 Development Configuration
 
-### Variables de Entorno
+### Environment Variables
 
 ```env
-# Servidor
+# Server
 PORT=3001
 NODE_ENV=development
 
-# Base de datos
+# Database
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=animecream
@@ -115,31 +111,31 @@ MAX_FILE_SIZE=5242880  # 5MB
 LOG_LEVEL=debug
 ```
 
-### Scripts de Desarrollo
+### Development Scripts
 
 ```bash
-# Iniciar en modo desarrollo
+# Start in development mode
 npm run dev
 
-# Iniciar con hot reload
+# Start with hot reload
 npm run dev:watch
 
-# Ejecutar tests
+# Run tests
 npm test
 
-# Tests con cobertura
+# Tests with coverage
 npm run test:cov
 
 # Linting
 npm run lint
 
-# Formateo de código
+# Code formatting
 npm run format
 ```
 
-## 🐳 Configuración Docker
+## 🐳 Docker Configuration
 
-### Estructura de Contenedores
+### Container Structure
 
 ```yaml
 # docker-compose.yml
@@ -157,41 +153,41 @@ services:
       - ./sql:/docker-entrypoint-initdb.d
 ```
 
-### Comandos Docker Útiles
+### Useful Docker Commands
 
 ```bash
-# Iniciar contenedores
+# Start containers
 docker-compose up -d
 
-# Ver logs
+# View logs
 docker-compose logs -f mariadb
 
-# Detener contenedores
+# Stop containers
 docker-compose down
 
-# Reconstruir contenedores
+# Rebuild containers
 docker-compose up -d --build
 
-# Acceder al contenedor
+# Access container
 docker exec -it animecream-mariadb mysql -u root -p
 
-# Limpiar volúmenes (CUIDADO: Borra datos)
+# Clean volumes (WARNING: Deletes data)
 docker-compose down -v
 ```
 
-## 🗄️ Configuración de Base de Datos
+## 🗄️ Database Configuration
 
-### Bases de Datos Creadas
+### Created Databases
 
-- **animecre_auth**: Autenticación y usuarios
-- **animecre_cake514**: Base de datos principal
-- **animecre_finan**: Módulo financiero
-- **animecre_series**: Módulo de series
+- **animecre_auth**: Authentication and users
+- **animecre_cake514**: Main database
+- **animecre_finan**: Finance module
+- **animecre_series**: Series module
 
-### Conexión desde el Backend
+### Backend Connection
 
 ```typescript
-// Configuración de conexión
+// Connection configuration
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306'),
@@ -203,12 +199,12 @@ const dbConfig = {
 };
 ```
 
-## 🔐 Configuración de Seguridad
+## 🔐 Security Configuration
 
 ### JWT Configuration
 
 ```typescript
-// Configuración JWT
+// JWT configuration
 const jwtConfig = {
   secret: process.env.JWT_SECRET || 'default-secret',
   expiresIn: process.env.JWT_EXPIRES_IN || '24h',
@@ -219,17 +215,17 @@ const jwtConfig = {
 ### Password Hashing
 
 ```typescript
-// Configuración bcrypt
+// bcrypt configuration
 const saltRounds = 12;
 const hashedPassword = await bcrypt.hash(password, saltRounds);
 ```
 
-## 📊 Configuración de Logging
+## 📊 Logging Configuration
 
 ### Winston Configuration
 
 ```typescript
-// Configuración de logging
+// Logging configuration
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
@@ -241,7 +237,7 @@ const logger = winston.createLogger({
 });
 ```
 
-## 🧪 Configuración de Testing
+## 🧪 Testing Configuration
 
 ### Jest Configuration
 
@@ -264,111 +260,112 @@ module.exports = {
 ### Test Database
 
 ```bash
-# Configurar base de datos de testing
-# Los tests usan una base de datos separada
+# Configure testing database
+# Tests use a separate database
 DB_TEST_NAME=animecre_test
 ```
 
-## 🚀 Configuración de Producción
+## 🚀 Production Configuration
 
-### Variables de Entorno de Producción
+### Production Environment Variables
 
 ```env
-# Producción
+# Production
 NODE_ENV=production
 PORT=3001
 
-# Base de datos de producción
+# Production database
 DB_HOST=production-db-host
 DB_PORT=3306
 DB_USER=production-user
 DB_PASSWORD=production-password
 
-# JWT de producción
+# Production JWT
 JWT_SECRET=super-secure-production-secret
 
-# Logging de producción
+# Production logging
 LOG_LEVEL=warn
 ```
 
-### Optimizaciones de Producción
+### Production Optimizations
 
 ```bash
-# Build para producción
+# Build for production
 npm run build
 
-# Iniciar en producción
+# Start in production
 npm start
 
-# PM2 para gestión de procesos
+# PM2 for process management
 npm install -g pm2
 pm2 start dist/server.js --name "module-api"
 ```
 
-## 🔍 Verificación de la Instalación
+## 🔍 Installation Verification
 
-### Checklist de Verificación
+### Verification Checklist
 
-- [ ] Node.js 12.22.9 instalado y configurado
-- [ ] Docker Desktop ejecutándose
-- [ ] Contenedores de base de datos ejecutándose
-- [ ] Variables de entorno configuradas
-- [ ] Dependencias instaladas sin errores
-- [ ] Servidor iniciando correctamente
-- [ ] Base de datos accesible
-- [ ] API respondiendo en http://localhost:3001
+- [ ] Node.js (latest LTS version) installed and configured
+- [ ] Docker Desktop running
+- [ ] Database containers running
+- [ ] Environment variables configured
+- [ ] Dependencies installed without errors
+- [ ] Server starting correctly
+- [ ] Database accessible
+- [ ] API responding at http://localhost:3001
 
-### Comandos de Verificación
+### Verification Commands
 
 ```bash
-# Verificar Node.js
+# Verify Node.js
 node --version
 
-# Verificar Docker
+# Verify Docker
 docker --version
 docker ps
 
-# Verificar base de datos
+# Verify database
 docker exec -it animecream-mariadb mysql -u root -p -e "SHOW DATABASES;"
 
-# Verificar servidor
+# Verify server
 curl http://localhost:3001/health
 
-# Verificar API
+# Verify API
 curl http://localhost:3001/api
 ```
 
-## 🐛 Solución de Problemas Comunes
+## 🐛 Common Issues Troubleshooting
 
-### Error: Node.js versión incorrecta
+### Error: Incorrect Node.js version
 
 ```bash
-# Solución
-nvm use 12.22.9
+# Solution
+# Use latest LTS version from https://nodejs.org/
+node --version
 ```
 
-### Error: Docker no ejecutándose
+### Error: Docker not running
 
 ```bash
-# Solución
-# Iniciar Docker Desktop desde el menú de inicio
+# Solution
+# Start Docker Desktop from the start menu
 ```
 
-### Error: Puerto ya en uso
+### Error: Port already in use
 
 ```bash
-# Solución
-# Cambiar puerto en .env o docker-compose.yml
+# Solution
+# Change port in .env or docker-compose.yml
 ```
 
-### Error: Base de datos no accesible
+### Error: Database not accessible
 
 ```bash
-# Solución
+# Solution
 docker-compose down
 docker-compose up -d --build
 ```
 
 ---
 
-**Última actualización**: 2024-09-28
+**Last updated**: 2025-10-05

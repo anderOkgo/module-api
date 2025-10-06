@@ -10,6 +10,9 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   findByEmail: jest.fn(),
   findByUsername: jest.fn(),
   create: jest.fn(),
+  findById: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
   findByEmailOrUsername: jest.fn(),
   saveVerificationCode: jest.fn(),
   validateVerificationCode: jest.fn(),
@@ -17,7 +20,9 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   incrementLoginAttempts: jest.fn(),
   resetLoginAttempts: jest.fn(),
   lockUser: jest.fn(),
+  unlockUser: jest.fn(),
   updateLastLogin: jest.fn(),
+  updatePassword: jest.fn(),
 };
 
 const mockPasswordHasher: jest.Mocked<PasswordHasherPort> = {
@@ -27,6 +32,7 @@ const mockPasswordHasher: jest.Mocked<PasswordHasherPort> = {
 
 const mockTokenGenerator: jest.Mocked<TokenGeneratorPort> = {
   generate: jest.fn(),
+  verify: jest.fn(),
 };
 
 describe('LoginUserUseCase', () => {
@@ -50,8 +56,8 @@ describe('LoginUserUseCase', () => {
       created: '2023-01-01 00:00:00',
       modified: '2023-01-01 00:00:00',
       login_attempts: 0,
-      locked_until: null,
-      last_login: null,
+      locked_until: undefined,
+      last_login: undefined,
     };
 
     it('should login user successfully with username', async () => {
@@ -248,7 +254,7 @@ describe('LoginUserUseCase', () => {
 
       mockUserRepository.findByEmailOrUsername.mockResolvedValue({
         ...mockUser,
-        login_attempts: null,
+        login_attempts: undefined,
       });
       mockPasswordHasher.compare.mockResolvedValue(false);
       mockUserRepository.incrementLoginAttempts.mockResolvedValue();

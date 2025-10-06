@@ -18,10 +18,10 @@ describe('DataParams Interface', () => {
       expect(dataParams.username).toBe('testuser');
     });
 
-    it('should allow all fields to be optional', () => {
-      const dataParams: DataParams = {};
+    it('should require currency field but allow other fields to be optional', () => {
+      const dataParams: DataParams = { currency: 'USD' };
 
-      expect(dataParams.currency).toBeUndefined();
+      expect(dataParams.currency).toBe('USD');
       expect(dataParams.date).toBeUndefined();
       expect(dataParams.start_date).toBeUndefined();
       expect(dataParams.end_date).toBeUndefined();
@@ -54,13 +54,14 @@ describe('DataParams Interface', () => {
       const dates = ['2023-01-01', '2023-12-31', '2024-02-29', '2023-06-15T10:30:00Z', '2023-06-15T10:30:00.000Z'];
 
       dates.forEach((date) => {
-        const dataParams: DataParams = { date };
+        const dataParams: DataParams = { currency: 'USD', date };
         expect(dataParams.date).toBe(date);
       });
     });
 
     it('should handle date range fields', () => {
       const dataParams: DataParams = {
+        currency: 'USD',
         start_date: '2023-01-01',
         end_date: '2023-01-31',
       };
@@ -81,7 +82,7 @@ describe('DataParams Interface', () => {
       ];
 
       usernames.forEach((username) => {
-        const dataParams: DataParams = { username };
+        const dataParams: DataParams = { currency: 'USD', username };
         expect(dataParams.username).toBe(username);
       });
     });
@@ -232,18 +233,18 @@ describe('DataParams Interface', () => {
       expect(dataParams).toHaveProperty('end_date');
       expect(dataParams).toHaveProperty('username');
 
-      // Check that properties are optional
-      const emptyParams: DataParams = {};
-      expect(emptyParams.currency).toBeUndefined();
-      expect(emptyParams.date).toBeUndefined();
-      expect(emptyParams.start_date).toBeUndefined();
-      expect(emptyParams.end_date).toBeUndefined();
-      expect(emptyParams.username).toBeUndefined();
+      // Check that currency is required but other properties are optional
+      const minimalParams: DataParams = { currency: 'USD' };
+      expect(minimalParams.currency).toBe('USD');
+      expect(minimalParams.date).toBeUndefined();
+      expect(minimalParams.start_date).toBeUndefined();
+      expect(minimalParams.end_date).toBeUndefined();
+      expect(minimalParams.username).toBeUndefined();
     });
 
     it('should be assignable to DataParams type', () => {
       const params1: DataParams = { currency: 'USD' };
-      const params2: DataParams = { username: 'testuser' };
+      const params2: DataParams = { currency: 'EUR', username: 'testuser' };
       const params3: DataParams = { currency: 'EUR', username: 'testuser', date: '2023-01-01' };
 
       expect(params1).toBeDefined();

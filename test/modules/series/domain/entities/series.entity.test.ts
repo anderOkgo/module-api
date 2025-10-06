@@ -2,11 +2,10 @@ import Series, {
   SeriesCreateRequest,
   SeriesUpdateRequest,
   SeriesResponse,
-  SeriesSearchRequest,
-  SeriesSearchResponse,
-  SeriesWithTitles,
-  SeriesWithGenres,
-  SeriesComplete,
+  SeriesSearchFilters,
+  Genre,
+  Title,
+  Demographic,
 } from '../../../../../src/modules/series/domain/entities/series.entity';
 
 describe('Series Entity', () => {
@@ -72,7 +71,6 @@ describe('Series Entity', () => {
         qualification: 9.0,
         demography_id: 2,
         visible: true,
-        image: 'new-series.jpg',
       };
 
       expect(createRequest.name).toBe('New Series');
@@ -83,10 +81,9 @@ describe('Series Entity', () => {
       expect(createRequest.qualification).toBe(9.0);
       expect(createRequest.demography_id).toBe(2);
       expect(createRequest.visible).toBe(true);
-      expect(createRequest.image).toBe('new-series.jpg');
     });
 
-    it('should handle optional image property', () => {
+    it('should handle required properties only', () => {
       const createRequest: SeriesCreateRequest = {
         name: 'Series Without Image',
         chapter_number: 12,
@@ -98,7 +95,8 @@ describe('Series Entity', () => {
         visible: false,
       };
 
-      expect(createRequest.image).toBeUndefined();
+      expect(createRequest.name).toBe('Series Without Image');
+      expect(createRequest.chapter_number).toBe(12);
     });
   });
 
@@ -114,7 +112,6 @@ describe('Series Entity', () => {
         qualification: 9.5,
         demography_id: 3,
         visible: true,
-        image: 'updated-image.jpg',
       };
 
       expect(updateRequest.id).toBe(1);
@@ -126,7 +123,6 @@ describe('Series Entity', () => {
       expect(updateRequest.qualification).toBe(9.5);
       expect(updateRequest.demography_id).toBe(3);
       expect(updateRequest.visible).toBe(true);
-      expect(updateRequest.image).toBe('updated-image.jpg');
     });
   });
 
@@ -135,7 +131,7 @@ describe('Series Entity', () => {
       const response: SeriesResponse = {
         id: 1,
         name: 'Response Series',
-        chapter_numer: 48,
+        chapter_number: 48,
         year: 2023,
         description: 'Response description',
         description_en: 'Response description in English',
@@ -145,111 +141,123 @@ describe('Series Entity', () => {
         visible: true,
         image: 'response-image.jpg',
         rank: 5,
-        created_at: new Date('2023-01-01'),
-        updated_at: new Date('2023-01-02'),
       };
 
       expect(response.id).toBe(1);
       expect(response.name).toBe('Response Series');
-      expect(response.chapter_numer).toBe(48);
+      expect(response.chapter_number).toBe(48);
       expect(response.year).toBe(2023);
       expect(response.demographic_name).toBe('Seinen');
       expect(response.rank).toBe(5);
     });
   });
 
-  describe('SeriesSearchRequest interface', () => {
+  describe('SeriesSearchFilters interface', () => {
     it('should handle search with all parameters', () => {
-      const searchRequest: SeriesSearchRequest = {
+      const searchFilters: SeriesSearchFilters = {
         name: 'Search Term',
         year: 2023,
         demography_id: 1,
-        qualification: 8.0,
+        visible: true,
+        genre_ids: [1, 2, 3],
         limit: 20,
         offset: 0,
       };
 
-      expect(searchRequest.name).toBe('Search Term');
-      expect(searchRequest.year).toBe(2023);
-      expect(searchRequest.demography_id).toBe(1);
-      expect(searchRequest.qualification).toBe(8.0);
-      expect(searchRequest.limit).toBe(20);
-      expect(searchRequest.offset).toBe(0);
+      expect(searchFilters.name).toBe('Search Term');
+      expect(searchFilters.year).toBe(2023);
+      expect(searchFilters.demography_id).toBe(1);
+      expect(searchFilters.visible).toBe(true);
+      expect(searchFilters.genre_ids).toEqual([1, 2, 3]);
+      expect(searchFilters.limit).toBe(20);
+      expect(searchFilters.offset).toBe(0);
     });
 
     it('should handle search with minimal parameters', () => {
-      const searchRequest: SeriesSearchRequest = {
+      const searchFilters: SeriesSearchFilters = {
         name: 'Minimal Search',
       };
 
-      expect(searchRequest.name).toBe('Minimal Search');
-      expect(searchRequest.year).toBeUndefined();
-      expect(searchRequest.demography_id).toBeUndefined();
-      expect(searchRequest.qualification).toBeUndefined();
-      expect(searchRequest.limit).toBeUndefined();
-      expect(searchRequest.offset).toBeUndefined();
+      expect(searchFilters.name).toBe('Minimal Search');
+      expect(searchFilters.year).toBeUndefined();
+      expect(searchFilters.demography_id).toBeUndefined();
+      expect(searchFilters.visible).toBeUndefined();
+      expect(searchFilters.genre_ids).toBeUndefined();
+      expect(searchFilters.limit).toBeUndefined();
+      expect(searchFilters.offset).toBeUndefined();
     });
   });
 
-  describe('SeriesSearchResponse interface', () => {
-    it('should have search results with pagination', () => {
-      const searchResponse: SeriesSearchResponse = {
-        series: [
-          {
-            id: 1,
-            name: 'Search Result 1',
-            chapter_numer: 12,
-            year: 2023,
-            description: 'Description 1',
-            description_en: 'Description 1 in English',
-            qualification: 8.5,
-            demography_id: 1,
-            visible: true,
-          },
-        ],
-        total: 1,
-        limit: 20,
-        offset: 0,
+  describe('Genre interface', () => {
+    it('should have genre properties', () => {
+      const genre: Genre = {
+        id: 1,
+        name: 'Action',
+        slug: 'action',
       };
 
-      expect(searchResponse.series).toHaveLength(1);
-      expect(searchResponse.total).toBe(1);
-      expect(searchResponse.limit).toBe(20);
-      expect(searchResponse.offset).toBe(0);
-      expect(searchResponse.series[0].name).toBe('Search Result 1');
+      expect(genre.id).toBe(1);
+      expect(genre.name).toBe('Action');
+      expect(genre.slug).toBe('action');
     });
-  });
 
-  describe('SeriesWithTitles interface', () => {
-    it('should have series with titles array', () => {
-      const seriesWithTitles: SeriesWithTitles = {
-        id: 1,
-        name: 'Series with Titles',
-        chapter_numer: 12,
-        year: 2023,
-        description: 'Description',
-        description_en: 'Description in English',
-        qualification: 8.0,
-        demography_id: 1,
-        visible: true,
-        titles: [
-          { id: 1, title: 'Title 1' },
-          { id: 2, title: 'Title 2' },
-        ],
+    it('should handle optional slug property', () => {
+      const genre: Genre = {
+        id: 2,
+        name: 'Adventure',
       };
 
-      expect(seriesWithTitles.titles).toHaveLength(2);
-      expect(seriesWithTitles.titles[0].title).toBe('Title 1');
-      expect(seriesWithTitles.titles[1].title).toBe('Title 2');
+      expect(genre.id).toBe(2);
+      expect(genre.name).toBe('Adventure');
+      expect(genre.slug).toBeUndefined();
     });
   });
 
-  describe('SeriesWithGenres interface', () => {
-    it('should have series with genres array', () => {
-      const seriesWithGenres: SeriesWithGenres = {
+  describe('Title interface', () => {
+    it('should have title properties', () => {
+      const title: Title = {
         id: 1,
-        name: 'Series with Genres',
-        chapter_numer: 12,
+        production_id: 123,
+        name: 'Alternative Title',
+      };
+
+      expect(title.id).toBe(1);
+      expect(title.production_id).toBe(123);
+      expect(title.name).toBe('Alternative Title');
+    });
+  });
+
+  describe('Demographic interface', () => {
+    it('should have demographic properties', () => {
+      const demographic: Demographic = {
+        id: 1,
+        name: 'Shounen',
+        slug: 'shounen',
+      };
+
+      expect(demographic.id).toBe(1);
+      expect(demographic.name).toBe('Shounen');
+      expect(demographic.slug).toBe('shounen');
+    });
+
+    it('should handle optional slug property', () => {
+      const demographic: Demographic = {
+        id: 2,
+        name: 'Shoujo',
+      };
+
+      expect(demographic.id).toBe(2);
+      expect(demographic.name).toBe('Shoujo');
+      expect(demographic.slug).toBeUndefined();
+    });
+  });
+
+  describe('SeriesResponse with relationships', () => {
+    it('should have series with genres and titles', () => {
+      const response: SeriesResponse = {
+        id: 1,
+        name: 'Series with Relationships',
+        chapter_number: 12,
         year: 2023,
         description: 'Description',
         description_en: 'Description in English',
@@ -260,34 +268,16 @@ describe('Series Entity', () => {
           { id: 1, name: 'Action' },
           { id: 2, name: 'Adventure' },
         ],
+        titles: [
+          { id: 1, production_id: 1, name: 'Title 1' },
+          { id: 2, production_id: 1, name: 'Title 2' },
+        ],
       };
 
-      expect(seriesWithGenres.genres).toHaveLength(2);
-      expect(seriesWithGenres.genres[0].name).toBe('Action');
-      expect(seriesWithGenres.genres[1].name).toBe('Adventure');
-    });
-  });
-
-  describe('SeriesComplete interface', () => {
-    it('should have series with both titles and genres', () => {
-      const seriesComplete: SeriesComplete = {
-        id: 1,
-        name: 'Complete Series',
-        chapter_numer: 12,
-        year: 2023,
-        description: 'Description',
-        description_en: 'Description in English',
-        qualification: 8.0,
-        demography_id: 1,
-        visible: true,
-        titles: [{ id: 1, title: 'Title 1' }],
-        genres: [{ id: 1, name: 'Action' }],
-      };
-
-      expect(seriesComplete.titles).toHaveLength(1);
-      expect(seriesComplete.genres).toHaveLength(1);
-      expect(seriesComplete.titles[0].title).toBe('Title 1');
-      expect(seriesComplete.genres[0].name).toBe('Action');
+      expect(response.genres).toHaveLength(2);
+      expect(response.titles).toHaveLength(2);
+      expect(response.genres![0].name).toBe('Action');
+      expect(response.titles![0].name).toBe('Title 1');
     });
   });
 

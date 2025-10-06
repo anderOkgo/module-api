@@ -50,12 +50,12 @@ describe('Query Interface', () => {
   });
 
   describe('QueryHandler interface', () => {
-    let mockHandler: QueryHandler<Query<string>, string>;
+    let mockHandler: jest.Mocked<QueryHandler<Query<string>, string>>;
 
     beforeEach(() => {
       mockHandler = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<QueryHandler<Query<string>, string>>;
     });
 
     afterEach(() => {
@@ -108,9 +108,9 @@ describe('Query Interface', () => {
 
       interface StringQueryHandler extends QueryHandler<StringQuery, string> {}
 
-      const mockHandler: StringQueryHandler = {
+      const mockHandler: jest.Mocked<StringQueryHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<StringQueryHandler>;
 
       const query: StringQuery = {
         cacheKey: 'string-query',
@@ -133,9 +133,9 @@ describe('Query Interface', () => {
 
       interface NumberQueryHandler extends QueryHandler<NumberQuery, number> {}
 
-      const mockHandler: NumberQueryHandler = {
+      const mockHandler: jest.Mocked<NumberQueryHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<NumberQueryHandler>;
 
       const query: NumberQuery = {
         cacheKey: 'number-query',
@@ -158,9 +158,9 @@ describe('Query Interface', () => {
 
       interface ObjectQueryHandler extends QueryHandler<ObjectQuery, { id: number; name: string }> {}
 
-      const mockHandler: ObjectQueryHandler = {
+      const mockHandler: jest.Mocked<ObjectQueryHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<ObjectQueryHandler>;
 
       const query: ObjectQuery = {
         cacheKey: 'object-query',
@@ -184,9 +184,9 @@ describe('Query Interface', () => {
 
       interface ArrayQueryHandler extends QueryHandler<ArrayQuery, number[]> {}
 
-      const mockHandler: ArrayQueryHandler = {
+      const mockHandler: jest.Mocked<ArrayQueryHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<ArrayQueryHandler>;
 
       const query: ArrayQuery = {
         cacheKey: 'array-query',
@@ -210,9 +210,9 @@ describe('Query Interface', () => {
 
       interface BooleanQueryHandler extends QueryHandler<BooleanQuery, boolean> {}
 
-      const mockHandler: BooleanQueryHandler = {
+      const mockHandler: jest.Mocked<BooleanQueryHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<BooleanQueryHandler>;
 
       const query: BooleanQuery = {
         cacheKey: 'boolean-query',
@@ -269,9 +269,9 @@ describe('Query Interface', () => {
 
       interface NullQueryHandler extends QueryHandler<NullQuery, null> {}
 
-      const mockHandler: NullQueryHandler = {
+      const mockHandler: jest.Mocked<NullQueryHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<NullQueryHandler>;
 
       const query: NullQuery = {
         cacheKey: 'null-query',
@@ -289,9 +289,9 @@ describe('Query Interface', () => {
 
       interface UndefinedQueryHandler extends QueryHandler<UndefinedQuery, undefined> {}
 
-      const mockHandler: UndefinedQueryHandler = {
+      const mockHandler: jest.Mocked<UndefinedQueryHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<UndefinedQueryHandler>;
 
       const query: UndefinedQuery = {
         cacheKey: 'undefined-query',
@@ -322,9 +322,9 @@ describe('Query Interface', () => {
           }
         > {}
 
-      const mockHandler: ComplexQueryHandler = {
+      const mockHandler: jest.Mocked<ComplexQueryHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<ComplexQueryHandler>;
 
       const query: ComplexQuery = {
         cacheKey: 'complex-query',

@@ -181,7 +181,7 @@ describe('UpdateMovementUseCase', () => {
     it('should handle empty tag by setting to empty string', async () => {
       const requestWithoutTag: UpdateMovementRequest = {
         ...validRequest,
-        movement_tag: undefined,
+        movement_tag: undefined as any,
       };
 
       const updatedMovement = {

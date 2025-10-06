@@ -1,8 +1,11 @@
 import { SeriesWriteRepository } from '../../../../../src/modules/series/application/ports/series-write.repository';
-import { SeriesCreateRequest, SeriesUpdateRequest } from '../../../../../src/modules/series/domain/entities/series.entity';
+import {
+  SeriesCreateRequest,
+  SeriesUpdateRequest,
+} from '../../../../../src/modules/series/domain/entities/series.entity';
 
 describe('SeriesWriteRepository Interface', () => {
-  let mockRepository: SeriesWriteRepository;
+  let mockRepository: jest.Mocked<SeriesWriteRepository>;
 
   beforeEach(() => {
     mockRepository = {
@@ -33,7 +36,6 @@ describe('SeriesWriteRepository Interface', () => {
         qualification: 8.5,
         demography_id: 1,
         visible: true,
-        image: 'test-image.jpg',
       };
 
       const expectedResult = {
@@ -46,7 +48,6 @@ describe('SeriesWriteRepository Interface', () => {
         qualification: 8.5,
         demography_id: 1,
         visible: true,
-        image: 'test-image.jpg',
         created_at: new Date('2023-01-01'),
         updated_at: new Date('2023-01-01'),
       };
@@ -72,7 +73,6 @@ describe('SeriesWriteRepository Interface', () => {
         qualification: 9.5,
         demography_id: 2,
         visible: true,
-        image: 'updated-image.jpg',
       };
 
       mockRepository.update.mockResolvedValue();
@@ -402,7 +402,9 @@ describe('SeriesWriteRepository Interface', () => {
       mockRepository.updateRank.mockRejectedValue(error);
 
       await expect(mockRepository.create({} as SeriesCreateRequest)).rejects.toThrow('Database connection failed');
-      await expect(mockRepository.update(1, {} as SeriesUpdateRequest)).rejects.toThrow('Database connection failed');
+      await expect(mockRepository.update(1, {} as SeriesUpdateRequest)).rejects.toThrow(
+        'Database connection failed'
+      );
       await expect(mockRepository.delete(1)).rejects.toThrow('Database connection failed');
       await expect(mockRepository.updateImage(1, 'path')).rejects.toThrow('Database connection failed');
       await expect(mockRepository.assignGenres(1, [1, 2])).rejects.toThrow('Database connection failed');

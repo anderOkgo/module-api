@@ -18,19 +18,19 @@ jest.mock('../../../../../src/modules/finan/infrastructure/validation/finan.vali
 // Mock the use cases
 const mockGetInitialLoadUseCase = {
   execute: jest.fn(),
-} as jest.Mocked<GetInitialLoadUseCase>;
+} as any;
 
 const mockPutMovementUseCase = {
   execute: jest.fn(),
-} as jest.Mocked<PutMovementUseCase>;
+} as any;
 
 const mockUpdateMovementUseCase = {
   execute: jest.fn(),
-} as jest.Mocked<UpdateMovementUseCase>;
+} as any;
 
 const mockDeleteMovementUseCase = {
   execute: jest.fn(),
-} as jest.Mocked<DeleteMovementUseCase>;
+} as any;
 
 const mockValidateGetInitialLoad = validateGetInitialLoad as jest.MockedFunction<typeof validateGetInitialLoad>;
 const mockValidatePutMovement = validatePutMovement as jest.MockedFunction<typeof validatePutMovement>;
@@ -72,6 +72,10 @@ describe('FinanController', () => {
       totalDay: [],
       balanceUntilDate: [],
       totalBank: [],
+      totalExpenseDay: [],
+      totalBalance: [],
+      monthlyBalance: [],
+      monthlyExpensesUntilDay: [],
     };
 
     mockGetInitialLoadUseCase.execute.mockResolvedValue(expectedData);
@@ -116,7 +120,16 @@ describe('FinanController', () => {
     const expectedResponse = {
       success: true,
       message: 'Movement created successfully',
-      data: { id: 1, ...movement },
+      data: {
+        id: 1,
+        name: 'test',
+        value: 10,
+        date_movement: '2023-09-25',
+        type_source_id: 1,
+        tag: 'testtag',
+        currency: 'USD',
+        user: 'testuser',
+      },
     };
 
     mockPutMovementUseCase.execute.mockResolvedValue(expectedResponse);
@@ -198,7 +211,16 @@ describe('FinanController', () => {
     const expectedResponse = {
       success: true,
       message: 'Movement updated successfully',
-      data: { id: 1, ...movementData },
+      data: {
+        id: 1,
+        name: 'updated test',
+        value: 20,
+        date_movement: '2023-09-25',
+        type_source_id: 1,
+        tag: 'updatedtag',
+        currency: 'USD',
+        user: 'testuser',
+      },
     };
 
     mockUpdateMovementUseCase.execute.mockResolvedValue(expectedResponse);
@@ -414,7 +436,16 @@ describe('FinanController', () => {
       const expectedResponse = {
         success: true,
         message: 'Movement updated successfully',
-        data: { id: 1, movement_name: 'updated test' },
+        data: {
+          id: 1,
+          name: 'updated test',
+          value: 0,
+          date_movement: '',
+          type_source_id: 0,
+          tag: '',
+          currency: '',
+          user: '',
+        },
       };
 
       mockUpdateMovementUseCase.execute.mockResolvedValue(expectedResponse);
@@ -454,7 +485,16 @@ describe('FinanController', () => {
       const expectedResponse = {
         success: true,
         message: 'Movement updated successfully',
-        data: { id: 1, movement_name: 'updated test' },
+        data: {
+          id: 1,
+          name: 'updated test',
+          value: 0,
+          date_movement: '',
+          type_source_id: 0,
+          tag: '',
+          currency: '',
+          user: '',
+        },
       };
 
       mockUpdateMovementUseCase.execute.mockResolvedValue(expectedResponse);
@@ -542,6 +582,10 @@ describe('FinanController', () => {
         totalDay: [{ day: 'Monday', total: 1000 }],
         balanceUntilDate: [{ date: '2023-12-31', balance: 50000 }],
         totalBank: [{ bank: 'Chase', total: 25000 }],
+        totalExpenseDay: [{ day: '2023-01-01', total: 500 }],
+        totalBalance: [{ total: 3800 }],
+        monthlyBalance: [{ month: '2023-01', balance: 3800 }],
+        monthlyExpensesUntilDay: [{ day: '2023-01-15', expenses: 250 }],
       };
 
       mockGetInitialLoadUseCase.execute.mockResolvedValue(complexData);
@@ -570,7 +614,16 @@ describe('FinanController', () => {
       const expectedResponse = {
         success: true,
         message: 'Movement created successfully',
-        data: { id: 1, ...minimalMovement },
+        data: {
+          id: 1,
+          name: 'test',
+          value: 10,
+          date_movement: '2023-09-25',
+          type_source_id: 1,
+          tag: '',
+          currency: 'USD',
+          user: 'testuser',
+        },
       };
 
       mockPutMovementUseCase.execute.mockResolvedValue(expectedResponse);

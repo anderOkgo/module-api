@@ -39,12 +39,12 @@ describe('Command Interface', () => {
   });
 
   describe('CommandHandler interface', () => {
-    let mockHandler: CommandHandler<Command>;
+    let mockHandler: jest.Mocked<CommandHandler<Command>>;
 
     beforeEach(() => {
       mockHandler = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<CommandHandler<Command>>;
     });
 
     afterEach(() => {
@@ -82,9 +82,9 @@ describe('Command Interface', () => {
 
       interface CustomCommandHandler extends CommandHandler<CustomCommand, number> {}
 
-      const mockCustomHandler: CustomCommandHandler = {
+      const mockCustomHandler: jest.Mocked<CustomCommandHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<CustomCommandHandler>;
 
       const customCommand: CustomCommand = {
         timestamp: new Date('2023-01-01T10:00:00Z'),
@@ -120,9 +120,9 @@ describe('Command Interface', () => {
 
       interface StringCommandHandler extends CommandHandler<StringCommand, string> {}
 
-      const mockHandler: StringCommandHandler = {
+      const mockHandler: jest.Mocked<StringCommandHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<StringCommandHandler>;
 
       const command: StringCommand = {
         timestamp: new Date('2023-01-01T10:00:00Z'),
@@ -144,9 +144,9 @@ describe('Command Interface', () => {
 
       interface ObjectCommandHandler extends CommandHandler<ObjectCommand, { success: boolean; data: any }> {}
 
-      const mockHandler: ObjectCommandHandler = {
+      const mockHandler: jest.Mocked<ObjectCommandHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<ObjectCommandHandler>;
 
       const command: ObjectCommand = {
         timestamp: new Date('2023-01-01T10:00:00Z'),
@@ -170,9 +170,9 @@ describe('Command Interface', () => {
 
       interface ArrayCommandHandler extends CommandHandler<ArrayCommand, number[]> {}
 
-      const mockHandler: ArrayCommandHandler = {
+      const mockHandler: jest.Mocked<ArrayCommandHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<ArrayCommandHandler>;
 
       const command: ArrayCommand = {
         timestamp: new Date('2023-01-01T10:00:00Z'),
@@ -213,9 +213,9 @@ describe('Command Interface', () => {
 
       interface NullCommandHandler extends CommandHandler<NullCommand, null> {}
 
-      const mockHandler: NullCommandHandler = {
+      const mockHandler: jest.Mocked<NullCommandHandler> = {
         execute: jest.fn(),
-      };
+      } as jest.Mocked<NullCommandHandler>;
 
       const command: NullCommand = {
         timestamp: new Date('2023-01-01T10:00:00Z'),

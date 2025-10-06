@@ -1,9 +1,14 @@
 import { SeriesReadRepository } from '../../../../../src/modules/series/application/ports/series-read.repository';
-import { SeriesResponse, SeriesSearchFilters, Genre, Demographic } from '../../../../../src/modules/series/domain/entities/series.entity';
+import {
+  SeriesResponse,
+  SeriesSearchFilters,
+  Genre,
+  Demographic,
+} from '../../../../../src/modules/series/domain/entities/series.entity';
 import Year from '../../../../../src/modules/series/domain/entities/year.entity';
 
 describe('SeriesReadRepository Interface', () => {
-  let mockRepository: SeriesReadRepository;
+  let mockRepository: jest.Mocked<SeriesReadRepository>;
 
   beforeEach(() => {
     mockRepository = {
@@ -27,7 +32,7 @@ describe('SeriesReadRepository Interface', () => {
       const expectedSeries: SeriesResponse = {
         id: 1,
         name: 'Found Series',
-        chapter_numer: 24,
+        chapter_number: 24,
         year: 2023,
         description: 'Found description',
         description_en: 'Found description in English',
@@ -37,8 +42,6 @@ describe('SeriesReadRepository Interface', () => {
         visible: true,
         image: 'found-image.jpg',
         rank: 5,
-        created_at: new Date('2023-01-01'),
-        updated_at: new Date('2023-01-02'),
       };
 
       mockRepository.findById.mockResolvedValue(expectedSeries);
@@ -51,7 +54,7 @@ describe('SeriesReadRepository Interface', () => {
 
     it('should implement findById method returning null', async () => {
       const id = 999;
-      
+
       mockRepository.findById.mockResolvedValue(null);
 
       const result = await mockRepository.findById(id);
@@ -68,7 +71,7 @@ describe('SeriesReadRepository Interface', () => {
           {
             id: 1,
             name: 'Series 1',
-            chapter_numer: 12,
+            chapter_number: 12,
             year: 2023,
             description: 'Description 1',
             description_en: 'Description 1 in English',
@@ -78,13 +81,11 @@ describe('SeriesReadRepository Interface', () => {
             visible: true,
             image: 'image1.jpg',
             rank: 1,
-            created_at: new Date('2023-01-01'),
-            updated_at: new Date('2023-01-02'),
           },
           {
             id: 2,
             name: 'Series 2',
-            chapter_numer: 24,
+            chapter_number: 24,
             year: 2023,
             description: 'Description 2',
             description_en: 'Description 2 in English',
@@ -94,8 +95,6 @@ describe('SeriesReadRepository Interface', () => {
             visible: true,
             image: 'image2.jpg',
             rank: 2,
-            created_at: new Date('2023-01-01'),
-            updated_at: new Date('2023-01-02'),
           },
         ],
         total: 2,
@@ -136,14 +135,13 @@ describe('SeriesReadRepository Interface', () => {
         name: 'Action',
         year: 2023,
         demography_id: 1,
-        qualification: 8.0,
       };
 
       const expectedResults: SeriesResponse[] = [
         {
           id: 1,
           name: 'Action Series',
-          chapter_numer: 12,
+          chapter_number: 12,
           year: 2023,
           description: 'Action description',
           description_en: 'Action description in English',
@@ -153,8 +151,6 @@ describe('SeriesReadRepository Interface', () => {
           visible: true,
           image: 'action-image.jpg',
           rank: 3,
-          created_at: new Date('2023-01-01'),
-          updated_at: new Date('2023-01-02'),
         },
       ];
 
@@ -186,7 +182,7 @@ describe('SeriesReadRepository Interface', () => {
         {
           id: 1,
           name: 'Production 1',
-          chapter_numer: 12,
+          chapter_number: 12,
           year: 2023,
           description: 'Production 1 description',
           description_en: 'Production 1 description in English',
@@ -196,13 +192,11 @@ describe('SeriesReadRepository Interface', () => {
           visible: true,
           image: 'prod1-image.jpg',
           rank: 1,
-          created_at: new Date('2023-01-01'),
-          updated_at: new Date('2023-01-02'),
         },
         {
           id: 2,
           name: 'Production 2',
-          chapter_numer: 24,
+          chapter_number: 24,
           year: 2023,
           description: 'Production 2 description',
           description_en: 'Production 2 description in English',
@@ -212,16 +206,14 @@ describe('SeriesReadRepository Interface', () => {
           visible: true,
           image: 'prod2-image.jpg',
           rank: 2,
-          created_at: new Date('2023-01-01'),
-          updated_at: new Date('2023-01-02'),
         },
       ];
 
       mockRepository.getProductions.mockResolvedValue(expectedProductions);
 
-      const result = await mockRepository.getProductions();
+      const result = await mockRepository.getProductions({});
 
-      expect(mockRepository.getProductions).toHaveBeenCalledWith();
+      expect(mockRepository.getProductions).toHaveBeenCalledWith({});
       expect(result).toEqual(expectedProductions);
       expect(result).toHaveLength(2);
     });
@@ -231,9 +223,9 @@ describe('SeriesReadRepository Interface', () => {
 
       mockRepository.getProductions.mockResolvedValue(expectedProductions);
 
-      const result = await mockRepository.getProductions();
+      const result = await mockRepository.getProductions({});
 
-      expect(mockRepository.getProductions).toHaveBeenCalledWith();
+      expect(mockRepository.getProductions).toHaveBeenCalledWith({});
       expect(result).toEqual(expectedProductions);
       expect(result).toHaveLength(0);
     });
@@ -329,7 +321,6 @@ describe('SeriesReadRepository Interface', () => {
         name: 'Series with Special !@#$%^&*() Characters',
         year: 2023,
         demography_id: 1,
-        qualification: 8.0,
       };
 
       const expectedResults: SeriesResponse[] = [];
@@ -393,7 +384,7 @@ describe('SeriesReadRepository Interface', () => {
       await expect(mockRepository.findById(1)).rejects.toThrow('Database connection failed');
       await expect(mockRepository.findAll(10, 0)).rejects.toThrow('Database connection failed');
       await expect(mockRepository.search({})).rejects.toThrow('Database connection failed');
-      await expect(mockRepository.getProductions()).rejects.toThrow('Database connection failed');
+      await expect(mockRepository.getProductions({})).rejects.toThrow('Database connection failed');
       await expect(mockRepository.getProductionYears()).rejects.toThrow('Database connection failed');
       await expect(mockRepository.getDemographics()).rejects.toThrow('Database connection failed');
       await expect(mockRepository.getGenres()).rejects.toThrow('Database connection failed');
@@ -412,7 +403,7 @@ describe('SeriesReadRepository Interface', () => {
 
       mockRepository.getProductions.mockRejectedValue(invalidDataError);
 
-      await expect(mockRepository.getProductions()).rejects.toThrow('Invalid data format');
+      await expect(mockRepository.getProductions({})).rejects.toThrow('Invalid data format');
     });
   });
 });

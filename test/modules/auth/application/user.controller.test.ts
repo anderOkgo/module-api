@@ -6,11 +6,11 @@ import { LoginUserUseCase } from '../../../../src/modules/auth/application/use-c
 // Mock the use cases
 const mockRegisterUserUseCase = {
   execute: jest.fn(),
-} as jest.Mocked<RegisterUserUseCase>;
+} as any;
 
 const mockLoginUserUseCase = {
   execute: jest.fn(),
-} as jest.Mocked<LoginUserUseCase>;
+} as any;
 
 describe('UserController', () => {
   let userController: UserController;

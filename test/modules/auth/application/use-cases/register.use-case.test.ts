@@ -9,6 +9,9 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   findByEmail: jest.fn(),
   findByUsername: jest.fn(),
   create: jest.fn(),
+  findById: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
   findByEmailOrUsername: jest.fn(),
   saveVerificationCode: jest.fn(),
   validateVerificationCode: jest.fn(),
@@ -16,7 +19,9 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   incrementLoginAttempts: jest.fn(),
   resetLoginAttempts: jest.fn(),
   lockUser: jest.fn(),
+  unlockUser: jest.fn(),
   updateLastLogin: jest.fn(),
+  updatePassword: jest.fn(),
 };
 
 const mockPasswordHasher: jest.Mocked<PasswordHasherPort> = {
@@ -26,6 +31,8 @@ const mockPasswordHasher: jest.Mocked<PasswordHasherPort> = {
 
 const mockEmailService: jest.Mocked<EmailServicePort> = {
   sendVerificationCode: jest.fn(),
+  sendWelcomeEmail: jest.fn(),
+  sendPasswordResetEmail: jest.fn(),
 };
 
 describe('RegisterUserUseCase', () => {
@@ -126,6 +133,8 @@ describe('RegisterUserUseCase', () => {
         email: 'test@example.com',
         username: 'existinguser',
         password: 'hashed',
+        first_name: 'Existing',
+        last_name: 'User',
         role: UserRole.USER,
         active: true,
         created: '2023-01-01 00:00:00',
@@ -145,6 +154,8 @@ describe('RegisterUserUseCase', () => {
         email: 'existing@example.com',
         username: 'testuser',
         password: 'hashed',
+        first_name: 'Existing',
+        last_name: 'User',
         role: UserRole.USER,
         active: true,
         created: '2023-01-01 00:00:00',

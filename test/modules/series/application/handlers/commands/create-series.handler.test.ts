@@ -16,9 +16,10 @@ const mockSeriesWriteRepository: jest.Mocked<SeriesWriteRepository> = {
   updateRank: jest.fn(),
 };
 
-const mockImageService: jest.Mocked<ImageService> = {
+const mockImageService = {
   processAndSaveImage: jest.fn(),
-};
+  deleteImage: jest.fn(),
+} as any;
 
 describe('CreateSeriesHandler', () => {
   let createSeriesHandler: CreateSeriesHandler;
@@ -57,7 +58,7 @@ describe('CreateSeriesHandler', () => {
 
       mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
       mockImageService.processAndSaveImage.mockResolvedValue('processed-image-data');
-      mockSeriesWriteRepository.updateImage.mockResolvedValue();
+      mockSeriesWriteRepository.updateImage.mockResolvedValue(true);
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
 
       const result = await createSeriesHandler.execute(validCommand);
@@ -461,7 +462,7 @@ describe('CreateSeriesHandler', () => {
         '  Test description EN  ', // Description_en with whitespace
         8.5,
         1,
-        undefined, // visible undefined
+        true, // visible true
         Buffer.from('fake-image-data')
       );
 
@@ -480,7 +481,7 @@ describe('CreateSeriesHandler', () => {
 
       mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
       mockImageService.processAndSaveImage.mockResolvedValue('processed-image-data');
-      mockSeriesWriteRepository.updateImage.mockResolvedValue();
+      mockSeriesWriteRepository.updateImage.mockResolvedValue(true);
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
 
       const result = await createSeriesHandler.execute(commandWithWhitespace);
@@ -516,7 +517,7 @@ describe('CreateSeriesHandler', () => {
         'Test Series',
         12,
         2023,
-        undefined, // Empty description
+        '', // Empty description
         null as any, // Empty description_en
         8.5,
         1,

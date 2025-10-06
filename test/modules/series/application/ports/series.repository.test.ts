@@ -1,9 +1,15 @@
 import { ProductionRepository } from '../../../../../src/modules/series/application/ports/series.repository';
-import Serie, { SeriesCreateRequest, SeriesUpdateRequest, SeriesSearchFilters, Genre, Demographic } from '../../../../../src/modules/series/domain/entities/series.entity';
+import Serie, {
+  SeriesCreateRequest,
+  SeriesUpdateRequest,
+  SeriesSearchFilters,
+  Genre,
+  Demographic,
+} from '../../../../../src/modules/series/domain/entities/series.entity';
 import Year from '../../../../../src/modules/series/domain/entities/year.entity';
 
 describe('ProductionRepository Interface', () => {
-  let mockRepository: ProductionRepository;
+  let mockRepository: jest.Mocked<ProductionRepository>;
 
   beforeEach(() => {
     mockRepository = {
@@ -23,7 +29,7 @@ describe('ProductionRepository Interface', () => {
       getDemographics: jest.fn(),
       getProductionYears: jest.fn(),
       updateRank: jest.fn(),
-    };
+    } as jest.Mocked<ProductionRepository>;
   });
 
   afterEach(() => {
@@ -41,7 +47,6 @@ describe('ProductionRepository Interface', () => {
         qualification: 8.5,
         demography_id: 1,
         visible: true,
-        image: 'test-image.jpg',
       };
 
       const expectedSeries: Serie = {
@@ -89,7 +94,7 @@ describe('ProductionRepository Interface', () => {
 
     it('should implement findById method returning null', async () => {
       const id = 999;
-      
+
       mockRepository.findById.mockResolvedValue(null);
 
       const result = await mockRepository.findById(id);
@@ -157,7 +162,6 @@ describe('ProductionRepository Interface', () => {
         qualification: 9.5,
         demography_id: 2,
         visible: true,
-        image: 'updated-image.jpg',
       };
 
       const expectedSeries: Serie = {
@@ -210,7 +214,7 @@ describe('ProductionRepository Interface', () => {
         name: 'Action',
         year: 2023,
         demography_id: 1,
-        qualification: 8.0,
+        visible: true,
       };
 
       const expectedResults: Serie[] = [
@@ -368,12 +372,7 @@ describe('ProductionRepository Interface', () => {
     });
 
     it('should implement getProductionYears method', async () => {
-      const expectedYears: Year[] = [
-        { years: '2020' },
-        { years: '2021' },
-        { years: '2022' },
-        { years: '2023' },
-      ];
+      const expectedYears: Year[] = [{ years: '2020' }, { years: '2021' }, { years: '2022' }, { years: '2023' }];
 
       mockRepository.getProductionYears.mockResolvedValue(expectedYears);
 
@@ -474,7 +473,9 @@ describe('ProductionRepository Interface', () => {
 
       await expect(mockRepository.findById(1)).rejects.toThrow('Database connection failed');
       await expect(mockRepository.create({} as SeriesCreateRequest)).rejects.toThrow('Database connection failed');
-      await expect(mockRepository.update(1, {} as SeriesUpdateRequest)).rejects.toThrow('Database connection failed');
+      await expect(mockRepository.update(1, {} as SeriesUpdateRequest)).rejects.toThrow(
+        'Database connection failed'
+      );
       await expect(mockRepository.delete(1)).rejects.toThrow('Database connection failed');
     });
   });

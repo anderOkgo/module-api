@@ -1,7 +1,7 @@
 import { ImageProcessorPort } from '../../../../../src/modules/series/domain/ports/image-processor.port';
 
 describe('ImageProcessorPort Interface', () => {
-  let mockImageProcessor: ImageProcessorPort;
+  let mockImageProcessor: jest.Mocked<ImageProcessorPort>;
 
   beforeEach(() => {
     mockImageProcessor = {

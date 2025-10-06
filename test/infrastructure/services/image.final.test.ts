@@ -367,5 +367,80 @@ describe('ImageProcessor - Final Coverage Tests', () => {
       expect(result).toBe(mediumBuffer);
       expect(mockSharpInstance.metadata).toHaveBeenCalled();
     });
+
+    it('should test different quality levels to trigger branches', async () => {
+      // Test with different quality levels to potentially trigger different branches
+      const testBuffer = Buffer.from('test-data');
+      mockSharpInstance.toBuffer.mockResolvedValue(testBuffer);
+
+      // Test with quality 95 (should trigger quality > 80 branch if size reduction needed)
+      await ImageProcessor.optimizeImage(mockBuffer, {
+        maxSizeKB: 50, // Large limit so no reduction needed
+        quality: 95,
+      });
+
+      // Test with quality 70 (should trigger quality > 60 branch if size reduction needed)
+      await ImageProcessor.optimizeImage(mockBuffer, {
+        maxSizeKB: 50, // Large limit so no reduction needed
+        quality: 70,
+      });
+
+      // Test with quality 55 (should trigger quality <= 60 branch if size reduction needed)
+      await ImageProcessor.optimizeImage(mockBuffer, {
+        maxSizeKB: 50, // Large limit so no reduction needed
+        quality: 55,
+      });
+
+      expect(mockSharpInstance.toBuffer).toHaveBeenCalled();
+    });
+
+    it('should test quality reduction when image is too large', async () => {
+      // Create a buffer that simulates a large image to trigger quality reduction
+      const largeBuffer = Buffer.from('large-image-data');
+      Object.defineProperty(largeBuffer, 'length', { value: 25000 }); // 24.4 KB
+
+      const smallBuffer = Buffer.from('small-image-data');
+      Object.defineProperty(smallBuffer, 'length', { value: 15000 }); // 14.6 KB
+
+      // Mock sequence: large buffer, then small buffer after quality reduction
+      mockSharpInstance.toBuffer
+        .mockResolvedValueOnce(largeBuffer) // Initial call - too large
+        .mockResolvedValueOnce(smallBuffer); // After quality reduction - acceptable size
+
+      const result = await ImageProcessor.optimizeImage(mockBuffer, {
+        maxSizeKB: 20, // Limit that will trigger reduction
+        quality: 95, // High quality to trigger reduction
+      });
+
+      expect(result).toBe(smallBuffer);
+      expect(mockSharpInstance.jpeg).toHaveBeenCalledTimes(2);
+    });
+
+    it('should test aggressive compression when quality is very low', async () => {
+      // Test aggressive compression branch (line 87)
+      const largeBuffer = Buffer.from('large-image-data');
+      Object.defineProperty(largeBuffer, 'length', { value: 25000 }); // 24.4 KB
+
+      // Mock sequence: large buffer throughout, then final aggressive compression
+      mockSharpInstance.toBuffer
+        .mockResolvedValueOnce(largeBuffer) // Initial call
+        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 1
+        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 2
+        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 3
+        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 4
+        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 5
+        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 6
+        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 7
+        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 8
+        .mockResolvedValueOnce(largeBuffer); // Final aggressive compression
+
+      const result = await ImageProcessor.optimizeImage(mockBuffer, {
+        maxSizeKB: 20, // Limit that will trigger reduction
+        quality: 90, // High quality to trigger reduction
+      });
+
+      expect(result).toBe(largeBuffer);
+      expect(mockSharpInstance.jpeg).toHaveBeenCalledTimes(9); // 8 attempts + 1 initial
+    });
   });
 });

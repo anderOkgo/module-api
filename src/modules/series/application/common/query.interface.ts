@@ -1,6 +1,6 @@
 /**
- * Interfaz base para Queries
- * Las queries solo leen datos, no modifican estado
+ * Base interface for Queries
+ * Queries only read data, they do not modify state
  */
 export interface Query<TResult> {
   readonly cacheKey?: string;

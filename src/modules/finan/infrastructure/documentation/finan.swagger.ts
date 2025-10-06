@@ -1,14 +1,14 @@
 /**
- * Documentación Swagger COMPLETA para el módulo financiero
- * Separada del controlador para mantener código limpio
+ * COMPLETE Swagger documentation for the financial module
+ * Separated from controller to maintain clean code
  */
 
 export const finanSwaggerDocumentation = {
-  // 1. POST /api/finan/initial-load - Obtener carga inicial
+  // 1. POST /api/finan/initial-load - Get initial load
   getInitialLoad: {
     '/api/finan/initial-load': {
       post: {
-        summary: 'Obtener carga inicial de datos financieros',
+        summary: 'Get initial load of financial data',
         tags: ['Finance'],
         security: [
           {
@@ -25,7 +25,7 @@ export const finanSwaggerDocumentation = {
                 properties: {
                   currency: {
                     type: 'string',
-                    description: 'Código de moneda (3 caracteres)',
+                    description: 'Currency code (3 characters)',
                     example: 'AUD',
                     minLength: 3,
                     maxLength: 3,
@@ -33,18 +33,18 @@ export const finanSwaggerDocumentation = {
                   start_date: {
                     type: 'string',
                     format: 'date',
-                    description: 'Fecha de inicio para filtrar datos (opcional)',
+                    description: 'Start date to filter data (optional)',
                     example: '2024-01-01',
                   },
                   end_date: {
                     type: 'string',
                     format: 'date',
-                    description: 'Fecha de fin para filtrar datos (opcional)',
+                    description: 'End date to filter data (optional)',
                     example: '2024-12-31',
                   },
                   username: {
                     type: 'string',
-                    description: 'Nombre de usuario (opcional)',
+                    description: 'Username (optional)',
                     example: 'androgko',
                   },
                 },
@@ -54,7 +54,7 @@ export const finanSwaggerDocumentation = {
         },
         responses: {
           200: {
-            description: 'Datos financieros obtenidos exitosamente',
+            description: 'Financial data retrieved successfully',
             content: {
               'application/json': {
                 schema: {
@@ -66,7 +66,7 @@ export const finanSwaggerDocumentation = {
                     },
                     message: {
                       type: 'string',
-                      example: 'Datos financieros obtenidos exitosamente',
+                      example: 'Financial data retrieved successfully',
                     },
                     data: {
                       type: 'object',
@@ -97,7 +97,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error en la validación de parámetros',
+            description: 'Error in parameter validation',
             content: {
               'application/json': {
                 schema: {
@@ -107,7 +107,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           401: {
-            description: 'Token de autorización inválido o faltante',
+            description: 'Invalid or missing authorization token',
             content: {
               'application/json': {
                 schema: {
@@ -117,7 +117,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -131,11 +131,11 @@ export const finanSwaggerDocumentation = {
     },
   },
 
-  // 2. POST /api/finan/insert - Crear movimiento
+  // 2. POST /api/finan/insert - Create movement
   putMovement: {
     '/api/finan/insert': {
       post: {
-        summary: 'Crear nuevo movimiento financiero',
+        summary: 'Create new financial movement',
         tags: ['Finance'],
         security: [
           {
@@ -159,33 +159,33 @@ export const finanSwaggerDocumentation = {
                 properties: {
                   movement_name: {
                     type: 'string',
-                    description: 'Nombre del movimiento',
+                    description: 'Movement name',
                     example: 'Compra de comida',
                   },
                   movement_val: {
                     type: 'number',
-                    description: 'Valor del movimiento',
+                    description: 'Movement value',
                     example: 25.5,
                   },
                   movement_date: {
                     type: 'string',
                     format: 'date',
-                    description: 'Fecha del movimiento',
+                    description: 'Movement date',
                     example: '2024-01-15',
                   },
                   movement_type: {
                     type: 'number',
-                    description: 'Tipo de movimiento (1=ingreso, 2=egreso)',
+                    description: 'Movement type (1=income, 2=expense)',
                     example: 1,
                   },
                   movement_tag: {
                     type: 'string',
-                    description: 'Etiqueta del movimiento',
+                    description: 'Movement tag',
                     example: 'food',
                   },
                   currency: {
                     type: 'string',
-                    description: 'Moneda',
+                    description: 'Currency',
                     example: 'USD',
                   },
                 },
@@ -195,7 +195,7 @@ export const finanSwaggerDocumentation = {
         },
         responses: {
           201: {
-            description: 'Movimiento creado exitosamente',
+            description: 'Movement created successfully',
             content: {
               'application/json': {
                 schema: {
@@ -207,7 +207,7 @@ export const finanSwaggerDocumentation = {
                     },
                     message: {
                       type: 'string',
-                      example: 'Movimiento creado exitosamente',
+                      example: 'Movement created successfully',
                     },
                     data: {
                       $ref: '#/components/schemas/Movement',
@@ -218,7 +218,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error en la validación de datos',
+            description: 'Error in data validation',
             content: {
               'application/json': {
                 schema: {
@@ -228,7 +228,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           401: {
-            description: 'Token de autorización inválido o faltante',
+            description: 'Invalid or missing authorization token',
             content: {
               'application/json': {
                 schema: {
@@ -238,7 +238,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -252,11 +252,11 @@ export const finanSwaggerDocumentation = {
     },
   },
 
-  // 3. PUT /api/finan/update/{id} - Actualizar movimiento
+  // 3. PUT /api/finan/update/{id} - Update movement
   updateMovement: {
     '/api/finan/update/{id}': {
       put: {
-        summary: 'Actualizar movimiento financiero',
+        summary: 'Update financial movement',
         tags: ['Finance'],
         security: [
           {
@@ -268,7 +268,7 @@ export const finanSwaggerDocumentation = {
             name: 'id',
             in: 'path',
             required: true,
-            description: 'ID del movimiento',
+            description: 'Movement ID',
             schema: {
               type: 'integer',
             },
@@ -283,33 +283,33 @@ export const finanSwaggerDocumentation = {
                 properties: {
                   movement_name: {
                     type: 'string',
-                    description: 'Nombre del movimiento',
+                    description: 'Movement name',
                     example: 'Compra de comida actualizada',
                   },
                   movement_val: {
                     type: 'number',
-                    description: 'Valor del movimiento',
+                    description: 'Movement value',
                     example: 30.0,
                   },
                   movement_date: {
                     type: 'string',
                     format: 'date',
-                    description: 'Fecha del movimiento',
+                    description: 'Movement date',
                     example: '2024-01-15',
                   },
                   movement_type: {
                     type: 'number',
-                    description: 'Tipo de movimiento (1=ingreso, 2=egreso)',
+                    description: 'Movement type (1=income, 2=expense)',
                     example: 1,
                   },
                   movement_tag: {
                     type: 'string',
-                    description: 'Etiqueta del movimiento',
+                    description: 'Movement tag',
                     example: 'food',
                   },
                   currency: {
                     type: 'string',
-                    description: 'Moneda',
+                    description: 'Currency',
                     example: 'USD',
                   },
                 },
@@ -319,7 +319,7 @@ export const finanSwaggerDocumentation = {
         },
         responses: {
           200: {
-            description: 'Movimiento actualizado exitosamente',
+            description: 'Movement updated successfully',
             content: {
               'application/json': {
                 schema: {
@@ -331,7 +331,7 @@ export const finanSwaggerDocumentation = {
                     },
                     message: {
                       type: 'string',
-                      example: 'Movimiento actualizado exitosamente',
+                      example: 'Movement updated successfully',
                     },
                     data: {
                       $ref: '#/components/schemas/Movement',
@@ -342,7 +342,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error en la validación de datos',
+            description: 'Error in data validation',
             content: {
               'application/json': {
                 schema: {
@@ -352,7 +352,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           401: {
-            description: 'Token de autorización inválido o faltante',
+            description: 'Invalid or missing authorization token',
             content: {
               'application/json': {
                 schema: {
@@ -362,7 +362,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           404: {
-            description: 'Movimiento no encontrado',
+            description: 'Movement not found',
             content: {
               'application/json': {
                 schema: {
@@ -372,7 +372,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -386,11 +386,11 @@ export const finanSwaggerDocumentation = {
     },
   },
 
-  // 4. DELETE /api/finan/delete/{id} - Eliminar movimiento
+  // 4. DELETE /api/finan/delete/{id} - Delete movement
   deleteMovement: {
     '/api/finan/delete/{id}': {
       delete: {
-        summary: 'Eliminar movimiento financiero',
+        summary: 'Delete financial movement',
         tags: ['Finance'],
         security: [
           {
@@ -402,7 +402,7 @@ export const finanSwaggerDocumentation = {
             name: 'id',
             in: 'path',
             required: true,
-            description: 'ID del movimiento',
+            description: 'Movement ID',
             schema: {
               type: 'integer',
             },
@@ -410,7 +410,7 @@ export const finanSwaggerDocumentation = {
         ],
         responses: {
           200: {
-            description: 'Movimiento eliminado exitosamente',
+            description: 'Movement deleted successfully',
             content: {
               'application/json': {
                 schema: {
@@ -422,7 +422,7 @@ export const finanSwaggerDocumentation = {
                     },
                     message: {
                       type: 'string',
-                      example: 'Movimiento eliminado exitosamente',
+                      example: 'Movement deleted successfully',
                     },
                   },
                 },
@@ -430,7 +430,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           401: {
-            description: 'Token de autorización inválido o faltante',
+            description: 'Invalid or missing authorization token',
             content: {
               'application/json': {
                 schema: {
@@ -440,7 +440,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           404: {
-            description: 'Movimiento no encontrado',
+            description: 'Movement not found',
             content: {
               'application/json': {
                 schema: {
@@ -450,7 +450,7 @@ export const finanSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {

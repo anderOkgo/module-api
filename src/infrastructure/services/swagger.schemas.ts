@@ -1,79 +1,79 @@
 /**
- * Schemas reutilizables de Swagger/OpenAPI
- * Centralizados para mantener consistencia en toda la API
+ * Reusable Swagger/OpenAPI schemas
+ * Centralized to maintain consistency throughout the API
  */
 
 export const swaggerSchemas = {
-  // ==================== ESQUEMAS DE SERIES ====================
+  // ==================== SERIES SCHEMAS ====================/
   Series: {
     type: 'object',
     properties: {
       id: {
         type: 'number',
-        description: 'ID único de la serie',
+        description: 'Unique series ID',
         example: 1,
       },
       name: {
         type: 'string',
-        description: 'Nombre de la serie',
+        description: 'Series name',
         example: 'One Piece',
       },
       chapter_numer: {
         type: 'number',
-        description: 'Número de capítulos',
+        description: 'Number of chapters',
         example: 1000,
       },
       year: {
         type: 'number',
-        description: 'Año de producción',
+        description: 'Production year',
         example: 1999,
       },
       description: {
         type: 'string',
-        description: 'Descripción de la serie',
+        description: 'Series description',
         example: 'Las aventuras de Monkey D. Luffy...',
       },
       qualification: {
         type: 'number',
         minimum: 0,
         maximum: 10,
-        description: 'Calificación de 0 a 10',
+        description: 'Rating from 0 to 10',
         example: 9.5,
       },
       demography_id: {
         type: 'number',
-        description: 'ID de la demografía',
+        description: 'Demographic ID',
         example: 1,
       },
       demographic_name: {
         type: 'string',
-        description: 'Nombre de la demografía',
+        description: 'Demographic name',
         example: 'Shonen',
       },
       visible: {
         type: 'boolean',
-        description: 'Si la serie es visible',
+        description: 'Whether the series is visible',
         example: true,
       },
       image: {
         type: 'string',
-        description: 'Ruta de la imagen optimizada',
+        description: 'Path to the optimized image',
         example: '/img/tarjeta/1.jpg',
       },
       rank: {
         type: 'number',
-        description: 'Ranking de la serie',
+        description: 'Series ranking',
         example: 1,
       },
       created_at: {
         type: 'string',
         format: 'date-time',
-        description: 'Fecha de creación',
+        description: 'Creation date',
       },
       updated_at: {
         type: 'string',
         format: 'date-time',
-        description: 'Fecha de última actualización',
+        description: 'Last update date',
       },
     },
     required: ['name', 'chapter_numer', 'year', 'description', 'qualification', 'demography_id', 'visible'],
@@ -83,44 +83,44 @@ export const swaggerSchemas = {
     properties: {
       name: {
         type: 'string',
-        description: 'Nombre de la serie',
+        description: 'Series name',
         example: 'One Piece',
         minLength: 2,
         maxLength: 200,
       },
       chapter_number: {
         type: 'number',
-        description: 'Número de capítulos',
+        description: 'Number of chapters',
         example: 1000,
         minimum: 0,
       },
       year: {
         type: 'number',
-        description: 'Año de producción',
+        description: 'Production year',
         example: 1999,
         minimum: 1900,
       },
       description: {
         type: 'string',
-        description: 'Descripción de la serie',
+        description: 'Series description',
         example: 'Las aventuras de Monkey D. Luffy...',
         maxLength: 5000,
       },
       qualification: {
         type: 'number',
-        description: 'Calificación de 0 a 10',
+        description: 'Rating from 0 to 10',
         example: 9.5,
         minimum: 0,
         maximum: 10,
       },
       demography_id: {
         type: 'number',
-        description: 'ID de la demografía',
+        description: 'Demographic ID',
         example: 1,
       },
       visible: {
         type: 'boolean',
-        description: 'Si la serie es visible',
+        description: 'Whether the series is visible',
         example: true,
       },
     },
@@ -131,44 +131,44 @@ export const swaggerSchemas = {
     properties: {
       name: {
         type: 'string',
-        description: 'Nombre de la serie',
+        description: 'Series name',
         example: 'One Piece',
         minLength: 2,
         maxLength: 200,
       },
       chapter_number: {
         type: 'number',
-        description: 'Número de capítulos',
+        description: 'Number of chapters',
         example: 1000,
         minimum: 0,
       },
       year: {
         type: 'number',
-        description: 'Año de producción',
+        description: 'Production year',
         example: 1999,
         minimum: 1900,
       },
       description: {
         type: 'string',
-        description: 'Descripción de la serie',
+        description: 'Series description',
         example: 'Las aventuras de Monkey D. Luffy...',
         maxLength: 5000,
       },
       qualification: {
         type: 'number',
-        description: 'Calificación de 0 a 10',
+        description: 'Rating from 0 to 10',
         example: 9.5,
         minimum: 0,
         maximum: 10,
       },
       demography_id: {
         type: 'number',
-        description: 'ID de la demografía',
+        description: 'Demographic ID',
         example: 1,
       },
       visible: {
         type: 'boolean',
-        description: 'Si la serie es visible',
+        description: 'Whether the series is visible',
         example: true,
       },
     },
@@ -178,47 +178,47 @@ export const swaggerSchemas = {
     properties: {
       id: {
         type: 'number',
-        description: 'ID único de la serie',
+        description: 'Unique series ID',
         example: 1,
       },
       name: {
         type: 'string',
-        description: 'Nombre de la serie',
+        description: 'Series name',
         example: 'One Piece',
       },
       chapter_number: {
         type: 'number',
-        description: 'Número de capítulos',
+        description: 'Number of chapters',
         example: 1000,
       },
       year: {
         type: 'number',
-        description: 'Año de producción',
+        description: 'Production year',
         example: 1999,
       },
       description: {
         type: 'string',
-        description: 'Descripción de la serie',
+        description: 'Series description',
         example: 'Las aventuras de Monkey D. Luffy...',
       },
       qualification: {
         type: 'number',
-        description: 'Calificación de 0 a 10',
+        description: 'Rating from 0 to 10',
         example: 9.5,
       },
       demography_id: {
         type: 'number',
-        description: 'ID de la demografía',
+        description: 'Demographic ID',
         example: 1,
       },
       demographic_name: {
         type: 'string',
-        description: 'Nombre de la demografía',
+        description: 'Demographic name',
         example: 'Shonen',
       },
       visible: {
         type: 'boolean',
-        description: 'Si la serie es visible',
+        description: 'Whether the series is visible',
         example: true,
       },
       image: {
@@ -228,7 +228,7 @@ export const swaggerSchemas = {
       },
       rank: {
         type: 'number',
-        description: 'Ranking de la serie',
+        description: 'Series ranking',
         example: 1,
       },
       genres: {
@@ -236,14 +236,14 @@ export const swaggerSchemas = {
         items: {
           $ref: '#/components/schemas/Genre',
         },
-        description: 'Géneros asociados',
+        description: 'Associated genres',
       },
       titles: {
         type: 'array',
         items: {
           $ref: '#/components/schemas/Title',
         },
-        description: 'Títulos alternativos',
+        description: 'Alternative titles',
       },
     },
   },
@@ -252,17 +252,17 @@ export const swaggerSchemas = {
     properties: {
       id: {
         type: 'number',
-        description: 'ID del género',
+        description: 'Genre ID',
         example: 1,
       },
       name: {
         type: 'string',
-        description: 'Nombre del género',
+        description: 'Genre name',
         example: 'Acción',
       },
       slug: {
         type: 'string',
-        description: 'Slug del género',
+        description: 'Genre slug',
         example: 'accion',
       },
     },
@@ -272,17 +272,17 @@ export const swaggerSchemas = {
     properties: {
       id: {
         type: 'number',
-        description: 'ID del título alternativo',
+        description: 'Alternative title ID',
         example: 1,
       },
       production_id: {
         type: 'number',
-        description: 'ID de la producción',
+        description: 'Production ID',
         example: 1,
       },
       name: {
         type: 'string',
-        description: 'Nombre del título alternativo',
+        description: 'Alternative title name',
         example: 'ワンピース',
       },
     },
@@ -292,69 +292,69 @@ export const swaggerSchemas = {
     properties: {
       id: {
         type: 'number',
-        description: 'ID de la demografía',
+        description: 'Demographic ID',
         example: 1,
       },
       name: {
         type: 'string',
-        description: 'Nombre de la demografía',
+        description: 'Demographic name',
         example: 'Shonen',
       },
       slug: {
         type: 'string',
-        description: 'Slug de la demografía',
+        description: 'Demographic slug',
         example: 'shonen',
       },
     },
   },
-  // ==================== ESQUEMAS DE FINANZAS ====================
+  // ==================== FINANCE SCHEMAS ====================
   Movement: {
     type: 'object',
     properties: {
       id: {
         type: 'number',
-        description: 'ID único del movimiento',
+        description: 'Unique movement ID',
         example: 1,
       },
       name: {
         type: 'string',
-        description: 'Nombre del movimiento',
+        description: 'Movement name',
         example: 'Compra de comida',
       },
       value: {
         type: 'number',
-        description: 'Valor del movimiento',
+        description: 'Movement value',
         example: 50.75,
       },
       date_movement: {
         type: 'string',
         format: 'date',
-        description: 'Fecha del movimiento',
+        description: 'Movement date',
         example: '2025-10-02',
       },
       type_source_id: {
         type: 'number',
-        description: 'Tipo de movimiento (1=INCOME, 2=EXPENSE, 8=TRANSFER)',
+        description: 'Movement type (1=INCOME, 2=EXPENSE, 8=TRANSFER)',
         example: 2,
       },
       tag: {
         type: 'string',
-        description: 'Etiqueta del movimiento',
+        description: 'Movement tag',
         example: 'Alimentación',
       },
       currency: {
         type: 'string',
-        description: 'Moneda del movimiento',
+        description: 'Movement currency',
         example: 'USD',
       },
       user: {
         type: 'string',
-        description: 'Usuario propietario',
+        description: 'Owner user',
         example: 'anderokgo',
       },
       log: {
         type: 'number',
-        description: 'Log del movimiento',
+        description: 'Movement log',
         example: 0,
       },
     },
@@ -365,46 +365,46 @@ export const swaggerSchemas = {
     properties: {
       movement_name: {
         type: 'string',
-        description: 'Nombre del movimiento',
+        description: 'Movement name',
         example: 'Compra de comida',
         minLength: 1,
         maxLength: 200,
       },
       movement_val: {
         type: 'number',
-        description: 'Valor del movimiento',
+        description: 'Movement value',
         example: 50.75,
       },
       movement_date: {
         type: 'string',
         format: 'date',
-        description: 'Fecha del movimiento',
+        description: 'Movement date',
         example: '2025-10-02',
       },
       movement_type: {
         type: 'number',
         enum: [1, 2, 8],
-        description: 'Tipo de movimiento (1=INCOME, 2=EXPENSE, 8=TRANSFER)',
+        description: 'Movement type (1=INCOME, 2=EXPENSE, 8=TRANSFER)',
         example: 2,
       },
       movement_tag: {
         type: 'string',
-        description: 'Etiqueta del movimiento',
+        description: 'Movement tag',
         example: 'Alimentación',
       },
       currency: {
         type: 'string',
-        description: 'Moneda del movimiento',
+        description: 'Movement currency',
         example: 'USD',
       },
       username: {
         type: 'string',
-        description: 'Usuario propietario',
+        description: 'Owner user',
         example: 'anderokgo',
       },
       operate_for: {
         type: 'number',
-        description: 'ID del movimiento vinculado (opcional)',
+        description: 'Linked movement ID (optional)',
         example: 5,
       },
     },
@@ -423,41 +423,41 @@ export const swaggerSchemas = {
     properties: {
       movement_name: {
         type: 'string',
-        description: 'Nombre del movimiento',
+        description: 'Movement name',
         example: 'Compra de comida',
         minLength: 1,
         maxLength: 200,
       },
       movement_val: {
         type: 'number',
-        description: 'Valor del movimiento',
+        description: 'Movement value',
         example: 50.75,
       },
       movement_date: {
         type: 'string',
         format: 'date',
-        description: 'Fecha del movimiento',
+        description: 'Movement date',
         example: '2025-10-02',
       },
       movement_type: {
         type: 'number',
         enum: [1, 2, 8],
-        description: 'Tipo de movimiento (1=INCOME, 2=EXPENSE, 8=TRANSFER)',
+        description: 'Movement type (1=INCOME, 2=EXPENSE, 8=TRANSFER)',
         example: 2,
       },
       movement_tag: {
         type: 'string',
-        description: 'Etiqueta del movimiento',
+        description: 'Movement tag',
         example: 'Alimentación',
       },
       currency: {
         type: 'string',
-        description: 'Moneda del movimiento',
+        description: 'Movement currency',
         example: 'USD',
       },
       operate_for: {
         type: 'number',
-        description: 'ID del movimiento vinculado (opcional)',
+        description: 'Linked movement ID (optional)',
         example: 5,
       },
     },
@@ -468,23 +468,23 @@ export const swaggerSchemas = {
     properties: {
       id: {
         type: 'number',
-        description: 'ID único del movimiento',
+        description: 'Unique movement ID',
         example: 1,
       },
       name: {
         type: 'string',
-        description: 'Nombre del movimiento',
+        description: 'Movement name',
         example: 'Compra de comida',
       },
       value: {
         type: 'number',
-        description: 'Valor del movimiento',
+        description: 'Movement value',
         example: 50.75,
       },
       date_movement: {
         type: 'string',
         format: 'date',
-        description: 'Fecha del movimiento',
+        description: 'Movement date',
         example: '2025-10-02',
       },
       type_source_id: {
@@ -494,17 +494,17 @@ export const swaggerSchemas = {
       },
       tag: {
         type: 'string',
-        description: 'Etiqueta del movimiento',
+        description: 'Movement tag',
         example: 'Alimentación',
       },
       currency: {
         type: 'string',
-        description: 'Moneda del movimiento',
+        description: 'Movement currency',
         example: 'USD',
       },
       user: {
         type: 'string',
-        description: 'Usuario propietario',
+        description: 'Owner user',
         example: 'anderokgo',
       },
     },
@@ -514,14 +514,14 @@ export const swaggerSchemas = {
     properties: {
       error: {
         type: 'string',
-        description: 'Mensaje de error',
+        description: 'Error message',
       },
       details: {
         type: 'array',
         items: {
           type: 'string',
         },
-        description: 'Detalles del error',
+        description: 'Error details',
       },
     },
   },
@@ -530,74 +530,74 @@ export const swaggerSchemas = {
     properties: {
       message: {
         type: 'string',
-        description: 'Mensaje de éxito',
+        description: 'Success message',
       },
       data: {
         type: 'object',
-        description: 'Datos de respuesta',
+        description: 'Response data',
       },
     },
   },
-  // ==================== ESQUEMAS DE AUTENTICACIÓN ====================
+  // ==================== AUTHENTICATION SCHEMAS ====================
   User: {
     type: 'object',
     properties: {
       id: {
         type: 'number',
-        description: 'ID único del usuario',
+        description: 'Unique user ID',
         example: 1,
       },
       first_name: {
         type: 'string',
-        description: 'Nombre del usuario',
+        description: 'User first name',
         example: 'Juan',
       },
       last_name: {
         type: 'string',
-        description: 'Apellido del usuario',
+        description: 'User last name',
         example: 'Pérez',
       },
       username: {
         type: 'string',
-        description: 'Nombre de usuario único',
+        description: 'Unique username',
         example: 'juanperez',
       },
       email: {
         type: 'string',
         format: 'email',
-        description: 'Correo electrónico del usuario',
+        description: 'User email',
         example: 'juan@example.com',
       },
       role: {
         type: 'number',
         enum: [1, 2, 3],
-        description: 'Rol del usuario (1=ADMIN, 2=USER, 3=GUEST)',
+        description: 'User role (1=ADMIN, 2=USER, 3=GUEST)',
         example: 2,
       },
       active: {
         type: 'boolean',
-        description: 'Si el usuario está activo',
+        description: 'Whether the user is active',
         example: true,
       },
       created: {
         type: 'string',
         format: 'date-time',
-        description: 'Fecha de creación',
+        description: 'Creation date',
       },
       last_login: {
         type: 'string',
         format: 'date-time',
-        description: 'Fecha del último login',
+        description: 'Last login date',
       },
       login_attempts: {
         type: 'number',
-        description: 'Número de intentos de login fallidos',
+        description: 'Number of failed login attempts',
         example: 0,
       },
       locked_until: {
         type: 'string',
         format: 'date-time',
-        description: 'Fecha hasta cuando la cuenta está bloqueada',
+        description: 'Date until the account is locked',
       },
     },
     required: ['first_name', 'last_name', 'username', 'email', 'role', 'password', 'active'],
@@ -607,21 +607,21 @@ export const swaggerSchemas = {
     properties: {
       first_name: {
         type: 'string',
-        description: 'Nombre del usuario',
+        description: 'User first name',
         example: 'Juan',
         minLength: 2,
         maxLength: 50,
       },
       last_name: {
         type: 'string',
-        description: 'Apellido del usuario',
+        description: 'User last name',
         example: 'Pérez',
         minLength: 2,
         maxLength: 50,
       },
       username: {
         type: 'string',
-        description: 'Nombre de usuario único',
+        description: 'Unique username',
         example: 'juanperez',
         minLength: 3,
         maxLength: 30,
@@ -629,18 +629,18 @@ export const swaggerSchemas = {
       email: {
         type: 'string',
         format: 'email',
-        description: 'Correo electrónico del usuario',
+        description: 'User email',
         example: 'juan@example.com',
       },
       password: {
         type: 'string',
-        description: 'Contraseña del usuario',
+        description: 'User password',
         example: 'password123',
         minLength: 6,
       },
       verificationCode: {
         type: 'number',
-        description: 'Código de verificación (opcional)',
+        description: 'Verification code (optional)',
         example: 123456,
       },
     },
@@ -651,17 +651,17 @@ export const swaggerSchemas = {
     properties: {
       id: {
         type: 'number',
-        description: 'ID único del usuario',
+        description: 'Unique user ID',
         example: 1,
       },
       first_name: {
         type: 'string',
-        description: 'Nombre del usuario',
+        description: 'User first name',
         example: 'Juan',
       },
       last_name: {
         type: 'string',
-        description: 'Apellido del usuario',
+        description: 'User last name',
         example: 'Pérez',
       },
       username: {
@@ -678,23 +678,23 @@ export const swaggerSchemas = {
       role: {
         type: 'number',
         enum: [1, 2, 3],
-        description: 'Rol del usuario (1=ADMIN, 2=USER, 3=GUEST)',
+        description: 'User role (1=ADMIN, 2=USER, 3=GUEST)',
         example: 2,
       },
       active: {
         type: 'boolean',
-        description: 'Si el usuario está activo',
+        description: 'Whether the user is active',
         example: true,
       },
       created: {
         type: 'string',
         format: 'date-time',
-        description: 'Fecha de creación',
+        description: 'Creation date',
       },
       last_login: {
         type: 'string',
         format: 'date-time',
-        description: 'Fecha del último login',
+        description: 'Last login date',
       },
     },
   },
@@ -703,12 +703,12 @@ export const swaggerSchemas = {
     properties: {
       username: {
         type: 'string',
-        description: 'Nombre de usuario o email',
+        description: 'Username or email',
         example: 'juanperez',
       },
       password: {
         type: 'string',
-        description: 'Contraseña del usuario',
+        description: 'User password',
         example: 'password123',
       },
     },
@@ -722,13 +722,13 @@ export const swaggerSchemas = {
       },
       token: {
         type: 'string',
-        description: 'JWT token de autenticación',
+        description: 'JWT authentication token',
         example:
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJuYW1lIjoianVhbnBlcmV6IiwiaWF0IjoxNjE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
       },
       expiresIn: {
         type: 'number',
-        description: 'Tiempo de expiración del token en segundos',
+        description: 'Token expiration time in seconds',
         example: 86400,
       },
     },

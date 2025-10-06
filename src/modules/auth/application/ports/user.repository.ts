@@ -1,11 +1,11 @@
 import User from '../../domain/entities/user.entity';
 
 /**
- * Puerto de repositorio para entidad User
- * Define el contrato para acceso a datos de usuarios
+ * Repository port for User entity
+ * Defines the contract for user data access
  */
 export interface UserRepository {
-  // CRUD básico
+  // Basic CRUD
   create(user: User): Promise<User>;
   findById(id: number): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
@@ -14,7 +14,7 @@ export interface UserRepository {
   update(user: Partial<User>): Promise<User>;
   delete(id: number): Promise<boolean>;
 
-  // Métodos específicos de autenticación
+  // Authentication-specific methods
   updatePassword(userId: number, hashedPassword: string): Promise<void>;
   updateLastLogin(userId: number): Promise<void>;
   incrementLoginAttempts(userId: number): Promise<void>;
@@ -22,7 +22,7 @@ export interface UserRepository {
   lockUser(userId: number, lockUntil: Date): Promise<void>;
   unlockUser(userId: number): Promise<void>;
 
-  // Métodos para códigos de verificación
+  // Methods for verification codes
   saveVerificationCode(email: string, code: number): Promise<void>;
   validateVerificationCode(email: string, code: number): Promise<boolean>;
   deleteVerificationCode(email: string): Promise<void>;

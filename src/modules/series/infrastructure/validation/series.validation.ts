@@ -1,4 +1,4 @@
-// Tipos para validación
+// Types for validation
 export interface ValidateProduction {
   id?: string;
   production_name?: string;

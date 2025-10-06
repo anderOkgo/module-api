@@ -11,25 +11,25 @@ export class UpdateSeriesHandler implements CommandHandler<UpdateSeriesCommand, 
   ) {}
 
   async execute(command: UpdateSeriesCommand): Promise<SeriesResponse> {
-    // 1. Validar
+    // 1. Validate
     this.validate(command);
 
-    // 2. Verificar que existe
+    // 2. Verify that it exists
     const existingSeries = await this.readRepository.findById(command.id);
     if (!existingSeries) {
       throw new Error('Series not found');
     }
 
-    // 3. Normalizar
+    // 3. Normalize
     const normalizedData = this.normalize(command);
 
-    // 4. Actualizar
+    // 4. Update
     await this.writeRepository.update(command.id, normalizedData);
 
-    // 5. Actualizar ranking
+    // 5. Update ranking
     await this.writeRepository.updateRank();
 
-    // 6. Obtener serie actualizada
+    // 6. Get updated series
     const updatedSeries = await this.readRepository.findById(command.id);
     if (!updatedSeries) {
       throw new Error('Series not found after update');
@@ -80,7 +80,7 @@ export class UpdateSeriesHandler implements CommandHandler<UpdateSeriesCommand, 
       throw new Error('Description_en must not exceed 5000 characters');
     }
 
-    // Verificar que al menos un campo se actualice
+    // Verify that at least one field is updated
     const hasUpdates =
       command.name !== undefined ||
       command.chapter_number !== undefined ||

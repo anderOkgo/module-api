@@ -8,8 +8,8 @@ import { SeriesReadRepository } from '../../ports/series-read.repository';
 import { SeriesCreateRequest } from '../../../domain/entities/series.entity';
 
 /**
- * Handler para crear una serie completa con géneros y títulos
- * Orquesta la creación en múltiples pasos de manera transaccional
+ * Handler to create a complete series with genres and titles
+ * Orchestrates creation in multiple steps in a transactional manner
  * // Validated under FULLTEST
  */
 export class CreateSeriesCompleteHandler
@@ -26,13 +26,13 @@ export class CreateSeriesCompleteHandler
     try {
       const { seriesData } = command;
 
-      // 1. Validar entrada
+      // 1. Validate input
       this.validateInput(seriesData);
 
-      // 2. Normalizar datos
+      // 2. Normalize data
       const normalized = this.normalizeData(seriesData);
 
-      // 3. Crear la serie básica
+      // 3. Create basic series
       const basicSeriesData: SeriesCreateRequest = {
         name: normalized.name,
         chapter_number: normalized.chapter_number,
@@ -47,20 +47,20 @@ export class CreateSeriesCompleteHandler
       const newSeries = await this.writeRepository.create(basicSeriesData);
       const newSeriesId = newSeries.id;
 
-      // 4. Asignar géneros si se proporcionan
+      // 4. Assign genres if provided
       if (normalized.genres && normalized.genres.length > 0) {
         await this.writeRepository.assignGenres(newSeriesId, normalized.genres);
       }
 
-      // 5. Agregar títulos alternativos si se proporcionan
+      // 5. Add alternative titles if provided
       if (normalized.titles && normalized.titles.length > 0) {
         await this.writeRepository.addTitles(newSeriesId, normalized.titles);
       }
 
-      // 6. Actualizar el ranking
+      // 6. Update ranking
       await this.writeRepository.updateRank();
 
-      // 7. Verificar que la serie se creó correctamente
+      // 7. Verify that the series was created correctly
       const completeSeries = await this.readRepository.findById(newSeriesId);
       if (!completeSeries) {
         throw new Error('Series created but not found');

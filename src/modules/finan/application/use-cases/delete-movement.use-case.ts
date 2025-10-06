@@ -1,18 +1,18 @@
 import { FinanRepository } from '../ports/finan.repository';
 
 /**
- * Caso de uso para eliminar un movimiento financiero
- * Implementa validaciones y verificación de existencia
+ * Use case for deleting a financial movement
+ * Implements validations and existence verification
  */
 export class DeleteMovementUseCase {
   constructor(private readonly repository: FinanRepository) {}
 
   async execute(id: number, username: string): Promise<{ success: boolean; message: string }> {
     try {
-      // 1. Validar entrada
+      // 1. Validate input
       this.validateInput(id, username);
 
-      // 2. Verificar que el movimiento existe
+      // 2. Verify that the movement exists
       const existing = await this.repository.findById(id, username);
       if (!existing) {
         return {
@@ -21,7 +21,7 @@ export class DeleteMovementUseCase {
         };
       }
 
-      // 3. Verificar que pertenece al usuario
+      // 3. Verify that it belongs to the user
       if (existing.user.toLowerCase() !== username.toLowerCase()) {
         return {
           success: false,
@@ -29,7 +29,7 @@ export class DeleteMovementUseCase {
         };
       }
 
-      // 4. Eliminar
+      // 4. Delete
       const deleted = await this.repository.delete(id, username);
 
       if (deleted) {

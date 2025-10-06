@@ -3,8 +3,8 @@ import { ImageProcessorPort } from '../../domain/ports/image-processor.port';
 import path from 'path';
 
 /**
- * Servicio de procesamiento de imágenes específico para series
- * Implementa el puerto de dominio para manejo de imágenes
+ * Image processing service specific for series
+ * Implements the domain port for image handling
  */
 export class SeriesImageProcessorService implements ImageProcessorPort {
   private readonly UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'series', 'img', 'tarjeta');
@@ -17,8 +17,8 @@ export class SeriesImageProcessorService implements ImageProcessorPort {
   }
 
   async deleteImage(imagePath: string): Promise<void> {
-    // La ruta viene como "/img/tarjeta/486.jpg"
-    // Necesitamos construir la ruta completa: "uploads/series/img/tarjeta/486.jpg"
+    // Path comes as "/img/tarjeta/486.jpg"
+    // We need to build the complete path: "uploads/series/img/tarjeta/486.jpg"
     const fullPath = path.join(process.cwd(), 'uploads', 'series', imagePath);
     if (ImageProcessor.deleteImage) {
       await ImageProcessor.deleteImage(fullPath);

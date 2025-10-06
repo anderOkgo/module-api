@@ -6,7 +6,7 @@ export class GetGenresHandler implements QueryHandler<GetGenresQuery, GetGenresR
   constructor(private readonly readRepository: SeriesReadRepository) {}
 
   async execute(query: GetGenresQuery): Promise<GetGenresResponse> {
-    // Lectura simple sin validaciones complejas
+    // Simple read without complex validations
     const genres = await this.readRepository.getGenres();
 
     return {

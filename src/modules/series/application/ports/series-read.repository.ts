@@ -2,12 +2,12 @@ import { SeriesResponse, SeriesSearchFilters, Genre, Demographic } from '../../d
 import Year from '../../domain/entities/year.entity';
 
 /**
- * Repositorio de LECTURA
- * Solo operaciones que leen datos
- * Usa vistas optimizadas
+ * READ Repository
+ * Only operations that read data
+ * Uses optimized views
  */
 export interface SeriesReadRepository {
-  // Queries individuales
+  // Individual queries
   findById(id: number): Promise<SeriesResponse | null>;
   findAll(
     limit: number,
@@ -17,11 +17,11 @@ export interface SeriesReadRepository {
     total: number;
   }>;
 
-  // Búsquedas
+  // Searches
   search(filters: SeriesSearchFilters): Promise<SeriesResponse[]>;
-  getProductions(filters: any): Promise<any[]>; // Retorna formato legacy para compatibilidad frontend
+  getProductions(filters: any): Promise<any[]>; // Returns legacy format for frontend compatibility
 
-  // Catálogos (lectura pura)
+  // Catalogs (pure read)
   getGenres(): Promise<Genre[]>;
   getDemographics(): Promise<Demographic[]>;
   getProductionYears(): Promise<Year[]>;

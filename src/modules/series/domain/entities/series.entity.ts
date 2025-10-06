@@ -1,17 +1,17 @@
 /**
- * Entidad principal de Series
- * Representa una producción (anime/manga) en el sistema
+ * Main Series entity
+ * Represents a production (anime/manga) in the system
  */
 export default interface Series {
   id: number;
   name: string;
-  chapter_numer: number; // Mantener nombre de columna DB
+  chapter_numer: number; // Keep DB column name
   year: number;
   description: string;
   description_en: string;
   qualification: number;
   demography_id: number;
-  demographic_name?: string; // Del JOIN
+  demographic_name?: string; // From JOIN
   visible: boolean;
   image?: string;
   rank?: number;
@@ -20,7 +20,7 @@ export default interface Series {
 }
 
 /**
- * DTO para creación de series
+ * DTO for series creation
  */
 export interface SeriesCreateRequest {
   name: string;
@@ -34,7 +34,7 @@ export interface SeriesCreateRequest {
 }
 
 /**
- * DTO para actualización de series
+ * DTO for series update
  */
 export interface SeriesUpdateRequest {
   id: number;
@@ -49,7 +49,7 @@ export interface SeriesUpdateRequest {
 }
 
 /**
- * DTO para respuesta de series
+ * DTO for series response
  */
 export interface SeriesResponse {
   id: number;
@@ -69,7 +69,7 @@ export interface SeriesResponse {
 }
 
 /**
- * DTO para búsqueda/filtrado de series
+ * DTO for series search/filtering
  */
 export interface SeriesSearchFilters {
   name?: string;
@@ -82,7 +82,7 @@ export interface SeriesSearchFilters {
 }
 
 /**
- * Entidad para géneros
+ * Entity for genres
  */
 export interface Genre {
   id: number;
@@ -91,7 +91,7 @@ export interface Genre {
 }
 
 /**
- * Entidad para títulos alternativos
+ * Entity for alternative titles
  */
 export interface Title {
   id: number;
@@ -100,7 +100,7 @@ export interface Title {
 }
 
 /**
- * Entidad para demografías
+ * Entity for demographics
  */
 export interface Demographic {
   id: number;

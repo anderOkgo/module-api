@@ -7,13 +7,13 @@ export class GetSeriesByIdHandler implements QueryHandler<GetSeriesByIdQuery, Se
   constructor(private readonly readRepository: SeriesReadRepository) {}
 
   async execute(query: GetSeriesByIdQuery): Promise<SeriesResponse | null> {
-    // Validación mínima
+    // Minimal validation
     if (!query.id || query.id <= 0) {
       throw new Error('Valid series ID is required');
     }
 
-    // Simple lectura, sin lógica de negocio compleja
-    // El repositorio usa una vista optimizada
+    // Simple read, without complex business logic
+    // Repository uses an optimized view
     return await this.readRepository.findById(query.id);
   }
 }

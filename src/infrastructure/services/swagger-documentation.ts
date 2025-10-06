@@ -1,6 +1,6 @@
 /**
- * Registro centralizado de documentación Swagger
- * Importa y registra toda la documentación de los módulos
+ * Centralized Swagger documentation registry
+ * Imports and registers all module documentation
  */
 
 import { userSwaggerDocumentation } from '../../modules/auth/infrastructure/documentation/user.swagger';
@@ -8,7 +8,7 @@ import { seriesSwaggerDocumentation } from '../../modules/series/infrastructure/
 import { finanSwaggerDocumentation } from '../../modules/finan/infrastructure/documentation/finan.swagger';
 
 /**
- * Documentación Swagger consolidada de todos los módulos
+ * Consolidated Swagger documentation from all modules
  */
 export const consolidatedSwaggerDocumentation = {
   ...userSwaggerDocumentation,
@@ -17,18 +17,18 @@ export const consolidatedSwaggerDocumentation = {
 };
 
 /**
- * Función para registrar documentación Swagger en el servidor
- * @param swaggerInstance - Instancia de Swagger
+ * Function to register Swagger documentation on the server
+ * @param swaggerInstance - Swagger instance
  */
 export function registerSwaggerDocumentation(swaggerInstance: any) {
-  // Registrar documentación de autenticación
+  // Register authentication documentation
   Object.assign(swaggerInstance, userSwaggerDocumentation);
 
-  // Registrar documentación de series
+  // Register series documentation
   Object.assign(swaggerInstance, seriesSwaggerDocumentation);
 
-  // Registrar documentación financiera
+  // Register financial documentation
   Object.assign(swaggerInstance, finanSwaggerDocumentation);
 
-  console.log('✅ Documentación Swagger registrada exitosamente');
+  console.log('✅ Swagger documentation registered successfully');
 }

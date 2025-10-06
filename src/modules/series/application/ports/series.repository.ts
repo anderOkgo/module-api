@@ -8,35 +8,35 @@ import Serie, {
 import Year from '../../domain/entities/year.entity';
 
 /**
- * Puerto del repositorio de Series
- * Define el contrato para acceso a datos de series
+ * Series repository port
+ * Defines the contract for series data access
  */
 export interface ProductionRepository {
-  // ==================== MÉTODOS CRUD ====================
+  // ==================== CRUD METHODS ====================
   create(series: SeriesCreateRequest): Promise<Serie>;
   findById(id: number): Promise<Serie | null>;
   findAll(limit?: number, offset?: number): Promise<Serie[]>;
   update(id: number, series: SeriesUpdateRequest): Promise<Serie>;
   delete(id: number): Promise<boolean>;
 
-  // ==================== MÉTODOS DE BÚSQUEDA ====================
+  // ==================== SEARCH METHODS ====================
   search(filters: SeriesSearchFilters): Promise<Serie[]>;
   getProduction(production: Serie): Promise<Serie[]>;
 
-  // ==================== MÉTODOS DE IMAGEN ====================
+  // ==================== IMAGE METHODS ====================
   updateImage(id: number, imagePath: string): Promise<boolean>;
 
-  // ==================== MÉTODOS DE RELACIONES ====================
+  // ==================== RELATIONSHIP METHODS ====================
   assignGenres(seriesId: number, genreIds: number[]): Promise<boolean>;
   removeGenres(seriesId: number, genreIds: number[]): Promise<boolean>;
   addTitles(seriesId: number, titles: string[]): Promise<boolean>;
   removeTitles(seriesId: number, titleIds: number[]): Promise<boolean>;
 
-  // ==================== MÉTODOS DE CATÁLOGOS ====================
+  // ==================== CATALOG METHODS ====================
   getGenres(): Promise<Genre[]>;
   getDemographics(): Promise<Demographic[]>;
   getProductionYears(): Promise<Year[]>;
 
-  // ==================== MÉTODOS DE MANTENIMIENTO ====================
+  // ==================== MAINTENANCE METHODS ====================
   updateRank(): Promise<void>;
 }

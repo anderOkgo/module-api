@@ -10,8 +10,8 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
   }
 
   /**
-   * Obtiene una serie por ID
-   * TODO: Optimizar con vista que incluya géneros y títulos en JSON
+   * Gets a series by ID
+   * TODO: Optimize with view that includes genres and titles in JSON
    */
   async findById(id: number): Promise<SeriesResponse | null> {
     const query = `
@@ -30,7 +30,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
   }
 
   /**
-   * Lista todas las series con paginación
+   * Lists all series with pagination
    */
   async findAll(
     limit: number,
@@ -39,7 +39,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
     series: SeriesResponse[];
     total: number;
   }> {
-    // Query para datos
+    // Query for data
     const dataQuery = `
       SELECT p.*, d.name as demographic_name
       FROM productions p
@@ -48,7 +48,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
       LIMIT ? OFFSET ?
     `;
 
-    // Query para total
+    // Query for total
     const countQuery = 'SELECT COUNT(*) as total FROM productions';
 
     const [dataResult, countResult] = await Promise.all([
@@ -67,7 +67,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
   }
 
   /**
-   * Búsqueda con filtros
+   * Search with filters
    */
   async search(filters: any): Promise<SeriesResponse[]> {
     let query = `
@@ -108,7 +108,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
   }
 
   /**
-   * Obtiene catálogo de géneros
+   * Gets genres catalog
    */
   async getGenres(): Promise<any[]> {
     const query = 'SELECT id, name, slug FROM genres ORDER BY name ASC';
@@ -122,7 +122,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
   }
 
   /**
-   * Obtiene catálogo de demografías
+   * Gets demographics catalog
    */
   async getDemographics(): Promise<any[]> {
     const query = 'SELECT id, name, slug FROM demographics ORDER BY name ASC';
@@ -136,7 +136,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
   }
 
   /**
-   * Obtiene años de producción disponibles
+   * Gets available production years
    */
   async getProductionYears(): Promise<any[]> {
     const query = 'SELECT * FROM view_all_years_productions';
@@ -150,17 +150,17 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
   }
 
   /**
-   * Obtiene producciones (transplantado del repositorio legacy)
-   * Usa la vista view_all_info_produtions con la misma lógica exacta
+   * Gets productions (transplanted from legacy repository)
+   * Uses view_all_info_produtions with the exact same logic
    */
   async getProductions(filters: any): Promise<any[]> {
-    // Transplantado del repositorio legacy - usa la misma lógica exacta
+    // Transplanted from legacy repository - uses the exact same logic
     const viewName = 'view_all_info_produtions';
     const initialQuery = `SELECT * FROM ${viewName} WHERE 1`;
     const conditions: string[] = [];
     const conditionsVals: any[] = [];
 
-    // Mapeo de condiciones (transplantado del legacy)
+    // Condition mapping (transplanted from legacy)
     const conditionMap: Record<string, (label: string, value: any) => string> = {
       production_name: HDB.generateLikeCondition,
       production_number_chapters: HDB.generateBetweenCondition,
@@ -173,29 +173,29 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
       id: HDB.generateInCondition,
     };
 
-    // Aplicar filtros usando la misma lógica del legacy
+    // Apply filters using the same legacy logic
     for (const [key, value] of Object.entries(filters)) {
       if (conditionMap[key]) {
         conditions.push(conditionMap[key](key, value));
-        // No agregar valor para ORDER BY ya que no necesita parámetros
+        // Don't add value for ORDER BY as it doesn't need parameters
         if (key !== 'production_ranking_number') {
           conditionsVals.push(value);
         }
       }
     }
 
-    // Agregar ordenamiento y límite (transplantado del legacy)
+    // Add sorting and limit (transplanted from legacy)
     //conditions.push(HDB.generateOrderBy('production_ranking_number', 'ASC'));
     conditions.push(HDB.generateLimit());
     const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
 
-    // Normalizar limit si existe (transplantado del legacy)
+    // Normalize limit if exists (transplanted from legacy)
     const limit = filters.limit;
     if (limit) {
       conditionsVals.push(parseInt(limit));
     }
 
-    // Merge de arrays (transplantado del legacy)
+    // Array merge (transplanted from legacy)
     const mergedArray: any[] = [];
     conditionsVals.forEach((element) => {
       if (Array.isArray(element)) {

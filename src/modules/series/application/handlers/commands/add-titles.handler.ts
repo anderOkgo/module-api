@@ -10,23 +10,23 @@ export class AddTitlesHandler implements CommandHandler<AddTitlesCommand, { succ
   ) {}
 
   async execute(command: AddTitlesCommand): Promise<{ success: boolean; message: string }> {
-    // 1. Validar entrada
+    // 1. Validate input
     this.validateInput(command);
 
-    // 2. Verificar que la serie existe
+    // 2. Verify that the series exists
     const series = await this.readRepository.findById(command.seriesId);
     if (!series) {
       throw new Error('Series not found');
     }
 
-    // 3. Normalizar títulos (eliminar vacíos y duplicados)
+    // 3. Normalize titles (remove empty and duplicates)
     const normalizedTitles = this.normalizeTitles(command.titles);
 
     if (normalizedTitles.length === 0) {
       throw new Error('No valid titles provided');
     }
 
-    // 4. Agregar títulos
+    // 4. Add titles
     await this.writeRepository.addTitles(command.seriesId, normalizedTitles);
 
     return {
@@ -49,6 +49,6 @@ export class AddTitlesHandler implements CommandHandler<AddTitlesCommand, { succ
     return titles
       .map((title) => title.trim())
       .filter((title) => title.length > 0)
-      .filter((title, index, array) => array.indexOf(title) === index); // Eliminar duplicados
+      .filter((title, index, array) => array.indexOf(title) === index); // Remove duplicates
   }
 }

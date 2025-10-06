@@ -6,8 +6,8 @@ import Movement, {
 } from '../../domain/entities/movement.entity';
 
 /**
- * Caso de uso para crear un nuevo movimiento financiero
- * Implementa la lógica de negocio para la creación de movimientos
+ * Use case for creating a new financial movement
+ * Implements business logic for movement creation
  */
 export class PutMovementUseCase {
   constructor(private readonly repository: FinanRepository) {}
@@ -16,15 +16,15 @@ export class PutMovementUseCase {
     request: CreateMovementRequest
   ): Promise<{ success: boolean; message: string; data?: MovementResponse }> {
     try {
-      // 1. Validar entrada
+      // 1. Validate input
       this.validateMovementData(request);
 
-      // 2. Procesar movimiento vinculado si existe
+      // 2. Process linked movement if exists
       if (request.operate_for) {
         await this.handleLinkedMovement(request);
       }
 
-      // 3. Normalizar datos y crear movimiento
+      // 3. Normalize data and create movement
       const movement: Movement = {
         name: request.movement_name.trim(),
         value: request.movement_val,
@@ -36,10 +36,10 @@ export class PutMovementUseCase {
         log: request.operate_for || 0,
       };
 
-      // 4. Crear en base de datos
+      // 4. Create in database
       const created = await this.repository.create(movement);
 
-      // 5. Mapear a respuesta
+      // 5. Map to response
       const response: MovementResponse = {
         id: created.id!,
         name: created.name,
@@ -113,7 +113,7 @@ export class PutMovementUseCase {
   private async handleLinkedMovement(request: CreateMovementRequest): Promise<void> {
     if (!request.operate_for) return;
 
-    // Lógica de negocio: actualizar movimiento vinculado
+    // Business logic: update linked movement
     await this.repository.operateForLinkedMovement(
       request.operate_for,
       request.movement_val,

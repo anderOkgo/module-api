@@ -6,8 +6,8 @@ import { DeleteMovementUseCase } from '../../application/use-cases/delete-moveme
 import { validatePutMovement, validateGetInitialLoad } from '../validation/finan.validation';
 
 /**
- * FinanController con inyección de dependencias
- * Sigue el patrón hexagonal/clean architecture
+ * FinanController with dependency injection
+ * Follows hexagonal/clean architecture pattern
  */
 export class FinanController {
   constructor(
@@ -18,8 +18,8 @@ export class FinanController {
   ) {}
 
   /**
-   * Obtener carga inicial de datos financieros
-   * Documentación Swagger: finan.swagger.ts
+   * Get initial load of financial data
+   * Swagger documentation: finan.swagger.ts
    */
   getInitialLoad = async (req: Request, res: Response) => {
     const validation = validateGetInitialLoad(req.body);
@@ -38,8 +38,8 @@ export class FinanController {
   };
 
   /**
-   * Crear nuevo movimiento financiero
-   * Documentación Swagger: finan.swagger.ts
+   * Create new financial movement
+   * Swagger documentation: finan.swagger.ts
    */
   putMovement = async (req: Request, res: Response) => {
     const validation = validatePutMovement(req.body);
@@ -66,8 +66,8 @@ export class FinanController {
   };
 
   /**
-   * Actualizar movimiento financiero
-   * Documentación Swagger: finan.swagger.ts
+   * Update financial movement
+   * Swagger documentation: finan.swagger.ts
    */
   updateMovement = async (req: Request, res: Response) => {
     const validation = validatePutMovement(req.body);
@@ -75,7 +75,7 @@ export class FinanController {
 
     try {
       const id = parseInt(req.params.id);
-      const username = req.body.username || 'default'; // Fallback para username
+      const username = req.body.username || 'default'; // Fallback for username
       const resp = await this.updateMovementUseCase.execute(id, req.body, username);
 
       if (!resp.success) {
@@ -96,13 +96,13 @@ export class FinanController {
   };
 
   /**
-   * Eliminar movimiento financiero
-   * Documentación Swagger: finan.swagger.ts
+   * Delete financial movement
+   * Swagger documentation: finan.swagger.ts
    */
   deleteMovement = async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const username = req.body.username || 'default'; // Fallback para username
+      const username = req.body.username || 'default'; // Fallback for username
       const resp = await this.deleteMovementUseCase.execute(id, username);
 
       if (!resp.success) {

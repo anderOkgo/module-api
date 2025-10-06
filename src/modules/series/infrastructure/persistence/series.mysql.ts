@@ -36,7 +36,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     conditions.push(HDB.generateLimit());
     const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
 
-    // Normalizar limit si existe
+    // Normalize limit if exists
     const limit = (production as any).limit;
     if (limit) {
       conditionsVals.push(parseInt(limit));
@@ -67,7 +67,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     return result;
   }
 
-  // Métodos CRUD
+  // CRUD Methods
   async create(series: SeriesCreateRequest): Promise<Series> {
     const query = `
       INSERT INTO productions
@@ -89,7 +89,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     }
     const createdSeries = await this.findById(result.insertId);
     if (!createdSeries) {
-      throw new Error('Error al crear la serie');
+      throw new Error('Error creating series');
     }
     return createdSeries;
   }
@@ -127,7 +127,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     const updateFields: string[] = [];
     const params: any[] = [];
 
-    // Mapeo de campos del modelo a campos de la base de datos
+    // Field mapping from model to database fields
     const fieldMapping: Record<string, string> = {
       chapter_number: 'chapter_numer',
     };
@@ -141,7 +141,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     });
 
     if (updateFields.length === 0) {
-      throw new Error('No hay campos para actualizar');
+      throw new Error('No fields to update');
     }
 
     params.push(id);
@@ -152,11 +152,11 @@ export class ProductionMysqlRepository implements ProductionRepository {
       throw new Error(result.message);
     }
     if (result.affectedRows === 0) {
-      throw new Error('Producción no encontrada');
+      throw new Error('Production not found');
     }
     const updatedSeries = await this.findById(id);
     if (!updatedSeries) {
-      throw new Error('Error al actualizar la serie');
+      throw new Error('Error updating series');
     }
     return updatedSeries;
   }
@@ -222,13 +222,13 @@ export class ProductionMysqlRepository implements ProductionRepository {
     return result;
   }
 
-  // Métodos para manejar relaciones
+  // Methods to handle relationships
   async assignGenres(seriesId: number, genreIds: number[]): Promise<boolean> {
     try {
-      // Eliminar géneros existentes
+      // Remove existing genres
       await this.database.executeSafeQuery('DELETE FROM productions_genres WHERE production_id = ?', [seriesId]);
 
-      // Insertar nuevos géneros
+      // Insert new genres
       if (genreIds.length > 0) {
         const values = genreIds.map((genreId) => `(${seriesId}, ${genreId})`).join(',');
         const query = `INSERT INTO productions_genres (production_id, genre_id) VALUES ${values}`;
@@ -292,7 +292,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
     }
   }
 
-  // ==================== MÉTODOS DE CATÁLOGOS ====================
+  // ==================== CATALOG METHODS ====================
   async getGenres(): Promise<any[]> {
     const query = 'SELECT id, name, slug FROM genres ORDER BY name ASC';
     const result = await this.database.executeSafeQuery(query, []);

@@ -1,6 +1,6 @@
 /**
- * Puerto de dominio para generación de tokens JWT
- * Define el contrato para cualquier implementación de tokens
+ * Domain port for JWT token generation
+ * Defines the contract for any token implementation
  */
 export interface TokenPayload {
   userId: number;
@@ -10,16 +10,16 @@ export interface TokenPayload {
 
 export interface TokenGeneratorPort {
   /**
-   * Genera un token JWT
-   * @param payload Datos a incluir en el token
-   * @returns Token JWT generado
+   * Generates a JWT token
+   * @param payload Data to include in the token
+   * @returns Generated JWT token
    */
   generate(payload: TokenPayload): string;
 
   /**
-   * Verifica y decodifica un token JWT
-   * @param token Token a verificar
-   * @returns Payload decodificado o null si es inválido
+   * Verifies and decodes a JWT token
+   * @param token Token to verify
+   * @returns Decoded payload or null if invalid
    */
   verify(token: string): TokenPayload | null;
 }

@@ -5,8 +5,8 @@ import { SeriesReadRepository } from '../../ports/series-read.repository';
 import { ImageService } from '../../services/image.service';
 
 /**
- * Handler para actualizar la imagen de una serie
- * Orquesta la eliminación de imagen anterior y guardado de la nueva
+ * Handler to update a series image
+ * Orchestrates deletion of previous image and saving of new one
  * // Validated under FULLTEST
  */
 export class UpdateSeriesImageHandler
@@ -22,33 +22,33 @@ export class UpdateSeriesImageHandler
     try {
       const { seriesId, imageFile } = command;
 
-      // 1. Validar entrada
+      // 1. Validate input
       this.validateInput(seriesId, imageFile);
 
       if (!imageFile) {
         throw new Error('Image file is required');
       }
 
-      // 2. Verificar que la serie existe
+      // 2. Verify that the series exists
       const existingSeries = await this.readRepository.findById(seriesId);
       if (!existingSeries) {
         throw new Error('Series not found');
       }
 
-      // 3. Eliminar imagen anterior si existe
+      // 3. Delete previous image if exists
       if (existingSeries.image && existingSeries.image.trim() !== '') {
         try {
           await this.imageService.deleteImage(existingSeries.image);
         } catch (error) {
           console.warn(`Could not delete old image for series ${seriesId}:`, error);
-          // No fallar la actualización si la imagen antigua no se puede eliminar
+          // Don't fail the update if old image cannot be deleted
         }
       }
 
-      // 4. Procesar y guardar nueva imagen
+      // 4. Process and save new image
       const imagePath = await this.imageService.processAndSaveImage(imageFile.buffer, seriesId);
 
-      // 5. Actualizar ruta en BD
+      // 5. Update path in DB
       await this.writeRepository.updateImage(seriesId, imagePath);
 
       return {
@@ -69,7 +69,7 @@ export class UpdateSeriesImageHandler
       throw new Error('Image file is required');
     }
 
-    // Validar tamaño máximo (ej. 10 MB)
+    // Validate maximum size (e.g. 10 MB)
     const MAX_SIZE = 10 * 1024 * 1024;
     if (imageFile.buffer.length > MAX_SIZE) {
       throw new Error(`Image size must not exceed ${MAX_SIZE / 1024 / 1024} MB`);

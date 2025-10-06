@@ -11,16 +11,16 @@ export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, 
   ) {}
 
   async execute(command: CreateSeriesCommand): Promise<SeriesResponse> {
-    // 1. Validar
+    // 1. Validate
     this.validate(command);
 
-    // 2. Normalizar
+    // 2. Normalize
     const normalizedData = this.normalize(command);
 
-    // 3. Crear serie
+    // 3. Create series
     const newSeries = await this.writeRepository.create(normalizedData);
 
-    // 4. Procesar imagen
+    // 4. Process image
     let imagePath: string | undefined;
     if (command.imageBuffer) {
       try {
@@ -31,10 +31,10 @@ export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, 
       }
     }
 
-    // 5. Actualizar ranking
+    // 5. Update ranking
     await this.writeRepository.updateRank();
 
-    // 6. Retornar respuesta
+    // 6. Return response
     return {
       id: newSeries.id,
       name: normalizedData.name,

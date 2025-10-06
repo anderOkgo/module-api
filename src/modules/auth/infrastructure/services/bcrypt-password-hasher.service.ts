@@ -2,8 +2,8 @@ import { PasswordHasherPort } from '../../domain/ports/password-hasher.port';
 const bcrypt = require('bcryptjs');
 
 /**
- * Adaptador de infraestructura para hash de contraseñas usando bcrypt
- * Implementa el puerto PasswordHasherPort
+ * Infrastructure adapter for password hashing using bcrypt
+ * Implements the PasswordHasherPort
  */
 export class BcryptPasswordHasherService implements PasswordHasherPort {
   private readonly SALT_ROUNDS = 10;

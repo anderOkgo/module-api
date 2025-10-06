@@ -1,26 +1,26 @@
 /**
- * Puerto de aplicación para servicio de email
- * Define el contrato para envío de emails relacionados con autenticación
+ * Application port for email service
+ * Defines the contract for sending authentication-related emails
  */
 export interface EmailServicePort {
   /**
-   * Envía un código de verificación por email
-   * @param email Dirección de email del destinatario
-   * @param verificationCode Código de verificación de 6 dígitos
+   * Sends a verification code via email
+   * @param email Recipient email address
+   * @param verificationCode 6-digit verification code
    */
   sendVerificationCode(email: string, verificationCode: number): Promise<void>;
 
   /**
-   * Envía email de bienvenida
-   * @param email Dirección de email del destinatario
-   * @param username Nombre de usuario
+   * Sends welcome email
+   * @param email Recipient email address
+   * @param username Username
    */
   sendWelcomeEmail(email: string, username: string): Promise<void>;
 
   /**
-   * Envía email de reseteo de contraseña
-   * @param email Dirección de email del destinatario
-   * @param resetToken Token de reseteo
+   * Sends password reset email
+   * @param email Recipient email address
+   * @param resetToken Reset token
    */
   sendPasswordResetEmail(email: string, resetToken: string): Promise<void>;
 }

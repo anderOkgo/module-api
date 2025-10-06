@@ -2,17 +2,17 @@ import Movement, { CreateMovementRequest, UpdateMovementRequest } from '../../do
 import { DataParams } from '../../infrastructure/models/dataparams';
 
 /**
- * Puerto de repositorio para entidad Movement
- * Define el contrato para acceso a datos financieros
+ * Repository port for Movement entity
+ * Defines the contract for financial data access
  */
 export interface FinanRepository {
-  // Métodos CRUD
+  // CRUD methods
   create(movement: Movement): Promise<Movement>;
   findById(id: number, username: string): Promise<Movement | null>;
   update(id: number, movement: Partial<Movement>, username: string): Promise<Movement>;
   delete(id: number, username: string): Promise<boolean>;
 
-  // Métodos de consulta específicos
+  // Specific query methods
   getTotalExpenseDay(username: string, currency: string, date: string): Promise<any[]>;
   getMovements(username: string, currency: string): Promise<any[]>;
   getMovementsByTag(username: string, currency: string): Promise<any[]>;
@@ -22,10 +22,10 @@ export interface FinanRepository {
   getBalanceUntilDate(username: string, currency: string): Promise<any[]>;
   getMonthlyExpensesUntilCurrentDay(username: string, currency: string): Promise<any[]>;
 
-  // Métodos especiales (admin)
+  // Special methods (admin)
   getGeneralInfo(): Promise<any[]>;
   getTripInfo(): Promise<any[]>;
 
-  // Operación especial para movimientos vinculados
+  // Special operation for linked movements
   operateForLinkedMovement(id: number, value: number, movementType: number, username: string): Promise<void>;
 }

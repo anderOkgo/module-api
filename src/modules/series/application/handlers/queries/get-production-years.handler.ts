@@ -8,7 +8,7 @@ export class GetProductionYearsHandler
   constructor(private readonly readRepository: SeriesReadRepository) {}
 
   async execute(query: GetProductionYearsQuery): Promise<GetProductionYearsResponse> {
-    // Lectura simple sin validaciones complejas
+    // Simple read without complex validations
     const years = await this.readRepository.getProductionYears();
 
     return {

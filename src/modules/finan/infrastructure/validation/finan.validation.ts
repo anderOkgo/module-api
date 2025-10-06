@@ -36,7 +36,7 @@ export const validateGetInitialLoad = (body: RequestBody): ValidationResult => {
 export const validateInitialLoad = (body: RequestBody): ValidationResult => {
   const errors: string[] = [];
 
-  // Validaciones específicas para initial-load
+  //validations specific for initial-load
   if (body.start_date && !isValidDate(body.start_date)) {
     errors.push('Start date is invalid');
   }

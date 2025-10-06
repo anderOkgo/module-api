@@ -1,6 +1,6 @@
 /**
- * Entidad de dominio: Movement
- * Representa un movimiento financiero (ingreso o gasto)
+ * Domain entity: Movement
+ * Represents a financial movement (income or expense)
  */
 export default interface Movement {
   id?: number;
@@ -15,7 +15,7 @@ export default interface Movement {
 }
 
 /**
- * DTO para creación de movimiento
+ * DTO for movement creation
  */
 export interface CreateMovementRequest {
   movement_name: string;
@@ -29,7 +29,7 @@ export interface CreateMovementRequest {
 }
 
 /**
- * DTO para actualización de movimiento
+ * DTO for movement update
  */
 export interface UpdateMovementRequest {
   movement_name: string;
@@ -42,7 +42,7 @@ export interface UpdateMovementRequest {
 }
 
 /**
- * DTO para respuesta de movimiento
+ * DTO for movement response
  */
 export interface MovementResponse {
   id: number;
@@ -56,7 +56,7 @@ export interface MovementResponse {
 }
 
 /**
- * Tipos de movimiento
+ * Movement types
  */
 export enum MovementType {
   INCOME = 1,
@@ -65,7 +65,7 @@ export enum MovementType {
 }
 
 /**
- * Respuesta de carga inicial
+ * Initial load response
  */
 export interface InitialLoadResponse {
   totalExpenseDay: any[];

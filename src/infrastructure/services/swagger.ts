@@ -5,9 +5,9 @@ import { finanSwaggerDocumentation } from '../../modules/finan/infrastructure/do
 import { swaggerSchemas } from './swagger.schemas';
 
 /**
- * Configuración principal de Swagger/OpenAPI
- * Los schemas están en swagger.schemas.ts
- * Las rutas se importan desde los módulos de documentación
+ * Main Swagger/OpenAPI configuration
+ * Schemas are in swagger.schemas.ts
+ * Routes are imported from documentation modules
  */
 const options = {
   definition: {
@@ -15,7 +15,7 @@ const options = {
     info: {
       title: 'Animecream API',
       version: '2.0.9',
-      description: 'API para gestión de series de anime con funcionalidades CRUD y manejo de imágenes optimizadas',
+      description: 'API for anime series management with CRUD functionality and optimized image handling',
       contact: {
         name: 'Anderokgo',
         email: 'support@animecream.com',
@@ -24,11 +24,11 @@ const options = {
     servers: [
       {
         url: 'https://info.animecream.com',
-        description: 'Servidor de producción',
+        description: 'Production server',
       },
       {
         url: 'http://localhost:3001',
-        description: 'Servidor de desarrollo',
+        description: 'Development server',
       },
     ],
     components: {
@@ -56,20 +56,20 @@ const options = {
 };
 
 /**
- * Filtra la documentación de usuario según el entorno
+ * Filters user documentation based on environment
  */
 function filterUserDocumentation(documentation: any) {
-  // En producción, ocultar endpoint de registro
+  // In production, hide registration endpoint
   if (process.env.NODE_ENV === 'production') {
     const filtered = { ...documentation };
-    delete filtered.addUser; // Remover documentación del endpoint de registro
+    delete filtered.addUser; // Remove registration endpoint documentation
     return filtered;
   }
   return documentation;
 }
 
 /**
- * Convierte la documentación de módulos al formato OpenAPI paths
+ * Converts module documentation to OpenAPI paths format
  */
 function convertToOpenAPIPaths(documentation: any) {
   const paths: any = {};
@@ -80,7 +80,7 @@ function convertToOpenAPIPaths(documentation: any) {
       if (!paths[path]) {
         paths[path] = {};
       }
-      // Combinar métodos HTTP para la misma ruta
+      // Combine HTTP methods for the same route
       Object.assign(paths[path], endpointDoc[path]);
     });
   });

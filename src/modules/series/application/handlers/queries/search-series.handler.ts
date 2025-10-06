@@ -7,10 +7,10 @@ export class SearchSeriesHandler implements QueryHandler<SearchSeriesQuery, Seri
   constructor(private readonly readRepository: SeriesReadRepository) {}
 
   async execute(query: SearchSeriesQuery): Promise<SeriesResponse[]> {
-    // Normalizar filtros
+    // Normalize filters
     const normalizedFilters = this.normalizeFilters(query.filters);
 
-    // Buscar usando vista optimizada
+    // Search using optimized view
     return await this.readRepository.search(normalizedFilters);
   }
 

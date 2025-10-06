@@ -22,10 +22,10 @@ export class ImageProcessor {
   };
 
   /**
-   * Optimiza una imagen a las especificaciones requeridas
-   * @param inputBuffer Buffer de la imagen original
-   * @param options Opciones de optimización
-   * @returns Buffer optimizado
+   * Optimizes an image to the required specifications
+   * @param inputBuffer Buffer of the original image
+   * @param options Optimization options
+   * @returns Optimized buffer
    */
   static async optimizeImage(
     inputBuffer: Buffer,
@@ -46,23 +46,23 @@ export class ImageProcessor {
         })
         .toBuffer();
 
-      // Verificar tamaño y ajustar calidad si es necesario
+      // Check size and adjust quality if necessary
       let sizeKB = optimizedBuffer.length / 1024;
 
       if (sizeKB > config.maxSizeKB) {
-        // Reducir calidad de manera más gradual para mantener mejor calidad
+        // Reduce quality more gradually to maintain better quality
         let quality = config.quality;
         let attempts = 0;
-        const maxAttempts = 8; // Límite de intentos para evitar bucles infinitos
+        const maxAttempts = 8; // Limit attempts to avoid infinite loops
 
         while (sizeKB > config.maxSizeKB && quality > 30 && attempts < maxAttempts) {
-          // Reducir calidad de manera más gradual
+          // Reduce quality more gradually
           if (quality > 80) {
-            quality -= 10; // Reducción más suave para calidades altas
+            quality -= 10; // Gentler reduction for high qualities
           } else if (quality > 60) {
-            quality -= 8; // Reducción media
+            quality -= 8; // Medium reduction
           } else {
-            quality -= 5; // Reducción más conservadora para calidades bajas
+            quality -= 5; // More conservative reduction for low qualities
           }
 
           attempts++;
@@ -82,7 +82,7 @@ export class ImageProcessor {
           sizeKB = optimizedBuffer.length / 1024;
         }
 
-        // Si aún es muy grande, usar compresión más agresiva pero manteniendo calidad mínima
+        // If still too large, use more aggressive compression while maintaining minimum quality
         if (sizeKB > config.maxSizeKB && quality <= 30) {
           optimizedBuffer = await sharp(inputBuffer)
             .resize(config.width, config.height, {
@@ -106,10 +106,10 @@ export class ImageProcessor {
   }
 
   /**
-   * Optimización avanzada con múltiples estrategias
-   * @param inputBuffer Buffer de la imagen original
-   * @param options Opciones de optimización
-   * @returns Buffer optimizado con mejor calidad
+   * Advanced optimization with multiple strategies
+   * @param inputBuffer Buffer of the original image
+   * @param options Optimization options
+   * @returns Optimized buffer with better quality
    */
   static async optimizeImageAdvanced(
     inputBuffer: Buffer,
@@ -118,16 +118,16 @@ export class ImageProcessor {
     const config = { ...this.DEFAULT_OPTIONS, ...options };
 
     try {
-      // Obtener metadata de la imagen original
+      // Get metadata from the original image
       const metadata = await sharp(inputBuffer).metadata();
       const originalSize = inputBuffer.length;
 
-      // Estrategia 1: Optimización inicial con alta calidad
+      // Strategy 1: Initial optimization with high quality
       let optimizedBuffer = await sharp(inputBuffer)
         .resize(config.width, config.height, {
           fit: 'cover',
           position: 'center',
-          kernel: sharp.kernel.lanczos3, // Mejor algoritmo de redimensionado
+          kernel: sharp.kernel.lanczos3, // Better resizing algorithm
         })
         .jpeg({
           quality: config.quality,
@@ -141,12 +141,12 @@ export class ImageProcessor {
 
       let sizeKB = optimizedBuffer.length / 1024;
 
-      // Si el tamaño es aceptable, retornar
+      // If size is acceptable, return
       if (sizeKB <= config.maxSizeKB) {
         return optimizedBuffer;
       }
 
-      // Estrategia 2: Reducción gradual de calidad
+      // Strategy 2: Gradual quality reduction
       let quality = config.quality;
       const qualitySteps = [85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30];
 
@@ -176,7 +176,7 @@ export class ImageProcessor {
         }
       }
 
-      // Estrategia 3: Si aún es muy grande, usar compresión más agresiva
+      // Strategy 3: If still too large, use more aggressive compression
       if (sizeKB > config.maxSizeKB) {
         optimizedBuffer = await sharp(inputBuffer)
           .resize(config.width, config.height, {
@@ -191,7 +191,7 @@ export class ImageProcessor {
             optimizeScans: true,
             trellisQuantisation: true,
             overshootDeringing: true,
-            quantisationTable: 3, // Tabla de cuantización optimizada
+            quantisationTable: 3, // Optimized quantization table
           })
           .toBuffer();
       }
@@ -205,15 +205,15 @@ export class ImageProcessor {
   }
 
   /**
-   * Guarda una imagen optimizada en el sistema de archivos
-   * @param buffer Buffer de la imagen optimizada
-   * @param filename Nombre del archivo
-   * @param uploadPath Directorio de subida
-   * @returns Ruta del archivo guardado
+   * Saves an optimized image to the file system
+   * @param buffer Buffer of the optimized image
+   * @param filename File name
+   * @param uploadPath Upload directory
+   * @returns Path of the saved file
    */
   static async saveOptimizedImage(buffer: Buffer, filename: string, uploadPath: string): Promise<string> {
     try {
-      // Crear directorio si no existe
+      // Create directory if it doesn't exist
       if (!fs.existsSync(uploadPath)) {
         fs.mkdirSync(uploadPath, { recursive: true });
       }
@@ -228,8 +228,8 @@ export class ImageProcessor {
   }
 
   /**
-   * Elimina una imagen del sistema de archivos
-   * @param filePath Ruta del archivo a eliminar
+   * Deletes an image from the file system
+   * @param filePath Path of the file to delete
    */
   static async deleteImage(filePath: string): Promise<void> {
     try {
@@ -242,9 +242,9 @@ export class ImageProcessor {
   }
 
   /**
-   * Genera un nombre único para el archivo
-   * @param originalName Nombre original del archivo
-   * @returns Nombre único con timestamp
+   * Generates a unique filename
+   * @param originalName Original file name
+   * @returns Unique name with timestamp
    */
   static generateUniqueFilename(originalName: string): string {
     const timestamp = Date.now();
@@ -256,9 +256,9 @@ export class ImageProcessor {
   }
 
   /**
-   * Valida el tipo de archivo de imagen
-   * @param mimetype Tipo MIME del archivo
-   * @returns true si es un tipo de imagen válido
+   * Validates the image file type
+   * @param mimetype MIME type of the file
+   * @returns true if it's a valid image type
    */
   static isValidImageType(mimetype: string): boolean {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -266,9 +266,9 @@ export class ImageProcessor {
   }
 
   /**
-   * Obtiene información de la imagen
-   * @param buffer Buffer de la imagen
-   * @returns Información de la imagen
+   * Gets image information
+   * @param buffer Image buffer
+   * @returns Image information
    */
   static async getImageInfo(buffer: Buffer): Promise<{
     width: number;

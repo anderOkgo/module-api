@@ -12,19 +12,19 @@ export class RemoveGenresHandler
   ) {}
 
   async execute(command: RemoveGenresCommand): Promise<{ success: boolean; message: string }> {
-    // 1. Validar entrada
+    // 1. Validate input
     this.validateInput(command);
 
-    // 2. Verificar que la serie existe
+    // 2. Verify that the series exists
     const series = await this.readRepository.findById(command.seriesId);
     if (!series) {
       throw new Error('Series not found');
     }
 
-    // 3. Normalizar IDs (eliminar duplicados)
+    // 3. Normalize IDs (remove duplicates)
     const uniqueGenreIds = [...new Set(command.genreIds)];
 
-    // 4. Remover géneros
+    // 4. Remove genres
     await this.writeRepository.removeGenres(command.seriesId, uniqueGenreIds);
 
     return {
@@ -42,7 +42,7 @@ export class RemoveGenresHandler
       throw new Error('At least one genre ID is required');
     }
 
-    // Validar que todos sean números positivos
+    // Validate that all are positive numbers
     const invalidIds = command.genreIds.filter((id) => !Number.isInteger(id) || id <= 0);
     if (invalidIds.length > 0) {
       throw new Error(`Invalid genre IDs: ${invalidIds.join(', ')}`);

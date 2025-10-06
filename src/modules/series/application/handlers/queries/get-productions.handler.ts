@@ -3,8 +3,8 @@ import { GetProductionsQuery } from '../../queries/get-productions.query';
 import { SeriesReadRepository } from '../../ports/series-read.repository';
 
 /**
- * Handler para obtener producciones con filtros complejos
- * Utiliza la vista completa con filtros dinámicos
+ * Handler to get productions with complex filters
+ * Uses complete view with dynamic filters
  * // Validated under FULLTEST
  */
 export class GetProductionsHandler implements QueryHandler<GetProductionsQuery, any[]> {
@@ -14,10 +14,10 @@ export class GetProductionsHandler implements QueryHandler<GetProductionsQuery, 
     try {
       const { filters } = query;
 
-      // 1. Validar entrada
+      // 1. Validate input
       this.validateFilters(filters);
 
-      // 2. Obtener producciones
+      // 2. Get productions
       const productions = await this.readRepository.getProductions(filters);
 
       return productions;
@@ -27,23 +27,23 @@ export class GetProductionsHandler implements QueryHandler<GetProductionsQuery, 
   }
 
   private validateFilters(filters: any): void {
-    // Validaciones básicas para evitar queries peligrosas
+    // Basic validations to avoid dangerous queries
     if (filters && typeof filters !== 'object') {
       throw new Error('Filters must be an object');
     }
 
-    // Establecer límite por defecto si no se proporciona
+    // Set default limit if not provided
     if (filters.limit === undefined) {
-      filters.limit = 500; // Valor por defecto para el frontend
+      filters.limit = 500; // Default value for frontend
     }
 
-    // Validar límite (ahora siempre existe)
+    // Validate limit (now always exists)
     const limit = parseInt(filters.limit, 10);
     if (isNaN(limit) || limit < 1 || limit > 10000) {
       throw new Error(`Limit must be between 1 and 10000. Received: ${filters.limit}, parsed: ${limit}`);
     }
 
-    // Validar offset si se proporciona
+    // Validate offset if provided
     if (filters.offset !== undefined) {
       const offset = parseInt(filters.offset, 10);
       if (isNaN(offset) || offset < 0) {
@@ -51,14 +51,14 @@ export class GetProductionsHandler implements QueryHandler<GetProductionsQuery, 
       }
     }
 
-    // Validar production_ranking_number para prevenir SQL injection
+    // Validate production_ranking_number to prevent SQL injection
     if (filters.production_ranking_number !== undefined) {
       const validDirections = ['ASC', 'DESC'];
       const direction = filters.production_ranking_number?.toString().toUpperCase();
       if (!validDirections.includes(direction)) {
         throw new Error(`Invalid sorting direction: ${filters.production_ranking_number}. Must be ASC or DESC.`);
       }
-      // Normalizar a uppercase para consistencia
+      // Normalize to uppercase for consistency
       filters.production_ranking_number = direction;
     }
   }

@@ -39,16 +39,16 @@ import { uploadMiddleware } from '../../../../infrastructure/services/upload';
 import { validateProduction } from '../validation/series.validation';
 
 /**
- * SeriesController con CQRS Pattern
- * Separación clara entre Commands (Write) y Queries (Read)
- * Completamente migrado a CQRS
+ * SeriesController with CQRS Pattern
+ * Clear separation between Commands (Write) and Queries (Read)
+ * Completely migrated to CQRS
  */
 export class SeriesController {
-  // Middleware para upload de imágenes
+  // Middleware for image upload
   public uploadImageMiddleware = uploadMiddleware;
 
   constructor(
-    // Command Handlers (Escritura) - CQRS
+    // Command Handlers (Write) - CQRS
     private readonly createSeriesHandler: CreateSeriesHandler,
     private readonly updateSeriesHandler: UpdateSeriesHandler,
     private readonly deleteSeriesHandler: DeleteSeriesHandler,
@@ -58,7 +58,7 @@ export class SeriesController {
     private readonly removeTitlesHandler: RemoveTitlesHandler,
     private readonly createSeriesCompleteHandler: CreateSeriesCompleteHandler,
     private readonly updateSeriesImageHandler: UpdateSeriesImageHandler,
-    // Query Handlers (Lectura) - CQRS
+    // Query Handlers (Read) - CQRS
     private readonly getSeriesByIdHandler: GetSeriesByIdHandler,
     private readonly searchSeriesHandler: SearchSeriesHandler,
     private readonly getAllSeriesHandler: GetAllSeriesHandler,
@@ -69,7 +69,7 @@ export class SeriesController {
   ) {}
 
   /**
-   * Command: Crear una nueva serie
+   * Command: Create a new series
    * POST /api/series/create
    */
   createSeries = async (req: Request, res: Response) => {
@@ -103,7 +103,7 @@ export class SeriesController {
   };
 
   /**
-   * Command: Actualizar una serie
+   * Command: Update a series
    * PUT /api/series/:id
    */
   updateSeries = async (req: Request, res: Response) => {
@@ -137,7 +137,7 @@ export class SeriesController {
   };
 
   /**
-   * Command: Eliminar una serie
+   * Command: Delete a series
    * DELETE /api/series/:id
    */
   deleteSeries = async (req: Request, res: Response) => {
@@ -166,7 +166,7 @@ export class SeriesController {
   };
 
   /**
-   * Query: Obtener serie por ID
+   * Query: Get series by ID
    * GET /api/series/:id
    */
   getSeriesById = async (req: Request, res: Response) => {
@@ -195,7 +195,7 @@ export class SeriesController {
   };
 
   /**
-   * Query: Buscar series con filtros
+   * Query: Search series with filters
    * POST /api/series/search
    */
   searchSeries = async (req: Request, res: Response) => {
@@ -218,7 +218,7 @@ export class SeriesController {
   };
 
   /**
-   * Query: Listar todas las series con paginación
+   * Query: List all series with pagination
    * GET /api/series/list?limit=50&offset=0
    */
   getAllSeries = async (req: Request, res: Response) => {
@@ -244,7 +244,7 @@ export class SeriesController {
   };
 
   /**
-   * Query: Obtener producciones con filtros (boot endpoint)
+   * Query: Get productions with filters (boot endpoint)
    * POST /api/series/
    */
   getProductions = async (req: Request, res: Response) => {
@@ -262,7 +262,7 @@ export class SeriesController {
   };
 
   /**
-   * Query: Obtener años de producción disponibles
+   * Query: Get available production years
    * GET /api/series/years
    */
   getProductionYears = async (req: Request, res: Response) => {
@@ -281,7 +281,7 @@ export class SeriesController {
   };
 
   /**
-   * Command: Crear serie completa con relaciones
+   * Command: Create complete series with relationships
    * POST /api/series/create-complete
    */
   createSeriesComplete = async (req: Request, res: Response) => {
@@ -298,25 +298,25 @@ export class SeriesController {
       console.error('Error in createSeriesComplete:', error);
       return res.status(500).json({
         success: false,
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };
 
   /**
-   * Command: Actualizar imagen de una serie
+   * Command: Update series image
    * PUT /api/series/:id/image
    */
   updateSeriesImage = async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
-        return res.status(400).json({ success: false, error: 'ID inválido' });
+        return res.status(400).json({ success: false, error: 'Invalid ID' });
       }
 
       if (!req.file) {
-        return res.status(400).json({ success: false, error: 'No se envió ninguna imagen' });
+        return res.status(400).json({ success: false, error: 'No image sent' });
       }
 
       const command = new UpdateSeriesImageCommand(id, req.file);
@@ -330,14 +330,14 @@ export class SeriesController {
       console.error('Error in updateSeriesImage:', error);
       return res.status(500).json({
         success: false,
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };
 
   /**
-   * Command: Asignar géneros a una serie
+   * Command: Assign genres to a series
    * POST /api/series/:id/genres
    */
   assignGenres = async (req: Request, res: Response) => {
@@ -353,14 +353,14 @@ export class SeriesController {
     } catch (error) {
       console.error('Error in assignGenres:', error);
       return res.status(400).json({
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };
 
   /**
-   * Command: Remover géneros de una serie
+   * Command: Remove genres from a series
    * DELETE /api/series/:id/genres
    */
   removeGenres = async (req: Request, res: Response) => {
@@ -376,14 +376,14 @@ export class SeriesController {
     } catch (error) {
       console.error('Error in removeGenres:', error);
       return res.status(400).json({
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };
 
   /**
-   * Command: Agregar títulos alternativos a una serie
+   * Command: Add alternative titles to a series
    * POST /api/series/:id/titles
    */
   addTitles = async (req: Request, res: Response) => {
@@ -399,14 +399,14 @@ export class SeriesController {
     } catch (error) {
       console.error('Error in addTitles:', error);
       return res.status(400).json({
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };
 
   /**
-   * Command: Remover títulos alternativos de una serie
+   * Command: Remove alternative titles from a series
    * DELETE /api/series/:id/titles
    */
   removeTitles = async (req: Request, res: Response) => {
@@ -422,14 +422,14 @@ export class SeriesController {
     } catch (error) {
       console.error('Error in removeTitles:', error);
       return res.status(400).json({
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };
 
   /**
-   * Query: Obtener lista de géneros disponibles
+   * Query: Get list of available genres
    * GET /api/series/genres
    */
   getGenres = async (req: Request, res: Response) => {
@@ -441,14 +441,14 @@ export class SeriesController {
     } catch (error) {
       console.error('Error in getGenres:', error);
       return res.status(500).json({
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };
 
   /**
-   * Query: Obtener lista de demografías disponibles
+   * Query: Get list of available demographics
    * GET /api/series/demographics
    */
   getDemographics = async (req: Request, res: Response) => {
@@ -460,8 +460,8 @@ export class SeriesController {
     } catch (error) {
       console.error('Error in getDemographics:', error);
       return res.status(500).json({
-        error: 'Error interno del servidor',
-        message: error instanceof Error ? error.message : 'Error desconocido',
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };

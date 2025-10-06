@@ -3,23 +3,23 @@ import { InitialLoadRequest } from '../../domain/entities/movement-request.entit
 import { InitialLoadResponse } from '../../domain/entities/movement.entity';
 
 /**
- * Caso de uso para obtener la carga inicial de datos financieros
- * Orquesta la obtención de múltiples tipos de datos financieros
+ * Use case for obtaining initial load of financial data
+ * Orchestrates the retrieval of multiple types of financial data
  */
 export class GetInitialLoadUseCase {
   constructor(private readonly repository: FinanRepository) {}
 
   async execute(data: InitialLoadRequest): Promise<InitialLoadResponse> {
     try {
-      // 1. Validar entrada
+      // 1. Validate input
       this.validateInput(data);
 
-      // 2. Normalizar datos
+      // 2. Normalize data
       const username = data.username?.toLowerCase() ?? '';
       const currency = data.currency ?? 'USD';
       const date = data.date ?? data.start_date ?? this.getCurrentDate();
 
-      // 3. Obtener datos en paralelo para mejor performance
+      // 3. Get data in parallel for better performance
       const [
         totalExpenseDay,
         movements,
@@ -40,7 +40,7 @@ export class GetInitialLoadUseCase {
         this.repository.getMonthlyExpensesUntilCurrentDay(username, currency),
       ]);
 
-      // 4. Construir respuesta base
+      // 4. Build base response
       const response: InitialLoadResponse = {
         totalExpenseDay,
         movements,
@@ -52,7 +52,7 @@ export class GetInitialLoadUseCase {
         monthlyExpensesUntilDay,
       };
 
-      // 5. Agregar información adicional para usuarios específicos
+      // 5. Add additional information for specific users
       if (this.isPrivilegedUser(username)) {
         const [generalInfo, tripInfo] = await Promise.all([
           this.repository.getGeneralInfo(),
@@ -84,7 +84,7 @@ export class GetInitialLoadUseCase {
   }
 
   private isPrivilegedUser(username: string): boolean {
-    // Lógica de negocio: usuarios con acceso a información extendida
+    // Business logic: users with access to extended information
     const privilegedUsers = ['anderokgo'];
     return privilegedUsers.includes(username.toLowerCase());
   }

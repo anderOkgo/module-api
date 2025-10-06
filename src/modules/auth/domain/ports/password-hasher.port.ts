@@ -1,20 +1,20 @@
 /**
- * Puerto de dominio para hash de contraseñas
- * Define el contrato que debe cumplir cualquier implementación de hashing
+ * Domain port for password hashing
+ * Defines the contract that any hashing implementation must fulfill
  */
 export interface PasswordHasherPort {
   /**
-   * Genera un hash de la contraseña
-   * @param password Contraseña en texto plano
-   * @returns Hash de la contraseña
+   * Generates a password hash
+   * @param password Plain text password
+   * @returns Password hash
    */
   hash(password: string): Promise<string>;
 
   /**
-   * Compara una contraseña con su hash
-   * @param password Contraseña en texto plano
-   * @param hashedPassword Hash almacenado
-   * @returns true si coinciden, false si no
+   * Compares a password with its hash
+   * @param password Plain text password
+   * @param hashedPassword Stored hash
+   * @returns true if they match, false if not
    */
   compare(password: string, hashedPassword: string): Promise<boolean>;
 }

@@ -14,18 +14,18 @@ export class DeleteSeriesHandler
   ) {}
 
   async execute(command: DeleteSeriesCommand): Promise<{ success: boolean; message: string }> {
-    // 1. Validar
+    // 1. Validate
     if (!command.id || command.id <= 0) {
       throw new Error('Valid series ID is required');
     }
 
-    // 2. Verificar que existe
+    // 2. Verify that it exists
     const series = await this.readRepository.findById(command.id);
     if (!series) {
       return { success: false, message: 'Series not found' };
     }
 
-    // 3. Eliminar imagen del filesystem
+    // 3. Delete image from filesystem
     if (series.image && series.image.trim() !== '') {
       try {
         await this.imageService.deleteImage(series.image);
@@ -34,7 +34,7 @@ export class DeleteSeriesHandler
       }
     }
 
-    // 4. Eliminar de BD
+    // 4. Delete from DB
     const deleted = await this.writeRepository.delete(command.id);
 
     if (!deleted) {

@@ -3,8 +3,8 @@ import { RegisterUserUseCase } from '../../application/use-cases/register.use-ca
 import { LoginUserUseCase } from '../../application/use-cases/login.use-case';
 
 /**
- * UserController con inyección de dependencias
- * Sigue el patrón hexagonal/clean architecture
+ * UserController with dependency injection
+ * Follows hexagonal/clean architecture pattern
  */
 export class UserController {
   constructor(
@@ -13,8 +13,8 @@ export class UserController {
   ) {}
 
   /**
-   * Registrar nuevo usuario
-   * Documentación Swagger: user.swagger.ts
+   * Register new user
+   * Swagger documentation: user.swagger.ts
    */
   addUser = async (req: Request, res: Response) => {
     try {
@@ -35,8 +35,8 @@ export class UserController {
   };
 
   /**
-   * Iniciar sesión de usuario
-   * Documentación Swagger: user.swagger.ts
+   * User login
+   * Swagger documentation: user.swagger.ts
    */
   loginUser = async (req: Request, res: Response) => {
     try {

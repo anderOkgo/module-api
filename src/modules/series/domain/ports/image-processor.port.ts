@@ -1,6 +1,6 @@
 /**
- * Puerto para procesamiento de imágenes
- * Define la interfaz que debe implementar cualquier procesador de imágenes
+ * Port for image processing
+ * Defines the interface that any image processor must implement
  */
 export interface ImageProcessorPort {
   processAndSaveImage(imageBuffer: Buffer, seriesId: number): Promise<string>;

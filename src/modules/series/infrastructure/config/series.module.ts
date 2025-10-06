@@ -25,22 +25,22 @@ import { GetProductionYearsHandler } from '../../application/handlers/queries/ge
 import { GetProductionsHandler } from '../../application/handlers/queries/get-productions.handler';
 
 /**
- * Composition Root para el módulo Series
- * Implementa CQRS Pattern - Separación completa entre Commands y Queries
- * Construye y cablea las dependencias usando Clean Architecture + Hexagonal
+ * Composition Root for the Series module
+ * Implements CQRS Pattern - Complete separation between Commands and Queries
+ * Builds and wires dependencies using Clean Architecture + Hexagonal
  */
 export function buildSeriesModule() {
-  // 1. Repositorios (separados por responsabilidad - CQRS)
+  // 1. Repositories (separated by responsibility - CQRS)
   const writeRepository = new SeriesWriteMysqlRepository();
   const readRepository = new SeriesReadMysqlRepository();
 
-  // 2. Servicios de infraestructura
+  // 2. Infrastructure services
   const imageProcessorService = new SeriesImageProcessorService();
 
-  // 3. Servicios de aplicación
+  // 3. Application services
   const imageService = new ImageService(imageProcessorService);
 
-  // 4. Command Handlers (escritura) - CQRS
+  // 4. Command Handlers (write) - CQRS
   const createSeriesHandler = new CreateSeriesHandler(writeRepository, imageService);
   const updateSeriesHandler = new UpdateSeriesHandler(writeRepository, readRepository);
   const deleteSeriesHandler = new DeleteSeriesHandler(writeRepository, readRepository, imageService);
@@ -51,7 +51,7 @@ export function buildSeriesModule() {
   const createSeriesCompleteHandler = new CreateSeriesCompleteHandler(writeRepository, readRepository);
   const updateSeriesImageHandler = new UpdateSeriesImageHandler(writeRepository, readRepository, imageService);
 
-  // 5. Query Handlers (lectura) - CQRS
+  // 5. Query Handlers (read) - CQRS
   const getSeriesByIdHandler = new GetSeriesByIdHandler(readRepository);
   const searchSeriesHandler = new SearchSeriesHandler(readRepository);
   const getAllSeriesHandler = new GetAllSeriesHandler(readRepository);
@@ -60,7 +60,7 @@ export function buildSeriesModule() {
   const getProductionYearsHandler = new GetProductionYearsHandler(readRepository);
   const getProductionsHandler = new GetProductionsHandler(readRepository);
 
-  // 6. Controlador CQRS (100% CQRS)
+  // 6. CQRS Controller (100% CQRS)
   const seriesController = new SeriesController(
     // Commands (CQRS)
     createSeriesHandler,
@@ -82,10 +82,10 @@ export function buildSeriesModule() {
     getProductionsHandler
   );
 
-  // 7. Configurar rutas (ORDEN IMPORTANTE: específicas antes que parámetros)
+  // 7. Configure routes (IMPORTANT ORDER: specific before parameters)
   const router = Router();
 
-  // Rutas específicas (sin parámetros) - DEBEN ir ANTES
+  // Specific routes (no parameters) - MUST go FIRST
   router.post('/', seriesController.getProductions); // Boot endpoint
   router.get('/years', seriesController.getProductionYears);
   router.get('/list', validateToken, seriesController.getAllSeries);
@@ -95,7 +95,7 @@ export function buildSeriesModule() {
   router.get('/genres', seriesController.getGenres);
   router.get('/demographics', seriesController.getDemographics);
 
-  // Rutas con parámetros - DEBEN ir DESPUÉS
+  // Routes with parameters - MUST go AFTER
   router.get('/:id', seriesController.getSeriesById);
   router.put('/:id', validateAdmin, seriesController.uploadImageMiddleware, seriesController.updateSeries);
   router.delete('/:id', validateAdmin, seriesController.deleteSeries);
@@ -106,7 +106,7 @@ export function buildSeriesModule() {
     seriesController.updateSeriesImage
   );
 
-  // Rutas para relaciones (solo admin puede modificar)
+  // Routes for relationships (only admin can modify)
   router.post('/:id/genres', validateAdmin, seriesController.assignGenres);
   router.delete('/:id/genres', validateAdmin, seriesController.removeGenres);
   router.post('/:id/titles', validateAdmin, seriesController.addTitles);

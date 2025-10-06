@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 /**
- * Middleware para verificar que el usuario tenga rol de administrador
- * Requiere que el token sea válido y que el usuario tenga role = 1 (ADMIN)
+ * Middleware to verify that the user has administrator role
+ * Requires that the token is valid and that the user has role = 1 (ADMIN)
  */
 const validateAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.headers || !req.headers['authorization']) {
@@ -32,8 +32,8 @@ const validateAdmin = (req: Request, res: Response, next: NextFunction) => {
       }
 
       if (decoded && typeof decoded === 'object' && 'role' in decoded && 'username' in decoded) {
-        // Verificar que el usuario tenga rol de administrador
-        // Acepta tanto role = 1 (number) como role = "admin" (string)
+        // Verify that the user has administrator role
+        // Accepts both role = 1 (number) and role = "admin" (string)
         const isAdmin = decoded.role === 1 || decoded.role === 'admin';
 
         if (!isAdmin) {
@@ -44,7 +44,7 @@ const validateAdmin = (req: Request, res: Response, next: NextFunction) => {
           });
         }
 
-        // Agregar información del usuario al request
+        // Add user information to the request
         req.body.username = decoded.username;
         req.body.userRole = decoded.role;
         req.body.userId = decoded.userId;

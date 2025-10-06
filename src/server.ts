@@ -3,7 +3,7 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { Database } from './infrastructure/my.database.helper';
 
-// Cargar variables de entorno
+// Load environment variables
 dotenv.config();
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './infrastructure/services/swagger';
@@ -108,7 +108,7 @@ class Server {
         },
       };
 
-      // Verificar conexión a base de datos
+      // Check database connection
       try {
         const db = new Database('MYDATABASE');
         await db.testConnection();

@@ -19,10 +19,10 @@ export const validateVerificationCode = async (email: string, verificationCode: 
 };
 
 export const userInfo = async (name: string, Database: any): Promise<any | false> => {
-  // Primero intentar buscar por username
+  // First try to search by username
   let data = await Database.executeSafeQuery('SELECT * FROM users WHERE username = ?', [name]);
 
-  // Si no se encuentra por username, buscar por email
+  // If not found by username, search by email
   if (data.length === 0) {
     data = await Database.executeSafeQuery('SELECT * FROM users WHERE email = ?', [name]);
   }

@@ -6,7 +6,7 @@ export class GetDemographicsHandler implements QueryHandler<GetDemographicsQuery
   constructor(private readonly readRepository: SeriesReadRepository) {}
 
   async execute(query: GetDemographicsQuery): Promise<GetDemographicsResponse> {
-    // Lectura simple sin validaciones complejas
+    // Simple read without complex validations
     const demographics = await this.readRepository.getDemographics();
 
     return {

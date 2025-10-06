@@ -12,19 +12,19 @@ export class RemoveTitlesHandler
   ) {}
 
   async execute(command: RemoveTitlesCommand): Promise<{ success: boolean; message: string }> {
-    // 1. Validar entrada
+    // 1. Validate input
     this.validateInput(command);
 
-    // 2. Verificar que la serie existe
+    // 2. Verify that the series exists
     const series = await this.readRepository.findById(command.seriesId);
     if (!series) {
       throw new Error('Series not found');
     }
 
-    // 3. Normalizar IDs (eliminar duplicados)
+    // 3. Normalize IDs (remove duplicates)
     const uniqueTitleIds = [...new Set(command.titleIds)];
 
-    // 4. Remover títulos
+    // 4. Remove titles
     await this.writeRepository.removeTitles(command.seriesId, uniqueTitleIds);
 
     return {
@@ -42,7 +42,7 @@ export class RemoveTitlesHandler
       throw new Error('At least one title ID is required');
     }
 
-    // Validar que todos sean números positivos
+    // Validate that all are positive numbers
     const invalidIds = command.titleIds.filter((id) => !Number.isInteger(id) || id <= 0);
     if (invalidIds.length > 0) {
       throw new Error(`Invalid title IDs: ${invalidIds.join(', ')}`);

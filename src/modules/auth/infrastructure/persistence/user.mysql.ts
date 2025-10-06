@@ -3,8 +3,8 @@ import User from '../../domain/entities/user.entity';
 import { UserRepository } from '../../application/ports/user.repository';
 
 /**
- * Implementación MySQL del repositorio de usuarios
- * SOLO contiene lógica de acceso a datos, sin lógica de negocio
+ * MySQL implementation of the user repository
+ * ONLY contains data access logic, no business logic
  */
 export class userMysqlRepository implements UserRepository {
   private Database: any;
@@ -13,7 +13,7 @@ export class userMysqlRepository implements UserRepository {
     this.Database = new Database('MYDATABASEAUTH');
   }
 
-  // ==================== CRUD BÁSICO ====================
+  // ==================== BASIC CRUD ====================
 
   async create(user: User): Promise<User> {
     const query = 'INSERT INTO users SET ?';
@@ -50,13 +50,13 @@ export class userMysqlRepository implements UserRepository {
   }
 
   async findByEmailOrUsername(email: string, username: string): Promise<User | null> {
-    // Primero intentar buscar por username
+    // First try to search by username
     if (username) {
       const byUsername = await this.findByUsername(username);
       if (byUsername) return byUsername;
     }
 
-    // Si no se encuentra por username, buscar por email
+    // If not found by username, search by email
     if (email) {
       return await this.findByEmail(email);
     }
@@ -86,7 +86,7 @@ export class userMysqlRepository implements UserRepository {
     return result.affectedRows > 0;
   }
 
-  // ==================== MÉTODOS DE AUTENTICACIÓN ====================
+  // ==================== AUTHENTICATION METHODS ====================
 
   async updatePassword(userId: number, hashedPassword: string): Promise<void> {
     const query = 'UPDATE users SET password = ?, modified = NOW() WHERE id = ?';
@@ -118,7 +118,7 @@ export class userMysqlRepository implements UserRepository {
     await this.Database.executeSafeQuery(query, [userId]);
   }
 
-  // ==================== CÓDIGOS DE VERIFICACIÓN ====================
+  // ==================== VERIFICATION CODES ====================
 
   async saveVerificationCode(email: string, code: number): Promise<void> {
     const query = 'INSERT INTO email_verification (email, verification_code) VALUES (?, ?)';

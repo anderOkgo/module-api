@@ -1,8 +1,8 @@
 import { SeriesCreateRequest, SeriesUpdateRequest } from '../../domain/entities/series.entity';
 
 /**
- * Repositorio de ESCRITURA
- * Solo operaciones que modifican el estado
+ * WRITE Repository
+ * Only operations that modify state
  */
 export interface SeriesWriteRepository {
   // CRUD
@@ -10,15 +10,15 @@ export interface SeriesWriteRepository {
   update(id: number, series: SeriesUpdateRequest): Promise<void>;
   delete(id: number): Promise<boolean>;
 
-  // Imagen
+  // Image
   updateImage(id: number, imagePath: string): Promise<boolean>;
 
-  // Relaciones
+  // Relationships
   assignGenres(seriesId: number, genreIds: number[]): Promise<boolean>;
   removeGenres(seriesId: number, genreIds: number[]): Promise<boolean>;
   addTitles(seriesId: number, titles: string[]): Promise<boolean>;
   removeTitles(seriesId: number, titleIds: number[]): Promise<boolean>;
 
-  // Mantenimiento
+  // Maintenance
   updateRank(): Promise<void>;
 }

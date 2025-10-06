@@ -5,8 +5,8 @@ import { isNumber } from '../../../../infrastructure/validatios.helper';
 import Movement from '../../domain/entities/movement.entity';
 
 /**
- * Implementación MySQL del repositorio financiero
- * SOLO contiene lógica de acceso a datos
+ * MySQL implementation of the financial repository
+ * ONLY contains data access logic
  */
 export class FinanMysqlRepository implements FinanRepository {
   private Database: Database;
@@ -17,7 +17,7 @@ export class FinanMysqlRepository implements FinanRepository {
     this.Limit = 10000;
   }
 
-  // ==================== MÉTODOS CRUD ====================
+  // ==================== CRUD METHODS ====================
 
   async create(movement: Movement): Promise<Movement> {
     const tableName = `movements_${movement.user}`;
@@ -79,7 +79,7 @@ export class FinanMysqlRepository implements FinanRepository {
     return result.affectedRows > 0;
   }
 
-  // ==================== MÉTODOS DE CONSULTA ====================
+  // ==================== QUERY METHODS ====================
 
   async getTotalExpenseDay(username: string, currency: string, date: string): Promise<any[]> {
     const full_query = `CALL proc_view_total_expense_day(?, ?, ?, ?)`;
@@ -171,7 +171,7 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
-  // ==================== MÉTODOS ESPECIALES ====================
+  // ==================== SPECIAL METHODS ====================
 
   async getGeneralInfo(): Promise<any[]> {
     const query = `SELECT * FROM view_general_info`;

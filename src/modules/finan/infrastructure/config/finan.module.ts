@@ -8,21 +8,21 @@ import { DeleteMovementUseCase } from '../../application/use-cases/delete-moveme
 import { FinanMysqlRepository } from '../persistence/finan.mysql';
 
 /**
- * Composition Root para el módulo Finan
- * Construye y cablea las dependencias usando Clean Architecture
- * Sigue el patrón hexagonal con inyección de dependencias
+ * Composition Root for the Finan module
+ * Builds and wires dependencies using Clean Architecture
+ * Follows hexagonal pattern with dependency injection
  */
 export function buildFinanModule() {
-  // 1. Crear repositorio (Infrastructure Layer)
+  // 1. Create repository (Infrastructure Layer)
   const finanRepository = new FinanMysqlRepository();
 
-  // 2. Crear Use Cases (Application Layer) - inyectando dependencias
+  // 2. Create Use Cases (Application Layer) - injecting dependencies
   const getInitialLoadUseCase = new GetInitialLoadUseCase(finanRepository);
   const putMovementUseCase = new PutMovementUseCase(finanRepository);
   const updateMovementUseCase = new UpdateMovementUseCase(finanRepository);
   const deleteMovementUseCase = new DeleteMovementUseCase(finanRepository);
 
-  // 3. Crear Controlador (Infrastructure Layer) - inyectando Use Cases
+  // 3. Create Controller (Infrastructure Layer) - injecting Use Cases
   const finanController = new FinanController(
     getInitialLoadUseCase,
     putMovementUseCase,
@@ -30,7 +30,7 @@ export function buildFinanModule() {
     deleteMovementUseCase
   );
 
-  // 4. Configurar rutas
+  // 4. Configure routes
   const router = Router();
   router.post('/initial-load', validateToken, finanController.getInitialLoad);
   router.post('/insert', validateToken, finanController.putMovement);

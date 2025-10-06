@@ -8,41 +8,41 @@ import { JwtTokenGeneratorService } from '../services/jwt-token-generator.servic
 import { SmtpEmailService } from '../services/smtp-email.service';
 
 /**
- * Composition Root para el módulo Auth
- * Construye y cablea TODAS las dependencias usando Clean Architecture
- * Sigue el patrón hexagonal con inyección de dependencias manual
+ * Composition Root for the Auth module
+ * Builds and wires ALL dependencies using Clean Architecture
+ * Follows hexagonal pattern with manual dependency injection
  *
- * ✅ CUMPLE Clean Architecture:
- * - Application NO importa Infrastructure
- * - Todas las dependencias se inyectan aquí
- * - Use Cases contienen lógica de negocio
- * - Repository SOLO acceso a datos
+ * ✅ FOLLOWS Clean Architecture:
+ * - Application does NOT import Infrastructure
+ * - All dependencies are injected here
+ * - Use Cases contain business logic
+ * - Repository ONLY data access
  */
 export function buildAuthModule() {
-  // 1. Crear adaptadores de infraestructura (implementaciones concretas)
+  // 1. Create infrastructure adapters (concrete implementations)
   const passwordHasher = new BcryptPasswordHasherService();
   const tokenGenerator = new JwtTokenGeneratorService();
   const emailService = new SmtpEmailService();
 
-  // 2. Crear repositorio (Infrastructure Layer)
+  // 2. Create repository (Infrastructure Layer)
   const userRepository = new userMysqlRepository();
 
-  // 3. Crear Use Cases (Application Layer) - inyectando TODAS las dependencias
+  // 3. Create Use Cases (Application Layer) - injecting ALL dependencies
   const registerUserUseCase = new RegisterUserUseCase(userRepository, passwordHasher, emailService);
 
   const loginUserUseCase = new LoginUserUseCase(userRepository, passwordHasher, tokenGenerator);
 
-  // 4. Crear Controlador (Infrastructure Layer) - inyectando Use Cases
+  // 4. Create Controller (Infrastructure Layer) - injecting Use Cases
   const userController = new UserController(registerUserUseCase, loginUserUseCase);
 
-  // 5. Configurar rutas
+  // 5. Configure routes
   const router = Router();
   router.post('/add', userController.addUser);
   router.post('/login', userController.loginUser);
 
   return {
     router,
-    // Exponer instancias para testing
+    // Expose instances for testing
     userController,
     userRepository,
     registerUserUseCase,

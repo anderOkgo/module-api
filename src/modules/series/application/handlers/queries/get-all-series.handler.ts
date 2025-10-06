@@ -6,11 +6,11 @@ export class GetAllSeriesHandler implements QueryHandler<GetAllSeriesQuery, GetA
   constructor(private readonly readRepository: SeriesReadRepository) {}
 
   async execute(query: GetAllSeriesQuery): Promise<GetAllSeriesResponse> {
-    // Normalizar parámetros
+    // Normalize parameters
     const limit = this.validateAndNormalizeLimit(query.limit);
     const offset = this.validateAndNormalizeOffset(query.offset);
 
-    // Obtener datos usando vista optimizada
+    // Get data using optimized view
     const result = await this.readRepository.findAll(limit, offset);
 
     return {

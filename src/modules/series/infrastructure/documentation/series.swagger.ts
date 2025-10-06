@@ -1,14 +1,14 @@
 /**
- * Documentación Swagger COMPLETA para el módulo de series
- * Separada del controlador para mantener código limpio
+ * COMPLETE Swagger documentation for the series module
+ * Separated from controller to keep code clean
  */
 
 export const seriesSwaggerDocumentation = {
-  // 1. GET /api/series (POST) - Boot endpoint para obtener producciones con filtros
+  // 1. GET /api/series (POST) - Boot endpoint to get productions with filters
   getProductions: {
     '/api/series': {
       post: {
-        summary: 'Obtener producciones con filtros (Boot endpoint)',
+        summary: 'Get productions with filters (Boot endpoint)',
         tags: ['Series'],
         requestBody: {
           required: true,
@@ -19,7 +19,7 @@ export const seriesSwaggerDocumentation = {
                 properties: {
                   production_name: {
                     type: 'string',
-                    description: 'Nombre de la producción (búsqueda parcial)',
+                    description: 'Production name (partial search)',
                     example: 'Attack on Titan',
                   },
                   production_year: {
@@ -27,17 +27,17 @@ export const seriesSwaggerDocumentation = {
                     items: {
                       type: 'number',
                     },
-                    description: 'Años de producción para filtrar',
+                    description: 'Production years to filter',
                     example: [2013, 2014, 2015],
                   },
                   demographic_name: {
                     type: 'string',
-                    description: 'Nombre de la demografía',
+                    description: 'Demographic name',
                     example: 'Shōnen',
                   },
                   limit: {
                     type: 'string',
-                    description: 'Límite de resultados',
+                    description: 'Results limit',
                     example: '50',
                   },
                 },
@@ -47,7 +47,7 @@ export const seriesSwaggerDocumentation = {
         },
         responses: {
           200: {
-            description: 'Lista de producciones obtenida exitosamente',
+            description: 'Production list obtained successfully',
             content: {
               'application/json': {
                 schema: {
@@ -60,7 +60,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error de validación',
+            description: 'Validation error',
             content: {
               'application/json': {
                 schema: {
@@ -70,7 +70,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -84,15 +84,15 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 2. GET /api/series/years - Obtener años de producción disponibles
+  // 2. GET /api/series/years - Get available production years
   getProductionYears: {
     '/api/series/years': {
       get: {
-        summary: 'Obtener todos los años de producción disponibles',
+        summary: 'Get all available production years',
         tags: ['Series'],
         responses: {
           200: {
-            description: 'Lista de años obtenida exitosamente',
+            description: 'Years list obtained successfully',
             content: {
               'application/json': {
                 schema: {
@@ -111,7 +111,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -125,11 +125,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 3. POST /api/series/create - Crear serie con multipart/form-data
+  // 3. POST /api/series/create - Create series with multipart/form-data
   createSeries: {
     '/api/series/create': {
       post: {
-        summary: 'Crear una nueva serie',
+        summary: 'Create a new series',
         tags: ['Series'],
         security: [
           {
@@ -154,50 +154,50 @@ export const seriesSwaggerDocumentation = {
                 properties: {
                   name: {
                     type: 'string',
-                    description: 'Nombre de la serie',
+                    description: 'Series name',
                     example: 'Attack on Titan',
                   },
                   chapter_number: {
                     type: 'number',
-                    description: 'Número de capítulos',
+                    description: 'Number of chapters',
                     example: 25,
                   },
                   year: {
                     type: 'number',
-                    description: 'Año de lanzamiento',
+                    description: 'Release year',
                     example: 2013,
                   },
                   description: {
                     type: 'string',
-                    description: 'Descripción de la serie',
+                    description: 'Series description',
                     example: 'Una serie de anime sobre la humanidad luchando contra titanes',
                   },
                   description_en: {
                     type: 'string',
-                    description: 'Descripción de la serie en inglés',
+                    description: 'Series description in English',
                     example: 'An anime series about humanity fighting against titans',
                   },
                   qualification: {
                     type: 'number',
                     minimum: 0,
                     maximum: 10,
-                    description: 'Calificación de 0 a 10',
+                    description: 'Rating from 0 to 10',
                     example: 9.5,
                   },
                   demography_id: {
                     type: 'number',
-                    description: 'ID de la demografía',
+                    description: 'Demographic ID',
                     example: 1,
                   },
                   visible: {
                     type: 'boolean',
-                    description: 'Si la serie es visible',
+                    description: 'Whether the series is visible',
                     example: true,
                   },
                   image: {
                     type: 'string',
                     format: 'binary',
-                    description: 'Imagen de la serie (será optimizada a 190x285px, ~14KB)',
+                    description: 'Series image (will be optimized to 190x285px, ~14KB)',
                   },
                 },
               },
@@ -206,7 +206,7 @@ export const seriesSwaggerDocumentation = {
         },
         responses: {
           201: {
-            description: 'Serie creada exitosamente',
+            description: 'Series created successfully',
             content: {
               'application/json': {
                 schema: {
@@ -228,7 +228,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error de validación',
+            description: 'Validation error',
             content: {
               'application/json': {
                 schema: {
@@ -238,7 +238,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -252,11 +252,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 4. POST /api/series/create-complete - Crear serie completa con JSON
+  // 4. POST /api/series/create-complete - Create complete series with JSON
   createSeriesComplete: {
     '/api/series/create-complete': {
       post: {
-        summary: 'Crear serie completa con relaciones (JSON)',
+        summary: 'Create complete series with relationships (JSON)',
         tags: ['Series'],
         security: [
           {
@@ -281,44 +281,44 @@ export const seriesSwaggerDocumentation = {
                 properties: {
                   name: {
                     type: 'string',
-                    description: 'Nombre de la serie',
+                    description: 'Series name',
                     example: 'Attack on Titan',
                   },
                   chapter_number: {
                     type: 'number',
-                    description: 'Número de capítulos',
+                    description: 'Number of chapters',
                     example: 25,
                   },
                   year: {
                     type: 'number',
-                    description: 'Año de lanzamiento',
+                    description: 'Release year',
                     example: 2013,
                   },
                   description: {
                     type: 'string',
-                    description: 'Descripción de la serie',
+                    description: 'Series description',
                     example: 'Una serie de anime sobre la humanidad luchando contra titanes',
                   },
                   description_en: {
                     type: 'string',
-                    description: 'Descripción de la serie en inglés',
+                    description: 'Series description in English',
                     example: 'An anime series about humanity fighting against titans',
                   },
                   qualification: {
                     type: 'number',
                     minimum: 0,
                     maximum: 10,
-                    description: 'Calificación de 0 a 10',
+                    description: 'Rating from 0 to 10',
                     example: 9.5,
                   },
                   demography_id: {
                     type: 'number',
-                    description: 'ID de la demografía',
+                    description: 'Demographic ID',
                     example: 2,
                   },
                   visible: {
                     type: 'boolean',
-                    description: 'Si la serie es visible',
+                    description: 'Whether the series is visible',
                     example: true,
                   },
                   genres: {
@@ -326,7 +326,7 @@ export const seriesSwaggerDocumentation = {
                     items: {
                       type: 'number',
                     },
-                    description: 'Array de IDs de géneros',
+                    description: 'Array of genre IDs',
                     example: [1, 3, 5],
                   },
                   titles: {
@@ -334,7 +334,7 @@ export const seriesSwaggerDocumentation = {
                     items: {
                       type: 'string',
                     },
-                    description: 'Array de títulos alternativos',
+                    description: 'Array of alternative titles',
                     example: ['Shingeki no Kyojin', 'AOT'],
                   },
                 },
@@ -344,7 +344,7 @@ export const seriesSwaggerDocumentation = {
         },
         responses: {
           201: {
-            description: 'Serie creada exitosamente con relaciones',
+            description: 'Series created successfully with relationships',
             content: {
               'application/json': {
                 schema: {
@@ -366,7 +366,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error de validación',
+            description: 'Validation error',
             content: {
               'application/json': {
                 schema: {
@@ -376,7 +376,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -390,11 +390,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 5. GET /api/series/{id} - Obtener serie por ID
+  // 5. GET /api/series/{id} - Get series by ID
   getSeriesById: {
     '/api/series/{id}': {
       get: {
-        summary: 'Obtener serie por ID',
+        summary: 'Get series by ID',
         tags: ['Series'],
         parameters: [
           {
@@ -404,13 +404,13 @@ export const seriesSwaggerDocumentation = {
             schema: {
               type: 'integer',
             },
-            description: 'ID de la serie',
+            description: 'Series ID',
             example: 1,
           },
         ],
         responses: {
           200: {
-            description: 'Serie obtenida exitosamente',
+            description: 'Series obtained successfully',
             content: {
               'application/json': {
                 schema: {
@@ -425,7 +425,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'ID inválido',
+            description: 'Invalid ID',
             content: {
               'application/json': {
                 schema: {
@@ -435,7 +435,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           404: {
-            description: 'Serie no encontrada',
+            description: 'Series not found',
             content: {
               'application/json': {
                 schema: {
@@ -445,7 +445,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -459,11 +459,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 6. PUT /api/series/{id}/image - Actualizar imagen de serie
+  // 6. PUT /api/series/{id}/image - Update series image
   updateSeriesImage: {
     '/api/series/{id}/image': {
       put: {
-        summary: 'Actualizar imagen de una serie',
+        summary: 'Update a series image',
         tags: ['Series'],
         security: [
           {
@@ -478,7 +478,7 @@ export const seriesSwaggerDocumentation = {
             schema: {
               type: 'integer',
             },
-            description: 'ID de la serie',
+            description: 'Series ID',
             example: 1,
           },
         ],
@@ -492,7 +492,7 @@ export const seriesSwaggerDocumentation = {
                   image: {
                     type: 'string',
                     format: 'binary',
-                    description: 'Nueva imagen de la serie',
+                    description: 'New series image',
                   },
                 },
               },
@@ -501,7 +501,7 @@ export const seriesSwaggerDocumentation = {
         },
         responses: {
           200: {
-            description: 'Imagen actualizada exitosamente',
+            description: 'Image updated successfully',
             content: {
               'application/json': {
                 schema: {
@@ -513,7 +513,7 @@ export const seriesSwaggerDocumentation = {
                     },
                     message: {
                       type: 'string',
-                      example: 'Imagen actualizada exitosamente',
+                      example: 'Image updated successfully',
                     },
                   },
                 },
@@ -521,7 +521,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error en la validación',
+            description: 'Validation error',
             content: {
               'application/json': {
                 schema: {
@@ -531,7 +531,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           401: {
-            description: 'No autorizado',
+            description: 'Unauthorized',
             content: {
               'application/json': {
                 schema: {
@@ -541,7 +541,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -555,11 +555,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 7. GET /api/series/list - Obtener todas las series
+  // 7. GET /api/series/list - Get all series
   getAllSeries: {
     '/api/series/list': {
       get: {
-        summary: 'Obtener todas las series',
+        summary: 'Get all series',
         tags: ['Series'],
         security: [
           {
@@ -576,7 +576,7 @@ export const seriesSwaggerDocumentation = {
               minimum: 1,
               maximum: 100,
             },
-            description: 'Número máximo de series a retornar',
+            description: 'Maximum number of series to return',
             example: 25,
           },
           {
@@ -587,13 +587,13 @@ export const seriesSwaggerDocumentation = {
               default: 0,
               minimum: 0,
             },
-            description: 'Número de series a omitir (para paginación)',
+            description: 'Number of series to skip (for pagination)',
             example: 0,
           },
         ],
         responses: {
           200: {
-            description: 'Lista de series obtenida exitosamente',
+            description: 'Series list obtained successfully',
             content: {
               'application/json': {
                 schema: {
@@ -611,7 +611,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -625,11 +625,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 8. PUT /api/series/{id} - Actualizar serie
+  // 8. PUT /api/series/{id} - Update series
   updateSeries: {
     '/api/series/{id}': {
       put: {
-        summary: 'Actualizar serie existente',
+        summary: 'Update existing series',
         tags: ['Series'],
         security: [
           {
@@ -644,7 +644,7 @@ export const seriesSwaggerDocumentation = {
             schema: {
               type: 'integer',
             },
-            description: 'ID de la serie a actualizar',
+            description: 'Series ID to update',
             example: 1,
           },
         ],
@@ -657,50 +657,50 @@ export const seriesSwaggerDocumentation = {
                 properties: {
                   name: {
                     type: 'string',
-                    description: 'Nombre de la serie (opcional)',
+                    description: 'Series name (optional)',
                     example: '',
                   },
                   chapter_number: {
                     type: 'number',
-                    description: 'Número de capítulos (opcional)',
+                    description: 'Number of chapters (optional)',
                     example: '',
                   },
                   year: {
                     type: 'number',
-                    description: 'Año de lanzamiento (opcional)',
+                    description: 'Release year (optional)',
                     example: '',
                   },
                   description: {
                     type: 'string',
-                    description: 'Descripción de la serie (opcional)',
+                    description: 'Series description (optional)',
                     example: '',
                   },
                   description_en: {
                     type: 'string',
-                    description: 'Descripción de la serie en inglés (opcional)',
+                    description: 'Series description in English (optional)',
                     example: '',
                   },
                   qualification: {
                     type: 'number',
                     minimum: 0,
                     maximum: 10,
-                    description: 'Calificación de 0 a 10 (opcional)',
+                    description: 'Rating from 0 to 10 (optional)',
                     example: '',
                   },
                   demography_id: {
                     type: 'number',
-                    description: 'ID de la demografía (opcional)',
+                    description: 'Demographic ID (optional)',
                     example: '',
                   },
                   visible: {
                     type: 'boolean',
-                    description: 'Si la serie es visible (opcional)',
+                    description: 'Whether the series is visible (optional)',
                     example: '',
                   },
                   image: {
                     type: 'string',
                     format: 'binary',
-                    description: 'Nueva imagen de la serie (opcional)',
+                    description: 'New series image (optional)',
                   },
                 },
               },
@@ -709,7 +709,7 @@ export const seriesSwaggerDocumentation = {
         },
         responses: {
           200: {
-            description: 'Serie actualizada exitosamente',
+            description: 'Series updated successfully',
             content: {
               'application/json': {
                 schema: {
@@ -731,7 +731,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error de validación',
+            description: 'Validation error',
             content: {
               'application/json': {
                 schema: {
@@ -741,7 +741,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -755,11 +755,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 9. DELETE /api/series/{id} - Eliminar serie
+  // 9. DELETE /api/series/{id} - Delete series
   deleteSeries: {
     '/api/series/{id}': {
       delete: {
-        summary: 'Eliminar serie',
+        summary: 'Delete series',
         tags: ['Series'],
         security: [
           {
@@ -774,13 +774,13 @@ export const seriesSwaggerDocumentation = {
             schema: {
               type: 'integer',
             },
-            description: 'ID de la serie a eliminar',
+            description: 'Series ID to delete',
             example: 1,
           },
         ],
         responses: {
           200: {
-            description: 'Serie eliminada exitosamente',
+            description: 'Series deleted successfully',
             content: {
               'application/json': {
                 schema: {
@@ -788,7 +788,7 @@ export const seriesSwaggerDocumentation = {
                   properties: {
                     message: {
                       type: 'string',
-                      example: 'Serie eliminada exitosamente',
+                      example: 'Series deleted successfully',
                     },
                   },
                 },
@@ -796,7 +796,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'ID inválido',
+            description: 'Invalid ID',
             content: {
               'application/json': {
                 schema: {
@@ -806,7 +806,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           404: {
-            description: 'Serie no encontrada',
+            description: 'Series not found',
             content: {
               'application/json': {
                 schema: {
@@ -816,7 +816,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -830,11 +830,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 10. POST /api/series/search - Buscar series con filtros
+  // 10. POST /api/series/search - Search series with filters
   searchSeries: {
     '/api/series/search': {
       post: {
-        summary: 'Buscar series con filtros',
+        summary: 'Search series with filters',
         tags: ['Series'],
         requestBody: {
           required: true,
@@ -845,33 +845,33 @@ export const seriesSwaggerDocumentation = {
                 properties: {
                   production_name: {
                     type: 'string',
-                    description: 'Nombre de la serie (búsqueda parcial)',
+                    description: 'Series name (partial search)',
                     example: 'Attack on Titan',
                   },
                   production_year: {
                     type: 'number',
-                    description: 'Año de producción',
+                    description: 'Production year',
                     example: 2013,
                   },
                   demography_id: {
                     type: 'number',
                     description:
-                      'ID de la demografía (1=Kodomo, 2=Shōnen, 3=Shōjo, 4=Seinen, 5=Josei, 6=Shōnen-Seinen)',
+                      'Demographic ID (1=Kodomo, 2=Shōnen, 3=Shōjo, 4=Seinen, 5=Josei, 6=Shōnen-Seinen)',
                     example: 2,
                   },
                   visible: {
                     type: 'boolean',
-                    description: 'Si la serie es visible',
+                    description: 'Whether the series is visible',
                     example: true,
                   },
                   qualification: {
                     type: 'number',
-                    description: 'Calificación mínima (0-10)',
+                    description: 'Minimum rating (0-10)',
                     example: 8.5,
                   },
                   chapter_number: {
                     type: 'number',
-                    description: 'Número de capítulos',
+                    description: 'Number of chapters',
                     example: 25,
                   },
                 },
@@ -881,7 +881,7 @@ export const seriesSwaggerDocumentation = {
         },
         responses: {
           200: {
-            description: 'Búsqueda realizada exitosamente',
+            description: 'Search completed successfully',
             content: {
               'application/json': {
                 schema: {
@@ -899,7 +899,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -913,11 +913,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 11. POST /api/series/{id}/genres - Asignar géneros
+  // 11. POST /api/series/{id}/genres - Assign genres
   assignGenres: {
     '/api/series/{id}/genres': {
       post: {
-        summary: 'Asignar géneros a una serie',
+        summary: 'Assign genres to a series',
         tags: ['Series'],
         security: [
           {
@@ -932,7 +932,7 @@ export const seriesSwaggerDocumentation = {
             schema: {
               type: 'integer',
             },
-            description: 'ID de la serie',
+            description: 'Series ID',
             example: 1,
           },
         ],
@@ -949,7 +949,7 @@ export const seriesSwaggerDocumentation = {
                     items: {
                       type: 'number',
                     },
-                    description: 'Array de IDs de géneros',
+                    description: 'Array of genre IDs',
                     example: [1, 3, 5],
                   },
                 },
@@ -959,7 +959,7 @@ export const seriesSwaggerDocumentation = {
         },
         responses: {
           200: {
-            description: 'Géneros asignados exitosamente',
+            description: 'Genres assigned successfully',
             content: {
               'application/json': {
                 schema: {
@@ -967,7 +967,7 @@ export const seriesSwaggerDocumentation = {
                   properties: {
                     message: {
                       type: 'string',
-                      example: 'Géneros asignados exitosamente',
+                      example: 'Genres assigned successfully',
                     },
                   },
                 },
@@ -975,7 +975,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error de validación',
+            description: 'Validation error',
             content: {
               'application/json': {
                 schema: {
@@ -985,7 +985,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -999,11 +999,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 12. DELETE /api/series/{id}/genres - Remover géneros
+  // 12. DELETE /api/series/{id}/genres - Remove genres
   removeGenres: {
     '/api/series/{id}/genres': {
       delete: {
-        summary: 'Remover géneros de una serie',
+        summary: 'Remove genres from a series',
         tags: ['Series'],
         security: [
           {
@@ -1018,7 +1018,7 @@ export const seriesSwaggerDocumentation = {
             schema: {
               type: 'integer',
             },
-            description: 'ID de la serie',
+            description: 'Series ID',
             example: 1,
           },
         ],
@@ -1035,7 +1035,7 @@ export const seriesSwaggerDocumentation = {
                     items: {
                       type: 'number',
                     },
-                    description: 'Array de IDs de géneros a remover',
+                    description: 'Array of genre IDs to remove',
                     example: [1, 3],
                   },
                 },
@@ -1045,7 +1045,7 @@ export const seriesSwaggerDocumentation = {
         },
         responses: {
           200: {
-            description: 'Géneros removidos exitosamente',
+            description: 'Genres removed successfully',
             content: {
               'application/json': {
                 schema: {
@@ -1053,7 +1053,7 @@ export const seriesSwaggerDocumentation = {
                   properties: {
                     message: {
                       type: 'string',
-                      example: 'Géneros removidos exitosamente',
+                      example: 'Genres removed successfully',
                     },
                   },
                 },
@@ -1061,7 +1061,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error de validación',
+            description: 'Validation error',
             content: {
               'application/json': {
                 schema: {
@@ -1071,7 +1071,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -1085,11 +1085,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 13. POST /api/series/{id}/titles - Agregar títulos
+  // 13. POST /api/series/{id}/titles - Add titles
   addTitles: {
     '/api/series/{id}/titles': {
       post: {
-        summary: 'Agregar títulos alternativos a una serie',
+        summary: 'Add alternative titles to a series',
         tags: ['Series'],
         security: [
           {
@@ -1104,7 +1104,7 @@ export const seriesSwaggerDocumentation = {
             schema: {
               type: 'integer',
             },
-            description: 'ID de la serie',
+            description: 'Series ID',
             example: 1,
           },
         ],
@@ -1121,7 +1121,7 @@ export const seriesSwaggerDocumentation = {
                     items: {
                       type: 'string',
                     },
-                    description: 'Array de títulos alternativos',
+                    description: 'Array of alternative titles',
                     example: ['Shingeki no Kyojin', 'AOT'],
                   },
                 },
@@ -1131,7 +1131,7 @@ export const seriesSwaggerDocumentation = {
         },
         responses: {
           200: {
-            description: 'Títulos agregados exitosamente',
+            description: 'Titles added successfully',
             content: {
               'application/json': {
                 schema: {
@@ -1139,7 +1139,7 @@ export const seriesSwaggerDocumentation = {
                   properties: {
                     message: {
                       type: 'string',
-                      example: 'Títulos agregados exitosamente',
+                      example: 'Titles added successfully',
                     },
                   },
                 },
@@ -1147,7 +1147,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error de validación',
+            description: 'Validation error',
             content: {
               'application/json': {
                 schema: {
@@ -1157,7 +1157,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -1171,11 +1171,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 14. DELETE /api/series/{id}/titles - Remover títulos
+  // 14. DELETE /api/series/{id}/titles - Remove titles
   removeTitles: {
     '/api/series/{id}/titles': {
       delete: {
-        summary: 'Remover títulos alternativos de una serie',
+        summary: 'Remove alternative titles from a series',
         tags: ['Series'],
         security: [
           {
@@ -1190,7 +1190,7 @@ export const seriesSwaggerDocumentation = {
             schema: {
               type: 'integer',
             },
-            description: 'ID de la serie',
+            description: 'Series ID',
             example: 1,
           },
         ],
@@ -1207,7 +1207,7 @@ export const seriesSwaggerDocumentation = {
                     items: {
                       type: 'number',
                     },
-                    description: 'Array de IDs de títulos a remover',
+                    description: 'Array of title IDs to remove',
                     example: [1, 2],
                   },
                 },
@@ -1217,7 +1217,7 @@ export const seriesSwaggerDocumentation = {
         },
         responses: {
           200: {
-            description: 'Títulos removidos exitosamente',
+            description: 'Titles removed successfully',
             content: {
               'application/json': {
                 schema: {
@@ -1225,7 +1225,7 @@ export const seriesSwaggerDocumentation = {
                   properties: {
                     message: {
                       type: 'string',
-                      example: 'Títulos removidos exitosamente',
+                      example: 'Titles removed successfully',
                     },
                   },
                 },
@@ -1233,7 +1233,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           400: {
-            description: 'Error de validación',
+            description: 'Validation error',
             content: {
               'application/json': {
                 schema: {
@@ -1243,7 +1243,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -1257,15 +1257,15 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 15. GET /api/series/genres - Obtener géneros disponibles
+  // 15. GET /api/series/genres - Get available genres
   getGenres: {
     '/api/series/genres': {
       get: {
-        summary: 'Obtener lista de géneros disponibles',
+        summary: 'Get list of available genres',
         tags: ['Series'],
         responses: {
           200: {
-            description: 'Lista de géneros obtenida exitosamente',
+            description: 'Genres list obtained successfully',
             content: {
               'application/json': {
                 schema: {
@@ -1273,7 +1273,7 @@ export const seriesSwaggerDocumentation = {
                   properties: {
                     message: {
                       type: 'string',
-                      example: 'Géneros obtenidos exitosamente',
+                      example: 'Genres obtained successfully',
                     },
                     data: {
                       type: 'array',
@@ -1301,7 +1301,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {
@@ -1315,15 +1315,15 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 16. GET /api/series/demographics - Obtener demografías disponibles
+  // 16. GET /api/series/demographics - Get available demographics
   getDemographics: {
     '/api/series/demographics': {
       get: {
-        summary: 'Obtener lista de demografías disponibles',
+        summary: 'Get list of available demographics',
         tags: ['Series'],
         responses: {
           200: {
-            description: 'Lista de demografías obtenida exitosamente',
+            description: 'Demographics list obtained successfully',
             content: {
               'application/json': {
                 schema: {
@@ -1331,7 +1331,7 @@ export const seriesSwaggerDocumentation = {
                   properties: {
                     message: {
                       type: 'string',
-                      example: 'Demografías obtenidas exitosamente',
+                      example: 'Demographics obtained successfully',
                     },
                     data: {
                       type: 'array',
@@ -1359,7 +1359,7 @@ export const seriesSwaggerDocumentation = {
             },
           },
           500: {
-            description: 'Error interno del servidor',
+            description: 'Internal server error',
             content: {
               'application/json': {
                 schema: {

@@ -2,8 +2,8 @@ import { FinanRepository } from '../ports/finan.repository';
 import Movement, { UpdateMovementRequest, MovementResponse } from '../../domain/entities/movement.entity';
 
 /**
- * Caso de uso para actualizar un movimiento financiero existente
- * Implementa validaciones y lógica de negocio
+ * Use case for updating an existing financial movement
+ * Implements validations and business logic
  */
 export class UpdateMovementUseCase {
   constructor(private readonly repository: FinanRepository) {}
@@ -14,10 +14,10 @@ export class UpdateMovementUseCase {
     username: string
   ): Promise<{ success: boolean; message: string; data?: MovementResponse }> {
     try {
-      // 1. Validar entrada
+      // 1. Validate input
       this.validateInput(id, request, username);
 
-      // 2. Verificar que el movimiento existe
+      // 2. Verify that the movement exists
       const existing = await this.repository.findById(id, username);
       if (!existing) {
         return {
@@ -26,7 +26,7 @@ export class UpdateMovementUseCase {
         };
       }
 
-      // 3. Normalizar y preparar datos actualizados
+      // 3. Normalize and prepare updated data
       const movementUpdate: Partial<Movement> = {
         name: request.movement_name.trim(),
         value: request.movement_val,
@@ -37,10 +37,10 @@ export class UpdateMovementUseCase {
         log: request.operate_for || 0,
       };
 
-      // 4. Actualizar en base de datos
+      // 4. Update in database
       const updated = await this.repository.update(id, movementUpdate, username);
 
-      // 5. Mapear a respuesta
+      // 5. Map to response
       const response: MovementResponse = {
         id: updated.id!,
         name: updated.name,

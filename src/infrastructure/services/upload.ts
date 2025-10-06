@@ -1,14 +1,14 @@
 import multer from 'multer';
 import { ImageProcessor } from './image';
 
-// Configuración de multer para manejo de archivos
+// Multer configuration for file handling
 const storage = multer.memoryStorage();
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   if (ImageProcessor.isValidImageType(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Tipo de archivo no válido. Solo se permiten imágenes (JPEG, PNG, WebP).'));
+    cb(new Error('Invalid file type. Only images (JPEG, PNG, WebP) are allowed.'));
   }
 };
 
@@ -16,8 +16,8 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB máximo para archivos originales
-    files: 1, // Solo un archivo por vez
+    fileSize: 5 * 1024 * 1024, // 5MB maximum for original files
+    files: 1, // Only one file at a time
   },
 });
 
@@ -28,12 +28,12 @@ export const uploadMiddleware = (req: any, res: any, next: any) => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({
-          error: 'El archivo es demasiado grande. Máximo 5MB.',
+          error: 'File is too large. Maximum 5MB.',
         });
       }
       if (err.code === 'LIMIT_FILE_COUNT') {
         return res.status(400).json({
-          error: 'Solo se permite un archivo por vez.',
+          error: 'Only one file is allowed at a time.',
         });
       }
       return res.status(400).json({ error: err.message });

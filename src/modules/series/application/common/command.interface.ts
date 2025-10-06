@@ -1,6 +1,6 @@
 /**
- * Interfaz base para Commands
- * Los commands modifican el estado del sistema
+ * Base interface for Commands
+ * Commands modify the system state
  */
 export interface Command<TResult = void> {
   readonly timestamp: Date;

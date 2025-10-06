@@ -85,11 +85,11 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
   }
 
   async assignGenres(seriesId: number, genreIds: number[]): Promise<boolean> {
-    // Eliminar asignaciones existentes
+    // Remove existing assignments
     const deleteQuery = 'DELETE FROM productions_genres WHERE production_id = ?';
     await this.database.executeSafeQuery(deleteQuery, [seriesId]);
 
-    // Insertar nuevas asignaciones
+    // Insert new assignments
     if (genreIds.length > 0) {
       const values = genreIds.map((gid) => `(${seriesId}, ${gid})`).join(',');
       const insertQuery = `INSERT INTO productions_genres (production_id, genre_id) VALUES ${values}`;

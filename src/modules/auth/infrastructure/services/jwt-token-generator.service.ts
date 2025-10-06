@@ -2,8 +2,8 @@ import jwt from 'jsonwebtoken';
 import { TokenGeneratorPort, TokenPayload } from '../../domain/ports/token-generator.port';
 
 /**
- * Adaptador de infraestructura para generación de tokens JWT
- * Implementa el puerto TokenGeneratorPort
+ * Infrastructure adapter for JWT token generation
+ * Implements the TokenGeneratorPort
  */
 export class JwtTokenGeneratorService implements TokenGeneratorPort {
   private readonly SECRET_KEY: string;

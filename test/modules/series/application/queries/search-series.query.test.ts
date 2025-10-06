@@ -36,8 +36,8 @@ describe('SearchSeriesQuery', () => {
       name: 'Test Series',
       year: 2023,
       demography_id: 1,
-      genres: [1, 2, 3],
-      qualification: 8.5,
+      genre_ids: [1, 2, 3],
+      visible: true,
     };
 
     // Act
@@ -48,10 +48,10 @@ describe('SearchSeriesQuery', () => {
     expect(query.filters.name).toBe('Test Series');
     expect(query.filters.year).toBe(2023);
     expect(query.filters.demography_id).toBe(1);
-    expect(query.filters.genres).toEqual([1, 2, 3]);
-    expect(query.filters.qualification).toBe(8.5);
+    expect(query.filters.genre_ids).toEqual([1, 2, 3]);
+    expect(query.filters.visible).toBe(true);
     expect(query.cacheKey).toBe(
-      'series:search:{"name":"Test Series","year":2023,"demography_id":1,"genres":[1,2,3],"qualification":8.5}'
+      'series:search:{"name":"Test Series","year":2023,"demography_id":1,"genre_ids":[1,2,3],"visible":true}'
     );
   });
 
@@ -61,9 +61,10 @@ describe('SearchSeriesQuery', () => {
       name: 'Complex Series',
       year: 2023,
       demography_id: 2,
-      genres: [1, 2, 3, 4, 5],
-      qualification: 9.5,
+      genre_ids: [1, 2, 3, 4, 5],
       visible: true,
+      limit: 20,
+      offset: 0,
     };
 
     // Act
@@ -78,7 +79,8 @@ describe('SearchSeriesQuery', () => {
     // Arrange
     const filters: SeriesSearchFilters = {
       name: 'Series with "quotes" and \'apostrophes\'',
-      description: 'Description with special chars: !@#$%^&*()',
+      year: 2023,
+      demography_id: 1,
     };
 
     // Act
@@ -86,7 +88,8 @@ describe('SearchSeriesQuery', () => {
 
     // Assert
     expect(query.filters.name).toBe('Series with "quotes" and \'apostrophes\'');
-    expect(query.filters.description).toBe('Description with special chars: !@#$%^&*()');
+    expect(query.filters.year).toBe(2023);
+    expect(query.filters.demography_id).toBe(1);
     expect(query.cacheKey).toBe(`series:search:${JSON.stringify(filters)}`);
   });
 
@@ -94,7 +97,8 @@ describe('SearchSeriesQuery', () => {
     // Arrange
     const filters: SeriesSearchFilters = {
       name: 'Título en Español',
-      description: 'タイトル in Japanese',
+      year: 2023,
+      visible: true,
     };
 
     // Act
@@ -102,7 +106,8 @@ describe('SearchSeriesQuery', () => {
 
     // Assert
     expect(query.filters.name).toBe('Título en Español');
-    expect(query.filters.description).toBe('タイトル in Japanese');
+    expect(query.filters.year).toBe(2023);
+    expect(query.filters.visible).toBe(true);
     expect(query.cacheKey).toBe(`series:search:${JSON.stringify(filters)}`);
   });
 
@@ -110,10 +115,11 @@ describe('SearchSeriesQuery', () => {
     // Arrange
     const filters: SeriesSearchFilters = {
       year: 1900,
-      qualification: 0,
       demography_id: 0,
-      genres: [],
+      genre_ids: [],
       visible: false,
+      limit: 0,
+      offset: 0,
     };
 
     // Act
@@ -121,10 +127,11 @@ describe('SearchSeriesQuery', () => {
 
     // Assert
     expect(query.filters.year).toBe(1900);
-    expect(query.filters.qualification).toBe(0);
     expect(query.filters.demography_id).toBe(0);
-    expect(query.filters.genres).toEqual([]);
+    expect(query.filters.genre_ids).toEqual([]);
     expect(query.filters.visible).toBe(false);
+    expect(query.filters.limit).toBe(0);
+    expect(query.filters.offset).toBe(0);
   });
 
   it('should preserve object reference', () => {
@@ -180,7 +187,7 @@ describe('SearchSeriesQuery', () => {
     const filters: SeriesSearchFilters = {
       name: 'Test Series',
       year: 2023,
-      genres: [1, 2, 3],
+      genre_ids: [1, 2, 3],
     };
 
     // Act
@@ -196,17 +203,21 @@ describe('SearchSeriesQuery', () => {
     // Arrange
     const filters: SeriesSearchFilters = {
       name: 'Deep Series',
-      genres: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      genre_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       year: 2023,
-      qualification: 9.999,
+      visible: true,
+      limit: 100,
+      offset: 10,
     };
 
     // Act
     const query = new SearchSeriesQuery(filters);
 
     // Assert
-    expect(query.filters.genres?.length).toBe(10);
-    expect(query.filters.qualification).toBe(9.999);
+    expect(query.filters.genre_ids?.length).toBe(10);
+    expect(query.filters.visible).toBe(true);
+    expect(query.filters.limit).toBe(100);
+    expect(query.filters.offset).toBe(10);
     expect(query.cacheKey).toBe(`series:search:${JSON.stringify(filters)}`);
   });
 });

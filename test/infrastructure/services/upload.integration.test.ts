@@ -49,10 +49,10 @@ jest.mock('multer', () => {
           break;
       }
     }),
-  }));
+  })) as any;
 
-  mockMulter.memoryStorage = jest.fn(() => ({}));
-  mockMulter.MulterError = MockMulterError;
+  (mockMulter as any).memoryStorage = jest.fn(() => ({}));
+  (mockMulter as any).MulterError = MockMulterError;
 
   return mockMulter;
 });

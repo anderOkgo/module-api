@@ -40,7 +40,7 @@ describe('finanSwaggerDocumentation', () => {
       const initialLoadEndpoint = finanSwaggerDocumentation.getInitialLoad['/api/finan/initial-load'];
       expect(initialLoadEndpoint).toBeDefined();
       expect(initialLoadEndpoint.post).toBeDefined();
-      expect(initialLoadEndpoint.post.summary).toContain('carga inicial');
+      expect(initialLoadEndpoint.post.summary).toContain('initial load');
     });
 
     it('should document movement endpoints', () => {

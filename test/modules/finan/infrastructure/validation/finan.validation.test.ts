@@ -4,6 +4,7 @@ import {
   validateInitialLoad,
   validatePutMovement,
   validateUpdateMovements,
+  validateDeleteMovement,
   RequestBody,
   ValidationResult,
 } from '../../../../../src/modules/finan/infrastructure/validation/finan.validation';
@@ -457,6 +458,42 @@ describe('FinanValidation', () => {
       expect(result.errors).toContain('ID is invalid');
     });
 
+    it('should fail validation with too long movement_tag', () => {
+      const body: RequestBody = {
+        ...validBody,
+        movement_tag: 'a'.repeat(61), // 61 characters, exceeds limit of 60
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Movement tag exceeds 60 characters');
+    });
+
+    it('should fail validation with invalid currency length', () => {
+      const body: RequestBody = {
+        ...validBody,
+        currency: 'US', // 2 characters, should be 3
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Currency must be a 3-character code');
+    });
+
+    it('should fail validation with too long currency', () => {
+      const body: RequestBody = {
+        ...validBody,
+        currency: 'USDD', // 4 characters, should be 3
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Currency must be a 3-character code');
+    });
+
     it('should inherit validation errors from put movement', () => {
       const body: RequestBody = {
         id: 1,
@@ -477,6 +514,235 @@ describe('FinanValidation', () => {
       expect(result.errors).toContain('Movement type must be a number');
       expect(result.errors).toContain('Movement tag cannot be empty');
       expect(result.errors).toContain('Currency must be a 3-character code');
+    });
+
+    it('should fail validation with empty movement_date', () => {
+      const body: RequestBody = {
+        ...validBody,
+        movement_date: '',
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Movement date cannot be empty');
+    });
+
+    it('should fail validation with empty movement_type', () => {
+      const body: RequestBody = {
+        ...validBody,
+        movement_type: '',
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Movement type cannot be empty');
+    });
+
+    it('should fail validation with empty movement_tag', () => {
+      const body: RequestBody = {
+        ...validBody,
+        movement_tag: '',
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Movement tag cannot be empty');
+    });
+
+    it('should fail validation with empty currency', () => {
+      const body: RequestBody = {
+        ...validBody,
+        currency: '',
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Currency cannot be empty');
+    });
+
+    it('should fail validation with value exceeding 16 characters', () => {
+      const body: RequestBody = {
+        ...validBody,
+        movement_val: 1e17, // Exceeds 1e16
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Value exceeds 16 characters');
+    });
+
+    it('should fail validation with movement name exceeding 100 characters', () => {
+      const body: RequestBody = {
+        ...validBody,
+        movement_name: 'a'.repeat(101), // 101 characters, exceeds limit of 100
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Movement name exceeds 100 characters');
+    });
+
+    it('should fail validation with non-number movement_val', () => {
+      const body: RequestBody = {
+        ...validBody,
+        movement_val: 'not-a-number',
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Movement value must be a number');
+    });
+
+    it('should handle edge case movement tag exactly at limit', () => {
+      const body: RequestBody = {
+        ...validBody,
+        movement_tag: 'a'.repeat(60), // Exactly 60 characters
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(false);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should handle edge case movement tag one over limit', () => {
+      const body: RequestBody = {
+        ...validBody,
+        movement_tag: 'a'.repeat(61), // 61 characters, one over limit
+      };
+
+      const result = validateUpdateMovements(body, 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('Movement tag exceeds 60 characters');
+    });
+  });
+
+  describe('validateDeleteMovement', () => {
+    it('should pass validation with valid numeric id', () => {
+      const result = validateDeleteMovement(1);
+
+      expect(result.error).toBe(false);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should pass validation with zero id', () => {
+      const result = validateDeleteMovement(0);
+
+      expect(result.error).toBe(false);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should pass validation with negative id', () => {
+      const result = validateDeleteMovement(-1);
+
+      expect(result.error).toBe(false);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should pass validation with large positive id', () => {
+      const result = validateDeleteMovement(999999);
+
+      expect(result.error).toBe(false);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should pass validation with decimal id', () => {
+      const result = validateDeleteMovement(1.5);
+
+      expect(result.error).toBe(false);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should fail validation with string id', () => {
+      const result = validateDeleteMovement('invalid-id');
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('ID is invalid');
+    });
+
+    it('should fail validation with null id', () => {
+      const result = validateDeleteMovement(null);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('ID is invalid');
+    });
+
+    it('should fail validation with undefined id', () => {
+      const result = validateDeleteMovement(undefined);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('ID is invalid');
+    });
+
+    it('should fail validation with boolean id', () => {
+      const result = validateDeleteMovement(true);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('ID is invalid');
+    });
+
+    it('should fail validation with object id', () => {
+      const result = validateDeleteMovement({ id: 1 });
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('ID is invalid');
+    });
+
+    it('should fail validation with array id', () => {
+      const result = validateDeleteMovement([1, 2, 3]);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('ID is invalid');
+    });
+
+    it('should fail validation with function id', () => {
+      const result = validateDeleteMovement(() => 1);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('ID is invalid');
+    });
+
+    it('should fail validation with NaN id', () => {
+      const result = validateDeleteMovement(NaN);
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('ID is invalid');
+    });
+
+    it('should pass validation with Infinity id (JavaScript considers it a number)', () => {
+      const result = validateDeleteMovement(Infinity);
+
+      expect(result.error).toBe(false);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should pass validation with -Infinity id (JavaScript considers it a number)', () => {
+      const result = validateDeleteMovement(-Infinity);
+
+      expect(result.error).toBe(false);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should handle edge case with empty string id', () => {
+      const result = validateDeleteMovement('');
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('ID is invalid');
+    });
+
+    it('should handle edge case with numeric string id', () => {
+      const result = validateDeleteMovement('123');
+
+      expect(result.error).toBe(true);
+      expect(result.errors).toContain('ID is invalid');
     });
   });
 

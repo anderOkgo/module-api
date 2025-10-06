@@ -5,6 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
+    "cov": "jest --coverage",
+    "cov:watch": "jest --coverage --watch",
+    "cov:html": "jest --coverage --coverageReporters=html",
+    "cov:threshold": "jest --coverage --coverageThreshold='{\"global\":{\"statements\":80,\"branches\":80,\"functions\":80,\"lines\":80}}'",
+    "cov:auth": "jest --coverage --testPathPattern=modules/auth",
+    "cov:finan": "jest --coverage --testPathPattern=modules/finan",
+    "cov:series": "jest --coverage --testPathPattern=modules/series",
     "servers": " cmd /c tsc -w | nodemon dist/index.js",
     "up": "call com/db-sync-FTP-both.bat"
   },

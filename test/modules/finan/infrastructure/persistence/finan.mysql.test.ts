@@ -381,6 +381,188 @@ describe('FinanMysqlRepository', () => {
     });
   });
 
+  describe('Fallback query methods', () => {
+    it('should use fallback query when stored procedure fails in getBalanceUntilDate', async () => {
+      const mockFallbackResult = [
+        { date_movement: '2023-01-01', total_balance: 1000 },
+        { date_movement: '2023-01-02', total_balance: 1500 },
+      ];
+
+      // First call fails (stored procedure not found)
+      mockDatabase.executeSafeQuery
+        .mockRejectedValueOnce(new Error('Stored procedure not found'))
+        .mockResolvedValueOnce(mockFallbackResult);
+
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      const result = await repository.getBalanceUntilDate('testuser', 'USD');
+
+      expect(result).toEqual(mockFallbackResult);
+      expect(consoleSpy).toHaveBeenCalledWith('Stored procedure not found, using direct query');
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT DATE_FORMAT(date_movement'),
+        ['USD', 10000]
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should use fallback query when stored procedure fails in getMonthlyExpensesUntilCurrentDay', async () => {
+      const mockFallbackResult = [
+        { month_year: '2023-01', total_expenses: 500 },
+        { month_year: '2023-02', total_expenses: 750 },
+      ];
+
+      // First call fails (stored procedure not found)
+      mockDatabase.executeSafeQuery
+        .mockRejectedValueOnce(new Error('Stored procedure not found'))
+        .mockResolvedValueOnce(mockFallbackResult);
+
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      const result = await repository.getMonthlyExpensesUntilCurrentDay('testuser', 'USD');
+
+      expect(result).toEqual(mockFallbackResult);
+      expect(consoleSpy).toHaveBeenCalledWith('Stored procedure not found, using direct query');
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT DATE_FORMAT(date_movement'),
+        ['USD', 10000]
+      );
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('operateForLinkedMovement comprehensive tests', () => {
+    const mockMovement = { id: 1, value: 100, name: 'Test Movement' };
+
+    it('should handle movement not found', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue([]); // Empty result
+
+      await expect(repository.operateForLinkedMovement(999, 50, 1, 'testuser')).rejects.toThrow(
+        'Linked movement not found'
+      );
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM movements_testuser WHERE id = ?', [
+        999,
+      ]);
+    });
+
+    it('should add value for movement type 1', async () => {
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce([mockMovement]) // SELECT query
+        .mockResolvedValueOnce({ affectedRows: 1 }); // UPDATE query
+
+      await repository.operateForLinkedMovement(1, 50, 1, 'testuser');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM movements_testuser WHERE id = ?', [
+        1,
+      ]);
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        'UPDATE movements_testuser SET value = ? WHERE id = ?',
+        [150, 1] // 100 + 50
+      );
+    });
+
+    it('should subtract value for movement type 2', async () => {
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce([mockMovement]) // SELECT query
+        .mockResolvedValueOnce({ affectedRows: 1 }); // UPDATE query
+
+      await repository.operateForLinkedMovement(1, 30, 2, 'testuser');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        'UPDATE movements_testuser SET value = ? WHERE id = ?',
+        [70, 1] // 100 - 30
+      );
+    });
+
+    it('should subtract value for movement type 8', async () => {
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce([mockMovement]) // SELECT query
+        .mockResolvedValueOnce({ affectedRows: 1 }); // UPDATE query
+
+      await repository.operateForLinkedMovement(1, 25, 8, 'testuser');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        'UPDATE movements_testuser SET value = ? WHERE id = ?',
+        [75, 1] // 100 - 25
+      );
+    });
+
+    it('should not update for unknown movement type', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([mockMovement]); // SELECT query only
+
+      await repository.operateForLinkedMovement(1, 50, 99, 'testuser'); // Unknown type
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1); // Only SELECT, no UPDATE
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM movements_testuser WHERE id = ?', [
+        1,
+      ]);
+    });
+
+    it('should handle non-numeric value in movement', async () => {
+      const mockMovementWithStringValue = { id: 1, value: 'invalid', name: 'Test Movement' };
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([mockMovementWithStringValue]); // SELECT query only
+
+      await repository.operateForLinkedMovement(1, 50, 1, 'testuser');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1); // Only SELECT, no UPDATE
+    });
+
+    it('should handle null value in movement', async () => {
+      const mockMovementWithNullValue = { id: 1, value: null, name: 'Test Movement' };
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([mockMovementWithNullValue]); // SELECT query only
+
+      await repository.operateForLinkedMovement(1, 50, 1, 'testuser');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1); // Only SELECT, no UPDATE
+    });
+
+    it('should handle undefined value in movement', async () => {
+      const mockMovementWithUndefinedValue = { id: 1, value: undefined, name: 'Test Movement' };
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([mockMovementWithUndefinedValue]); // SELECT query only
+
+      await repository.operateForLinkedMovement(1, 50, 1, 'testuser');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1); // Only SELECT, no UPDATE
+    });
+
+    it('should handle database error during operation', async () => {
+      mockDatabase.executeSafeQuery.mockRejectedValue(new Error('Database connection failed'));
+
+      await expect(repository.operateForLinkedMovement(1, 50, 1, 'testuser')).rejects.toThrow(
+        'Database connection failed'
+      );
+    });
+  });
+
+  describe('Error handling for update method', () => {
+    it('should handle database error during update query', async () => {
+      const updateData: Partial<Movement> = {
+        name: 'Updated Movement',
+        value: 200.75,
+      };
+
+      mockDatabase.executeSafeQuery.mockRejectedValue(new Error('Database connection failed'));
+
+      await expect(repository.update(1, updateData, 'testuser')).rejects.toThrow('Database connection failed');
+    });
+
+    it('should handle database error during findById after update', async () => {
+      const updateData: Partial<Movement> = {
+        name: 'Updated Movement',
+        value: 200.75,
+      };
+
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce({ affectedRows: 1 }) // Update query succeeds
+        .mockRejectedValueOnce(new Error('Database connection failed')); // FindById fails
+
+      await expect(repository.update(1, updateData, 'testuser')).rejects.toThrow('Database connection failed');
+    });
+  });
+
   describe('Edge cases', () => {
     it('should handle empty query results', async () => {
       mockDatabase.executeSafeQuery.mockResolvedValue([[]]);
@@ -447,6 +629,99 @@ describe('FinanMysqlRepository', () => {
       expect(result).toEqual({
         ...validMovement,
         id: 126,
+      });
+    });
+
+    it('should handle zero values', async () => {
+      const validMovement: Movement = {
+        name: 'Zero Movement',
+        value: 0,
+        date_movement: '2023-01-01',
+        type_source_id: 0,
+        tag: '',
+        currency: 'USD',
+        user: 'testuser',
+        log: 0,
+      };
+
+      const mockResult = { insertId: 127 };
+      mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
+
+      const result = await repository.create(validMovement);
+
+      expect(result).toEqual({
+        ...validMovement,
+        id: 127,
+      });
+    });
+
+    it('should handle negative values', async () => {
+      const validMovement: Movement = {
+        name: 'Negative Movement',
+        value: -100.5,
+        date_movement: '2023-01-01',
+        type_source_id: 1,
+        tag: 'negative-tag',
+        currency: 'USD',
+        user: 'testuser',
+        log: -1,
+      };
+
+      const mockResult = { insertId: 128 };
+      mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
+
+      const result = await repository.create(validMovement);
+
+      expect(result).toEqual({
+        ...validMovement,
+        id: 128,
+      });
+    });
+
+    it('should handle very long strings', async () => {
+      const longString = 'A'.repeat(1000);
+      const validMovement: Movement = {
+        name: longString,
+        value: 100.5,
+        date_movement: '2023-01-01',
+        type_source_id: 1,
+        tag: longString,
+        currency: 'USD',
+        user: longString,
+        log: 0,
+      };
+
+      const mockResult = { insertId: 129 };
+      mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
+
+      const result = await repository.create(validMovement);
+
+      expect(result).toEqual({
+        ...validMovement,
+        id: 129,
+      });
+    });
+
+    it('should handle special characters in movement data', async () => {
+      const validMovement: Movement = {
+        name: "Test's Movement & Co. (Ltd.)",
+        value: 100.5,
+        date_movement: '2023-01-01',
+        type_source_id: 1,
+        tag: 'test-tag@#$%',
+        currency: 'USD',
+        user: 'test@user.com',
+        log: 0,
+      };
+
+      const mockResult = { insertId: 130 };
+      mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
+
+      const result = await repository.create(validMovement);
+
+      expect(result).toEqual({
+        ...validMovement,
+        id: 130,
       });
     });
   });

@@ -318,5 +318,54 @@ describe('ImageProcessor - Final Coverage Tests', () => {
         'Error getting image info: Unknown error'
       );
     });
+
+    it('should handle quality reduction in optimizeImage', async () => {
+      // Test quality reduction logic
+      const largeBuffer = Buffer.from('large-image-data');
+      Object.defineProperty(largeBuffer, 'length', { value: 25000 });
+
+      const smallBuffer = Buffer.from('small-image-data');
+      Object.defineProperty(smallBuffer, 'length', { value: 15000 });
+
+      // Mock sequence: large buffer, then small buffer
+      mockSharpInstance.toBuffer
+        .mockResolvedValueOnce(largeBuffer) // Initial call
+        .mockResolvedValueOnce(smallBuffer); // After quality reduction
+
+      const result = await ImageProcessor.optimizeImage(mockBuffer, {
+        maxSizeKB: 20,
+        quality: 90,
+      });
+
+      expect(result).toBe(smallBuffer);
+      expect(mockSharpInstance.jpeg).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle advanced optimization with quality steps', async () => {
+      // Test advanced optimization logic
+      const largeBuffer = Buffer.from('large-image-data');
+      const mediumBuffer = Buffer.from('medium-image-data');
+      const smallBuffer = Buffer.from('small-image-data');
+
+      Object.defineProperty(largeBuffer, 'length', { value: 25000 });
+      Object.defineProperty(mediumBuffer, 'length', { value: 18000 });
+      Object.defineProperty(smallBuffer, 'length', { value: 15000 });
+
+      const metadata = { width: 1920, height: 1080, format: 'jpeg' };
+      mockSharpInstance.metadata.mockResolvedValue(metadata);
+
+      // Mock sequence - initial large, then medium (acceptable size)
+      mockSharpInstance.toBuffer
+        .mockResolvedValueOnce(largeBuffer) // Initial optimization
+        .mockResolvedValueOnce(mediumBuffer); // First quality step
+
+      const result = await ImageProcessor.optimizeImageAdvanced(mockBuffer, {
+        maxSizeKB: 20,
+        quality: 90,
+      });
+
+      expect(result).toBe(mediumBuffer);
+      expect(mockSharpInstance.metadata).toHaveBeenCalled();
+    });
   });
 });

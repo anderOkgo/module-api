@@ -7,7 +7,7 @@ import { TokenGeneratorPort, TokenPayload } from '../../domain/ports/token-gener
  */
 export class JwtTokenGeneratorService implements TokenGeneratorPort {
   private readonly SECRET_KEY: string;
-  private readonly EXPIRES_IN = '24h';
+  private readonly EXPIRES_IN = '30d';
 
   constructor(secretKey?: string) {
     this.SECRET_KEY = secretKey ?? process.env.SECRET_KEY ?? 'enterkey';

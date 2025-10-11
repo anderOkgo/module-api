@@ -185,7 +185,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
     }
 
     // Add sorting and limit (transplanted from legacy)
-    //conditions.push(HDB.generateOrderBy('production_ranking_number', 'ASC'));
+    filters.production_ranking_number ?? conditions.push(HDB.generateOrderBy('id', 'DESC'));
     conditions.push(HDB.generateLimit());
     const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
 
@@ -204,7 +204,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
         mergedArray.push(element);
       }
     });
-    console.log('Executing query:', fullQuery, mergedArray);
+    //console.log('Executing query:', fullQuery, mergedArray);
     const result = await this.database.executeSafeQuery(fullQuery, mergedArray);
     if (result.errorSys) {
       throw new Error(result.message);

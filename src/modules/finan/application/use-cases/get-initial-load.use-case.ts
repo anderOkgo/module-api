@@ -15,9 +15,11 @@ export class GetInitialLoadUseCase {
       this.validateInput(data);
 
       // 2. Normalize data
-      const username = data.username?.toLowerCase() ?? '';
+      const username = data.username?.toLowerCase().trim() ?? '';
       const currency = data.currency ?? 'USD';
       const date = data.date ?? data.start_date ?? this.getCurrentDate();
+
+      this.repository.createTableForUser(username);
 
       // 3. Get data in parallel for better performance
       const [

@@ -6,7 +6,8 @@ import { DataParams } from '../../infrastructure/models/dataparams';
  * Defines the contract for financial data access
  */
 export interface FinanRepository {
-  // CRUD methods
+  // CRUD
+  createTableForUser(username: string): Promise<void>;
   create(movement: Movement): Promise<Movement>;
   findById(id: number, username: string): Promise<Movement | null>;
   update(id: number, movement: Partial<Movement>, username: string): Promise<Movement>;

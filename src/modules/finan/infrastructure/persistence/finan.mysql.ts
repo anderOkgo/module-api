@@ -19,6 +19,10 @@ export class FinanMysqlRepository implements FinanRepository {
 
   // ==================== CRUD METHODS ====================
 
+  async createTableForUser(username: string): Promise<void> {
+    await this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [username.toLowerCase()]);
+  }
+
   async create(movement: Movement): Promise<Movement> {
     const tableName = `movements_${movement.user}`;
     const query = `

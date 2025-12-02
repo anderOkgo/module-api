@@ -9,6 +9,7 @@ import {
 const mockRepository: jest.Mocked<FinanRepository> = {
   create: jest.fn(),
   findById: jest.fn(),
+  findByNameAndDate: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
   getTotalExpenseDay: jest.fn(),
@@ -22,6 +23,7 @@ const mockRepository: jest.Mocked<FinanRepository> = {
   getGeneralInfo: jest.fn(),
   getTripInfo: jest.fn(),
   operateForLinkedMovement: jest.fn(),
+  createTableForUser: jest.fn(),
 };
 
 describe('PutMovementUseCase', () => {
@@ -40,6 +42,8 @@ describe('PutMovementUseCase', () => {
   beforeEach(() => {
     putMovementUseCase = new PutMovementUseCase(mockRepository);
     jest.clearAllMocks();
+    // Por defecto, no hay duplicados
+    mockRepository.findByNameAndDate.mockResolvedValue(null);
   });
 
   describe('execute', () => {
@@ -56,6 +60,7 @@ describe('PutMovementUseCase', () => {
         log: 0,
       };
 
+      mockRepository.findByNameAndDate.mockResolvedValue(null);
       mockRepository.create.mockResolvedValue(createdMovement);
 
       const result = await putMovementUseCase.execute(validRequest);
@@ -72,6 +77,11 @@ describe('PutMovementUseCase', () => {
         currency: 'USD',
         user: 'testuser',
       });
+      expect(mockRepository.findByNameAndDate).toHaveBeenCalledWith(
+        'Test Movement',
+        '2023-01-01',
+        'testuser'
+      );
       expect(mockRepository.create).toHaveBeenCalledWith({
         name: 'Test Movement',
         value: 100.5,
@@ -82,6 +92,43 @@ describe('PutMovementUseCase', () => {
         user: 'testuser',
         log: 0,
       });
+    });
+
+    it('should prevent duplicate when movement with same name and date exists', async () => {
+      const existingMovement = {
+        id: 5,
+        name: 'Test Movement',
+        value: 100.5,
+        date_movement: '2023-01-01',
+        type_source_id: MovementType.INCOME,
+        tag: 'test-tag',
+        currency: 'USD',
+        user: 'testuser',
+        log: 0,
+      };
+
+      mockRepository.findByNameAndDate.mockResolvedValue(existingMovement);
+
+      const result = await putMovementUseCase.execute(validRequest);
+
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('Movement already exists (duplicate prevented)');
+      expect(result.data).toEqual({
+        id: 5,
+        name: 'Test Movement',
+        value: 100.5,
+        date_movement: '2023-01-01',
+        type_source_id: MovementType.INCOME,
+        tag: 'test-tag',
+        currency: 'USD',
+        user: 'testuser',
+      });
+      expect(mockRepository.findByNameAndDate).toHaveBeenCalledWith(
+        'Test Movement',
+        '2023-01-01',
+        'testuser'
+      );
+      expect(mockRepository.create).not.toHaveBeenCalled();
     });
 
     it('should handle linked movement when operate_for is provided', async () => {
@@ -102,6 +149,7 @@ describe('PutMovementUseCase', () => {
         log: 123,
       };
 
+      mockRepository.findByNameAndDate.mockResolvedValue(null);
       mockRepository.operateForLinkedMovement.mockResolvedValue();
       mockRepository.create.mockResolvedValue(createdMovement);
 

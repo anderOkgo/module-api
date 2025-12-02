@@ -25,6 +25,22 @@ describe('FinanRepository Interface', () => {
       return null;
     }
 
+    async findByNameAndDate(name: string, date: string, username: string): Promise<Movement | null> {
+      if (name === 'Test Movement' && date === '2023-01-01') {
+        return {
+          id: 1,
+          name: 'Test Movement',
+          value: 100,
+          date_movement: '2023-01-01',
+          type_source_id: 1,
+          tag: 'test',
+          currency: 'USD',
+          user: username,
+        };
+      }
+      return null;
+    }
+
     async update(id: number, movement: Partial<Movement>, username: string): Promise<Movement> {
       return {
         id,
@@ -90,6 +106,10 @@ describe('FinanRepository Interface', () => {
     ): Promise<void> {
       // Mock implementation
     }
+
+    async createTableForUser(username: string): Promise<void> {
+      // Mock implementation
+    }
   }
 
   let mockRepository: MockFinanRepository;
@@ -135,6 +155,27 @@ describe('FinanRepository Interface', () => {
 
     it('should return null when movement not found', async () => {
       const result = await mockRepository.findById(999, 'testuser');
+
+      expect(result).toBeNull();
+    });
+
+    it('should find a movement by name and date', async () => {
+      const result = await mockRepository.findByNameAndDate('Test Movement', '2023-01-01', 'testuser');
+
+      expect(result).toEqual({
+        id: 1,
+        name: 'Test Movement',
+        value: 100,
+        date_movement: '2023-01-01',
+        type_source_id: 1,
+        tag: 'test',
+        currency: 'USD',
+        user: 'testuser',
+      });
+    });
+
+    it('should return null when movement not found by name and date', async () => {
+      const result = await mockRepository.findByNameAndDate('Non Existent', '2023-01-01', 'testuser');
 
       expect(result).toBeNull();
     });
@@ -248,8 +289,10 @@ describe('FinanRepository Interface', () => {
 
       expect(typeof repository.create).toBe('function');
       expect(typeof repository.findById).toBe('function');
+      expect(typeof repository.findByNameAndDate).toBe('function');
       expect(typeof repository.update).toBe('function');
       expect(typeof repository.delete).toBe('function');
+      expect(typeof repository.createTableForUser).toBe('function');
       expect(typeof repository.getTotalExpenseDay).toBe('function');
       expect(typeof repository.getMovements).toBe('function');
       expect(typeof repository.getMovementsByTag).toBe('function');
@@ -277,8 +320,10 @@ describe('FinanRepository Interface', () => {
       // Test that methods accept the correct parameter types
       await expect(mockRepository.create(movement)).resolves.toBeDefined();
       await expect(mockRepository.findById(1, 'testuser')).resolves.toBeDefined();
+      await expect(mockRepository.findByNameAndDate('Test', '2023-01-01', 'testuser')).resolves.toBeDefined();
       await expect(mockRepository.update(1, movement, 'testuser')).resolves.toBeDefined();
       await expect(mockRepository.delete(1, 'testuser')).resolves.toBeDefined();
+      await expect(mockRepository.createTableForUser('testuser')).resolves.toBeUndefined();
       await expect(mockRepository.getTotalExpenseDay('testuser', 'USD', '2023-01-01')).resolves.toBeDefined();
       await expect(mockRepository.getMovements('testuser', 'USD')).resolves.toBeDefined();
       await expect(mockRepository.getMovementsByTag('testuser', 'USD')).resolves.toBeDefined();

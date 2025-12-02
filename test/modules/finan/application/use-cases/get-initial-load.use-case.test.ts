@@ -5,8 +5,10 @@ import { InitialLoadResponse } from '../../../../../src/modules/finan/domain/ent
 
 // Mock repository
 const mockRepository: jest.Mocked<FinanRepository> = {
+  createTableForUser: jest.fn(),
   create: jest.fn(),
   findById: jest.fn(),
+  findByNameAndDate: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
   getTotalExpenseDay: jest.fn(),
@@ -176,6 +178,8 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
       mockRepository.getGeneralInfo.mockResolvedValue([{ info: 'general' }]);
       mockRepository.getTripInfo.mockResolvedValue([{ trip: 'vacation' }]);
+      mockRepository.createTableForUser.mockResolvedValue(undefined);
+      mockRepository.findByNameAndDate.mockResolvedValue(null);
 
       const result = await getInitialLoadUseCase.execute(request);
 
@@ -199,6 +203,8 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyBalance.mockResolvedValue([]);
       mockRepository.getBalanceUntilDate.mockResolvedValue([]);
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.createTableForUser.mockResolvedValue(undefined);
+      mockRepository.findByNameAndDate.mockResolvedValue(null);
 
       const result = await getInitialLoadUseCase.execute(request);
 
@@ -287,12 +293,15 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyBalance.mockResolvedValue([]);
       mockRepository.getBalanceUntilDate.mockResolvedValue([]);
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.createTableForUser.mockResolvedValue(undefined);
+      mockRepository.findByNameAndDate.mockResolvedValue(null);
+      mockRepository.createTableForUser.mockResolvedValue(undefined);
 
       await getInitialLoadUseCase.execute(request);
 
-      // Should normalize to lowercase but trim is handled in validation
+      // Should normalize to lowercase and trim before calling repository
       expect(mockRepository.getTotalExpenseDay).toHaveBeenCalledWith(
-        '  testuser  '.toLowerCase(),
+        'testuser', // Already normalized: toLowerCase().trim()
         'USD',
         expect.any(String)
       );

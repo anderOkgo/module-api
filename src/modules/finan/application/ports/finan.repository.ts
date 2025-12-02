@@ -10,6 +10,7 @@ export interface FinanRepository {
   createTableForUser(username: string): Promise<void>;
   create(movement: Movement): Promise<Movement>;
   findById(id: number, username: string): Promise<Movement | null>;
+  findByNameAndDate(name: string, date: string, username: string): Promise<Movement | null>;
   update(id: number, movement: Partial<Movement>, username: string): Promise<Movement>;
   delete(id: number, username: string): Promise<boolean>;
 

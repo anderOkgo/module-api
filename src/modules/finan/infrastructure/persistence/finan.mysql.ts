@@ -52,6 +52,13 @@ export class FinanMysqlRepository implements FinanRepository {
     return result.length > 0 ? result[0] : null;
   }
 
+  async findByNameAndDate(name: string, date: string, username: string): Promise<Movement | null> {
+    const tableName = `movements_${username}`;
+    const query = `SELECT * FROM ${tableName} WHERE name = ? AND date_movement = ? LIMIT 1`;
+    const result = await this.Database.executeSafeQuery(query, [name, date]);
+    return result.length > 0 ? result[0] : null;
+  }
+
   async update(id: number, movement: Partial<Movement>, username: string): Promise<Movement> {
     const tableName = `movements_${username}`;
     const query = `

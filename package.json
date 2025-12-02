@@ -12,8 +12,9 @@
     "test:cov:auth": "jest --coverage --testPathPattern=modules/auth",
     "test:cov:finan": "jest --coverage --testPathPattern=modules/finan",
     "test:cov:series": "jest --coverage --testPathPattern=modules/series",
+    "build": "tsc",
     "servers": " cmd /c tsc -w | nodemon dist/index.js",
-    "up": "call com/db-sync-FTP-both.bat"
+    "up": "npm run build && call com/db-sync-FTP-both.bat"
   },
   "keywords": [],
   "author": "Anderokgo",

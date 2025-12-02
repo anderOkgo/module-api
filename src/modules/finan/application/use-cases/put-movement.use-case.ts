@@ -19,12 +19,39 @@ export class PutMovementUseCase {
       // 1. Validate input
       this.validateMovementData(request);
 
-      // 2. Process linked movement if exists
+      // 2. Check for duplicate (name + date) to prevent duplicates from offline sync
+      const normalizedName = request.movement_name.trim();
+      const existingMovement = await this.repository.findByNameAndDate(
+        normalizedName,
+        request.movement_date,
+        request.username.toLowerCase()
+      );
+
+      if (existingMovement) {
+        // Return existing movement instead of creating duplicate
+        const existingResponse: MovementResponse = {
+          id: existingMovement.id!,
+          name: existingMovement.name,
+          value: existingMovement.value,
+          date_movement: existingMovement.date_movement,
+          type_source_id: existingMovement.type_source_id,
+          tag: existingMovement.tag,
+          currency: existingMovement.currency,
+          user: existingMovement.user,
+        };
+        return {
+          success: true,
+          message: 'Movement already exists (duplicate prevented)',
+          data: existingResponse,
+        };
+      }
+
+      // 3. Process linked movement if exists
       if (request.operate_for) {
         await this.handleLinkedMovement(request);
       }
 
-      // 3. Normalize data and create movement
+      // 4. Normalize data and create movement
       const movement: Movement = {
         name: request.movement_name.trim(),
         value: request.movement_val,
@@ -36,10 +63,10 @@ export class PutMovementUseCase {
         log: request.operate_for || 0,
       };
 
-      // 4. Create in database
+      // 5. Create in database
       const created = await this.repository.create(movement);
 
-      // 5. Map to response
+      // 6. Map to response
       const response: MovementResponse = {
         id: created.id!,
         name: created.name,

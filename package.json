@@ -14,7 +14,7 @@
     "test:cov:series": "jest --coverage --testPathPattern=modules/series",
     "build": "tsc",
     "servers": " cmd /c tsc -w | nodemon dist/index.js",
-    "up": "npm run build && call com/db-sync-FTP-both.bat"
+    "bup": "npm run build && call com/db-sync-FTP-both.bat"
   },
   "keywords": [],
   "author": "Anderokgo",

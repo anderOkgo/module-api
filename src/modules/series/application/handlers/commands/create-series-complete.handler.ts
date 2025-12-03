@@ -33,13 +33,13 @@ export class CreateSeriesCompleteHandler
       const normalized = this.normalizeData(seriesData);
 
       // 3. Check for duplicate (name + year)
-      const existingSeries = await this.readRepository.findByNameAndYear(normalized.name, normalized.year);
+      const duplicateSeries = await this.readRepository.findByNameAndYear(normalized.name, normalized.year);
       let seriesId: number;
       let isUpdate = false;
 
-      if (existingSeries) {
+      if (duplicateSeries) {
         // 4a. Update existing series
-        seriesId = existingSeries.id;
+        seriesId = duplicateSeries.id;
         isUpdate = true;
 
         const updateData: SeriesUpdateRequest = {
@@ -56,12 +56,41 @@ export class CreateSeriesCompleteHandler
 
         await this.writeRepository.update(seriesId, updateData);
 
-        // Remove existing genres and titles before assigning new ones
-        // Note: This assumes we want to replace, not merge. Adjust if merge is needed.
-        if (normalized.genres && normalized.genres.length > 0) {
-          // Get current genres first (would need a method to get current genres)
-          // For now, we'll just assign new ones (repository should handle replacement)
-          await this.writeRepository.assignGenres(seriesId, normalized.genres);
+        // Get existing series data for comparison
+        const existingSeries = await this.readRepository.findById(seriesId);
+        if (!existingSeries) {
+          throw new Error('Series not found after update');
+        }
+
+        // Update genres if provided (even if empty array to remove all)
+        if (normalized.genres !== undefined) {
+          const existingGenreIds = existingSeries.genres?.map((g) => g.id).sort() ?? [];
+          const newGenreIds = [...normalized.genres].sort();
+
+          // Only update if genres are different
+          if (JSON.stringify(existingGenreIds) !== JSON.stringify(newGenreIds)) {
+            await this.writeRepository.assignGenres(seriesId, normalized.genres);
+          }
+        }
+
+        // Update titles if provided (even if empty array to remove all)
+        if (normalized.titles !== undefined) {
+          const existingTitleNames = (existingSeries.titles?.map((t) => t.name.toLowerCase().trim()) ?? []).sort();
+          const newTitleNames = normalized.titles.map((t) => t.toLowerCase().trim()).sort();
+
+          // Only update if titles are different
+          if (JSON.stringify(existingTitleNames) !== JSON.stringify(newTitleNames)) {
+            // Remove existing titles
+            if (existingSeries.titles && existingSeries.titles.length > 0) {
+              const existingTitleIds = existingSeries.titles.map((t) => t.id);
+              await this.writeRepository.removeTitles(seriesId, existingTitleIds);
+            }
+
+            // Add new titles only if array is not empty
+            if (normalized.titles.length > 0) {
+              await this.writeRepository.addTitles(seriesId, normalized.titles);
+            }
+          }
         }
       } else {
         // 4b. Create new series
@@ -80,13 +109,13 @@ export class CreateSeriesCompleteHandler
         seriesId = newSeries.id;
 
         // 5. Assign genres if provided
-        if (normalized.genres && normalized.genres.length > 0) {
+        if (normalized.genres !== undefined && normalized.genres.length > 0) {
           await this.writeRepository.assignGenres(seriesId, normalized.genres);
         }
       }
 
-      // 6. Add alternative titles if provided (works for both create and update)
-      if (normalized.titles && normalized.titles.length > 0) {
+      // 6. Add alternative titles if provided (only for new series, updates handled above)
+      if (!isUpdate && normalized.titles !== undefined && normalized.titles.length > 0) {
         await this.writeRepository.addTitles(seriesId, normalized.titles);
       }
 
@@ -156,15 +185,18 @@ export class CreateSeriesCompleteHandler
       visible: data.visible ?? true,
     };
 
-    if (data.genres) {
+    if (data.genres !== undefined) {
       normalized.genres = [...new Set(data.genres)].filter((id) => id > 0);
     }
 
-    if (data.titles) {
-      normalized.titles = data.titles
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0)
-        .filter((t, i, self) => self.indexOf(t) === i);
+    if (data.titles !== undefined) {
+      // Preserve empty array if explicitly provided, otherwise normalize
+      if (Array.isArray(data.titles)) {
+        normalized.titles = data.titles
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
+          .filter((t, i, self) => self.indexOf(t) === i);
+      }
     }
 
     return normalized;

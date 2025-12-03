@@ -26,7 +26,32 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
       return null;
     }
 
-    return this.mapToResponse(result[0]);
+    const series = this.mapToResponse(result[0]);
+
+    // Get genres
+    const genresQuery = `
+      SELECT g.id, g.name, g.slug
+      FROM genres g
+      INNER JOIN productions_genres pg ON g.id = pg.genre_id
+      WHERE pg.production_id = ?
+    `;
+    const genresResult = await this.database.executeSafeQuery(genresQuery, [id]);
+    if (!genresResult.errorSys) {
+      series.genres = genresResult;
+    }
+
+    // Get titles
+    const titlesQuery = `
+      SELECT id, production_id, name
+      FROM titles
+      WHERE production_id = ?
+    `;
+    const titlesResult = await this.database.executeSafeQuery(titlesQuery, [id]);
+    if (!titlesResult.errorSys) {
+      series.titles = titlesResult;
+    }
+
+    return series;
   }
 
   /**

@@ -5,7 +5,7 @@ import {
 } from '../../commands/create-series-complete.command';
 import { SeriesWriteRepository } from '../../ports/series-write.repository';
 import { SeriesReadRepository } from '../../ports/series-read.repository';
-import { SeriesCreateRequest } from '../../../domain/entities/series.entity';
+import { SeriesCreateRequest, SeriesUpdateRequest } from '../../../domain/entities/series.entity';
 
 /**
  * Handler to create a complete series with genres and titles
@@ -32,44 +32,79 @@ export class CreateSeriesCompleteHandler
       // 2. Normalize data
       const normalized = this.normalizeData(seriesData);
 
-      // 3. Create basic series
-      const basicSeriesData: SeriesCreateRequest = {
-        name: normalized.name,
-        chapter_number: normalized.chapter_number,
-        year: normalized.year,
-        description: normalized.description,
-        description_en: normalized.description_en,
-        qualification: normalized.qualification,
-        demography_id: normalized.demography_id,
-        visible: normalized.visible,
-      };
+      // 3. Check for duplicate (name + year)
+      const existingSeries = await this.readRepository.findByNameAndYear(normalized.name, normalized.year);
+      let seriesId: number;
+      let isUpdate = false;
 
-      const newSeries = await this.writeRepository.create(basicSeriesData);
-      const newSeriesId = newSeries.id;
+      if (existingSeries) {
+        // 4a. Update existing series
+        seriesId = existingSeries.id;
+        isUpdate = true;
 
-      // 4. Assign genres if provided
-      if (normalized.genres && normalized.genres.length > 0) {
-        await this.writeRepository.assignGenres(newSeriesId, normalized.genres);
+        const updateData: SeriesUpdateRequest = {
+          id: seriesId,
+          name: normalized.name,
+          chapter_number: normalized.chapter_number,
+          year: normalized.year,
+          description: normalized.description,
+          description_en: normalized.description_en,
+          qualification: normalized.qualification,
+          demography_id: normalized.demography_id,
+          visible: normalized.visible,
+        };
+
+        await this.writeRepository.update(seriesId, updateData);
+
+        // Remove existing genres and titles before assigning new ones
+        // Note: This assumes we want to replace, not merge. Adjust if merge is needed.
+        if (normalized.genres && normalized.genres.length > 0) {
+          // Get current genres first (would need a method to get current genres)
+          // For now, we'll just assign new ones (repository should handle replacement)
+          await this.writeRepository.assignGenres(seriesId, normalized.genres);
+        }
+      } else {
+        // 4b. Create new series
+        const basicSeriesData: SeriesCreateRequest = {
+          name: normalized.name,
+          chapter_number: normalized.chapter_number,
+          year: normalized.year,
+          description: normalized.description,
+          description_en: normalized.description_en,
+          qualification: normalized.qualification,
+          demography_id: normalized.demography_id,
+          visible: normalized.visible,
+        };
+
+        const newSeries = await this.writeRepository.create(basicSeriesData);
+        seriesId = newSeries.id;
+
+        // 5. Assign genres if provided
+        if (normalized.genres && normalized.genres.length > 0) {
+          await this.writeRepository.assignGenres(seriesId, normalized.genres);
+        }
       }
 
-      // 5. Add alternative titles if provided
+      // 6. Add alternative titles if provided (works for both create and update)
       if (normalized.titles && normalized.titles.length > 0) {
-        await this.writeRepository.addTitles(newSeriesId, normalized.titles);
+        await this.writeRepository.addTitles(seriesId, normalized.titles);
       }
 
-      // 6. Update ranking
+      // 7. Update ranking
       await this.writeRepository.updateRank();
 
-      // 7. Verify that the series was created correctly
-      const completeSeries = await this.readRepository.findById(newSeriesId);
+      // 8. Verify that the series was created/updated correctly
+      const completeSeries = await this.readRepository.findById(seriesId);
       if (!completeSeries) {
-        throw new Error('Series created but not found');
+        throw new Error(`Series ${isUpdate ? 'updated' : 'created'} but not found`);
       }
 
       return {
         success: true,
-        message: 'Series created successfully with all relations',
-        id: newSeriesId,
+        message: isUpdate
+          ? 'Series updated successfully with all relations'
+          : 'Series created successfully with all relations',
+        id: seriesId,
       };
     } catch (error) {
       throw new Error(

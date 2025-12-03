@@ -7,6 +7,7 @@ import { SeriesCreateRequest, SeriesUpdateRequest } from '../../domain/entities/
 export interface SeriesWriteRepository {
   // CRUD
   create(series: SeriesCreateRequest): Promise<{ id: number; [key: string]: any }>;
+  findByNameAndYear(name: string, year: number): Promise<{ id: number; name: string; year: number } | null>;
   update(id: number, series: SeriesUpdateRequest): Promise<void>;
   delete(id: number): Promise<boolean>;
 

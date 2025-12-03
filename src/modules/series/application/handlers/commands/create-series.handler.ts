@@ -17,10 +17,16 @@ export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, 
     // 2. Normalize
     const normalizedData = this.normalize(command);
 
-    // 3. Create series
+    // 3. Check for duplicate (name + year)
+    const existingSeries = await this.writeRepository.findByNameAndYear(normalizedData.name, normalizedData.year);
+    if (existingSeries) {
+      throw new Error(`Series with name "${normalizedData.name}" and year ${normalizedData.year} already exists`);
+    }
+
+    // 4. Create series
     const newSeries = await this.writeRepository.create(normalizedData);
 
-    // 4. Process image
+    // 5. Process image
     let imagePath: string | undefined;
     if (command.imageBuffer) {
       try {
@@ -31,10 +37,10 @@ export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, 
       }
     }
 
-    // 5. Update ranking
+    // 6. Update ranking
     await this.writeRepository.updateRank();
 
-    // 6. Return response
+    // 7. Return response
     return {
       id: newSeries.id,
       name: normalizedData.name,

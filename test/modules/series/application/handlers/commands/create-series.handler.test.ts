@@ -6,6 +6,7 @@ import { ImageService } from '../../../../../../src/modules/series/application/s
 // Mock dependencies
 const mockSeriesWriteRepository: jest.Mocked<SeriesWriteRepository> = {
   create: jest.fn(),
+  findByNameAndYear: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
   assignGenres: jest.fn(),
@@ -27,6 +28,8 @@ describe('CreateSeriesHandler', () => {
   beforeEach(() => {
     createSeriesHandler = new CreateSeriesHandler(mockSeriesWriteRepository, mockImageService);
     jest.clearAllMocks();
+    // Default: no duplicate found
+    mockSeriesWriteRepository.findByNameAndYear.mockResolvedValue(null);
   });
 
   describe('execute', () => {
@@ -688,6 +691,60 @@ describe('CreateSeriesHandler', () => {
       const result = await createSeriesHandler.execute(edgeQualCommand);
 
       expect(result).toEqual(createdSeries);
+    });
+
+    it('should throw error when duplicate series exists (same name and year)', async () => {
+      const existingSeries = {
+        id: 100,
+        name: 'Test Series',
+        year: 2023,
+      };
+
+      mockSeriesWriteRepository.findByNameAndYear.mockResolvedValue(existingSeries);
+
+      await expect(createSeriesHandler.execute(validCommand)).rejects.toThrow(
+        'Series with name "Test Series" and year 2023 already exists'
+      );
+
+      expect(mockSeriesWriteRepository.findByNameAndYear).toHaveBeenCalledWith('Test Series', 2023);
+      expect(mockSeriesWriteRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('should check for duplicate with normalized name (trimmed)', async () => {
+      const commandWithWhitespace = new CreateSeriesCommand(
+        '  Test Series  ', // Name with whitespace
+        12,
+        2023,
+        'Test description',
+        'Test description EN',
+        8.5,
+        1,
+        true,
+        undefined
+      );
+
+      const createdSeries = {
+        id: 1,
+        name: 'Test Series',
+        chapter_number: 12,
+        year: 2023,
+        description: 'Test description',
+        description_en: 'Test description EN',
+        qualification: 8.5,
+        demography_id: 1,
+        visible: true,
+        image: undefined,
+      };
+
+      mockSeriesWriteRepository.findByNameAndYear.mockResolvedValue(null);
+      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesWriteRepository.updateRank.mockResolvedValue();
+
+      await createSeriesHandler.execute(commandWithWhitespace);
+
+      // Should check with normalized (trimmed) name
+      expect(mockSeriesWriteRepository.findByNameAndYear).toHaveBeenCalledWith('Test Series', 2023);
+      expect(mockSeriesWriteRepository.create).toHaveBeenCalled();
     });
   });
 });

@@ -10,6 +10,7 @@ describe('SeriesWriteRepository Interface', () => {
   beforeEach(() => {
     mockRepository = {
       create: jest.fn(),
+      findByNameAndYear: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
       updateImage: jest.fn(),
@@ -59,6 +60,37 @@ describe('SeriesWriteRepository Interface', () => {
       expect(mockRepository.create).toHaveBeenCalledWith(createRequest);
       expect(result).toEqual(expectedResult);
       expect(result.id).toBe(1);
+    });
+
+    it('should implement findByNameAndYear method', async () => {
+      const name = 'Test Series';
+      const year = 2023;
+
+      const expectedResult = {
+        id: 1,
+        name: 'Test Series',
+        year: 2023,
+      };
+
+      mockRepository.findByNameAndYear.mockResolvedValue(expectedResult);
+
+      const result = await mockRepository.findByNameAndYear(name, year);
+
+      expect(mockRepository.findByNameAndYear).toHaveBeenCalledWith(name, year);
+      expect(result).toEqual(expectedResult);
+      expect(result?.id).toBe(1);
+    });
+
+    it('should implement findByNameAndYear method returning null when not found', async () => {
+      const name = 'Non-existent Series';
+      const year = 2023;
+
+      mockRepository.findByNameAndYear.mockResolvedValue(null);
+
+      const result = await mockRepository.findByNameAndYear(name, year);
+
+      expect(mockRepository.findByNameAndYear).toHaveBeenCalledWith(name, year);
+      expect(result).toBeNull();
     });
 
     it('should implement update method', async () => {

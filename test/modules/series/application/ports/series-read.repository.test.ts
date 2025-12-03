@@ -13,6 +13,7 @@ describe('SeriesReadRepository Interface', () => {
   beforeEach(() => {
     mockRepository = {
       findById: jest.fn(),
+      findByNameAndYear: jest.fn(),
       findAll: jest.fn(),
       search: jest.fn(),
       getProductions: jest.fn(),
@@ -60,6 +61,37 @@ describe('SeriesReadRepository Interface', () => {
       const result = await mockRepository.findById(id);
 
       expect(mockRepository.findById).toHaveBeenCalledWith(id);
+      expect(result).toBeNull();
+    });
+
+    it('should implement findByNameAndYear method', async () => {
+      const name = 'Test Series';
+      const year = 2023;
+
+      const expectedResult = {
+        id: 1,
+        name: 'Test Series',
+        year: 2023,
+      };
+
+      mockRepository.findByNameAndYear.mockResolvedValue(expectedResult);
+
+      const result = await mockRepository.findByNameAndYear(name, year);
+
+      expect(mockRepository.findByNameAndYear).toHaveBeenCalledWith(name, year);
+      expect(result).toEqual(expectedResult);
+      expect(result?.id).toBe(1);
+    });
+
+    it('should implement findByNameAndYear method returning null when not found', async () => {
+      const name = 'Non-existent Series';
+      const year = 2023;
+
+      mockRepository.findByNameAndYear.mockResolvedValue(null);
+
+      const result = await mockRepository.findByNameAndYear(name, year);
+
+      expect(mockRepository.findByNameAndYear).toHaveBeenCalledWith(name, year);
       expect(result).toBeNull();
     });
 
@@ -374,6 +406,7 @@ describe('SeriesReadRepository Interface', () => {
       const error = new Error('Database connection failed');
 
       mockRepository.findById.mockRejectedValue(error);
+      mockRepository.findByNameAndYear.mockRejectedValue(error);
       mockRepository.findAll.mockRejectedValue(error);
       mockRepository.search.mockRejectedValue(error);
       mockRepository.getProductions.mockRejectedValue(error);
@@ -382,6 +415,7 @@ describe('SeriesReadRepository Interface', () => {
       mockRepository.getGenres.mockRejectedValue(error);
 
       await expect(mockRepository.findById(1)).rejects.toThrow('Database connection failed');
+      await expect(mockRepository.findByNameAndYear('Test', 2023)).rejects.toThrow('Database connection failed');
       await expect(mockRepository.findAll(10, 0)).rejects.toThrow('Database connection failed');
       await expect(mockRepository.search({})).rejects.toThrow('Database connection failed');
       await expect(mockRepository.getProductions({})).rejects.toThrow('Database connection failed');

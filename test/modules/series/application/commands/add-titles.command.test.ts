@@ -168,15 +168,24 @@ describe('AddTitlesCommand', () => {
     // not at JavaScript runtime, so we can't test runtime immutability
   });
 
-  it('should create unique timestamps for different instances', async () => {
-    // Arrange
+  it('should create unique timestamps for different instances', () => {
+    // Arrange - Use fake timers to ensure different timestamps
+    jest.useFakeTimers();
+    
+    const baseTime = new Date('2023-01-01T00:00:00.000Z').getTime();
+    jest.setSystemTime(baseTime);
+    
     const command1 = new AddTitlesCommand(1, ['Title A']);
-    await new Promise((resolve) => setTimeout(resolve, 1)); // Small delay to ensure different timestamps
+    jest.advanceTimersByTime(1); // Advance time by 1ms
     const command2 = new AddTitlesCommand(2, ['Title B']);
 
     // Act & Assert
     expect(command1.timestamp).not.toBe(command2.timestamp);
     expect(command1.timestamp.getTime()).not.toBe(command2.timestamp.getTime());
+    expect(command2.timestamp.getTime()).toBeGreaterThan(command1.timestamp.getTime());
+    
+    // Cleanup
+    jest.useRealTimers();
   });
 
   it('should maintain timestamp consistency within same instance', () => {

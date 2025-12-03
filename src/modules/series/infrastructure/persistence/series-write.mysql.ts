@@ -36,22 +36,6 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
     return { id: result.insertId };
   }
 
-  async findByNameAndYear(name: string, year: number): Promise<{ id: number; name: string; year: number } | null> {
-    const query = `
-      SELECT id, name, year
-      FROM productions
-      WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND year = ?
-      LIMIT 1
-    `;
-    const result = await this.database.executeSafeQuery(query, [name, year]);
-
-    if (result.errorSys) {
-      throw new Error(result.message);
-    }
-
-    return result.length > 0 ? result[0] : null;
-  }
-
   async update(id: number, series: SeriesUpdateRequest): Promise<void> {
     const updateFields: string[] = [];
     const params: any[] = [];

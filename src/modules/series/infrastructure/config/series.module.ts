@@ -41,7 +41,7 @@ export function buildSeriesModule() {
   const imageService = new ImageService(imageProcessorService);
 
   // 4. Command Handlers (write) - CQRS
-  const createSeriesHandler = new CreateSeriesHandler(writeRepository, imageService);
+  const createSeriesHandler = new CreateSeriesHandler(writeRepository, readRepository, imageService);
   const updateSeriesHandler = new UpdateSeriesHandler(writeRepository, readRepository);
   const deleteSeriesHandler = new DeleteSeriesHandler(writeRepository, readRepository, imageService);
   const assignGenresHandler = new AssignGenresHandler(writeRepository, readRepository);

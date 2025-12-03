@@ -9,6 +9,7 @@ import Year from '../../domain/entities/year.entity';
 export interface SeriesReadRepository {
   // Individual queries
   findById(id: number): Promise<SeriesResponse | null>;
+  findByNameAndYear(name: string, year: number): Promise<{ id: number; name: string; year: number } | null>;
   findAll(
     limit: number,
     offset: number

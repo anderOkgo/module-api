@@ -1,12 +1,12 @@
 import { CreateSeriesHandler } from '../../../../../../src/modules/series/application/handlers/commands/create-series.handler';
 import { CreateSeriesCommand } from '../../../../../../src/modules/series/application/commands/create-series.command';
 import { SeriesWriteRepository } from '../../../../../../src/modules/series/application/ports/series-write.repository';
+import { SeriesReadRepository } from '../../../../../../src/modules/series/application/ports/series-read.repository';
 import { ImageService } from '../../../../../../src/modules/series/application/services/image.service';
 
 // Mock dependencies
 const mockSeriesWriteRepository: jest.Mocked<SeriesWriteRepository> = {
   create: jest.fn(),
-  findByNameAndYear: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
   assignGenres: jest.fn(),
@@ -15,6 +15,17 @@ const mockSeriesWriteRepository: jest.Mocked<SeriesWriteRepository> = {
   removeTitles: jest.fn(),
   updateImage: jest.fn(),
   updateRank: jest.fn(),
+};
+
+const mockSeriesReadRepository: jest.Mocked<SeriesReadRepository> = {
+  findById: jest.fn(),
+  findByNameAndYear: jest.fn(),
+  findAll: jest.fn(),
+  search: jest.fn(),
+  getProductions: jest.fn(),
+  getGenres: jest.fn(),
+  getDemographics: jest.fn(),
+  getProductionYears: jest.fn(),
 };
 
 const mockImageService = {
@@ -26,10 +37,14 @@ describe('CreateSeriesHandler', () => {
   let createSeriesHandler: CreateSeriesHandler;
 
   beforeEach(() => {
-    createSeriesHandler = new CreateSeriesHandler(mockSeriesWriteRepository, mockImageService);
+    createSeriesHandler = new CreateSeriesHandler(
+      mockSeriesWriteRepository,
+      mockSeriesReadRepository,
+      mockImageService
+    );
     jest.clearAllMocks();
     // Default: no duplicate found
-    mockSeriesWriteRepository.findByNameAndYear.mockResolvedValue(null);
+    mockSeriesReadRepository.findByNameAndYear.mockResolvedValue(null);
   });
 
   describe('execute', () => {
@@ -59,17 +74,32 @@ describe('CreateSeriesHandler', () => {
         image: 'processed-image-data',
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      const seriesResponse = {
+        id: 1,
+        name: 'Test Series',
+        chapter_number: 12,
+        year: 2023,
+        description: 'Test description',
+        description_en: 'Test description EN',
+        qualification: 8.5,
+        demography_id: 1,
+        visible: true,
+        image: 'processed-image-data',
+      };
+
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockImageService.processAndSaveImage.mockResolvedValue('processed-image-data');
       mockSeriesWriteRepository.updateImage.mockResolvedValue(true);
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(seriesResponse);
 
       const result = await createSeriesHandler.execute(validCommand);
 
-      expect(result).toEqual(createdSeries);
+      expect(result).toEqual(seriesResponse);
       expect(mockImageService.processAndSaveImage).toHaveBeenCalledWith(Buffer.from('fake-image-data'), 1);
       expect(mockSeriesWriteRepository.updateImage).toHaveBeenCalledWith(1, 'processed-image-data');
       expect(mockSeriesWriteRepository.updateRank).toHaveBeenCalled();
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
     });
 
     it('should create series successfully without image', async () => {
@@ -85,7 +115,7 @@ describe('CreateSeriesHandler', () => {
         undefined
       );
 
-      const createdSeries = {
+      const seriesResponse = {
         id: 1,
         name: 'Test Series',
         chapter_number: 12,
@@ -98,15 +128,17 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(seriesResponse);
 
       const result = await createSeriesHandler.execute(commandWithoutImage);
 
-      expect(result).toEqual(createdSeries);
+      expect(result).toEqual(seriesResponse);
       expect(mockImageService.processAndSaveImage).not.toHaveBeenCalled();
       expect(mockSeriesWriteRepository.updateImage).not.toHaveBeenCalled();
       expect(mockSeriesWriteRepository.updateRank).toHaveBeenCalled();
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
     });
 
     it('should throw error when repository create fails', async () => {
@@ -133,13 +165,15 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(createdSeries);
 
       const result = await createSeriesHandler.execute(minimalCommand);
 
       expect(result).toEqual(createdSeries);
       expect(mockSeriesWriteRepository.updateRank).toHaveBeenCalled();
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
     });
 
     it('should throw error for name too long', async () => {
@@ -376,7 +410,7 @@ describe('CreateSeriesHandler', () => {
     });
 
     it('should handle image processing failure gracefully', async () => {
-      const createdSeries = {
+      const seriesResponse = {
         id: 1,
         name: 'Test Series',
         chapter_number: 12,
@@ -389,9 +423,10 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockImageService.processAndSaveImage.mockRejectedValue(new Error('Image processing failed'));
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(seriesResponse);
 
       // Mock console.warn to avoid console output in tests
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
@@ -413,6 +448,7 @@ describe('CreateSeriesHandler', () => {
       expect(consoleSpy).toHaveBeenCalledWith('Image processing failed for series 1:', expect.any(Error));
       expect(mockSeriesWriteRepository.updateImage).not.toHaveBeenCalled();
       expect(mockSeriesWriteRepository.updateRank).toHaveBeenCalled();
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
 
       consoleSpy.mockRestore();
     });
@@ -431,9 +467,10 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockImageService.processAndSaveImage.mockRejectedValue('String error');
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(createdSeries);
 
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
@@ -452,6 +489,7 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       });
       expect(consoleSpy).toHaveBeenCalledWith('Image processing failed for series 1:', 'String error');
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
 
       consoleSpy.mockRestore();
     });
@@ -482,10 +520,11 @@ describe('CreateSeriesHandler', () => {
         image: 'processed-image-data',
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockImageService.processAndSaveImage.mockResolvedValue('processed-image-data');
       mockSeriesWriteRepository.updateImage.mockResolvedValue(true);
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(createdSeries);
 
       const result = await createSeriesHandler.execute(commandWithWhitespace);
 
@@ -513,6 +552,7 @@ describe('CreateSeriesHandler', () => {
         visible: true,
         image: 'processed-image-data',
       });
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
     });
 
     it('should handle empty descriptions by converting to empty strings', async () => {
@@ -541,8 +581,9 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(createdSeries);
 
       const result = await createSeriesHandler.execute(commandWithEmptyDescs);
 
@@ -558,6 +599,7 @@ describe('CreateSeriesHandler', () => {
       });
 
       expect(result).toEqual(createdSeries);
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
     });
 
     it('should handle updateRank failure', async () => {
@@ -574,7 +616,7 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockSeriesWriteRepository.updateRank.mockRejectedValue(new Error('Rank update failed'));
 
       await expect(createSeriesHandler.execute(validCommand)).rejects.toThrow('Rank update failed');
@@ -597,10 +639,24 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      const seriesResponse = {
+        id: 1,
+        name: 'Test Series',
+        chapter_number: 12,
+        year: 2023,
+        description: 'Test description',
+        description_en: 'Test description EN',
+        qualification: 8.5,
+        demography_id: 1,
+        visible: true,
+        image: undefined,
+      };
+
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockImageService.processAndSaveImage.mockResolvedValue('processed-image-data');
       mockSeriesWriteRepository.updateImage.mockRejectedValue(new Error('Database update failed'));
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(seriesResponse);
 
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
 
@@ -620,6 +676,7 @@ describe('CreateSeriesHandler', () => {
       });
 
       expect(consoleSpy).toHaveBeenCalledWith('Image processing failed for series 1:', expect.any(Error));
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
 
       consoleSpy.mockRestore();
     });
@@ -651,12 +708,14 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(createdSeries);
 
       const result = await createSeriesHandler.execute(edgeYearCommand);
 
       expect(result).toEqual(createdSeries);
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
     });
 
     it('should handle edge case qualification values', async () => {
@@ -685,29 +744,59 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       };
 
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(createdSeries);
 
       const result = await createSeriesHandler.execute(edgeQualCommand);
 
       expect(result).toEqual(createdSeries);
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
     });
 
-    it('should throw error when duplicate series exists (same name and year)', async () => {
+    it('should update existing series when duplicate exists (same name and year)', async () => {
       const existingSeries = {
         id: 100,
         name: 'Test Series',
         year: 2023,
       };
 
-      mockSeriesWriteRepository.findByNameAndYear.mockResolvedValue(existingSeries);
+      const updatedSeriesResponse = {
+        id: 100,
+        name: 'Test Series',
+        chapter_number: 12,
+        year: 2023,
+        description: 'Test description',
+        description_en: 'Test description EN',
+        qualification: 8.5,
+        demography_id: 1,
+        visible: true,
+        image: 'processed-image-data',
+      };
 
-      await expect(createSeriesHandler.execute(validCommand)).rejects.toThrow(
-        'Series with name "Test Series" and year 2023 already exists'
-      );
+      mockSeriesReadRepository.findByNameAndYear.mockResolvedValue(existingSeries);
+      mockImageService.processAndSaveImage.mockResolvedValue('processed-image-data');
+      mockSeriesWriteRepository.updateImage.mockResolvedValue(true);
+      mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(updatedSeriesResponse);
 
-      expect(mockSeriesWriteRepository.findByNameAndYear).toHaveBeenCalledWith('Test Series', 2023);
+      const result = await createSeriesHandler.execute(validCommand);
+
+      expect(mockSeriesReadRepository.findByNameAndYear).toHaveBeenCalledWith('Test Series', 2023);
+      expect(mockSeriesWriteRepository.update).toHaveBeenCalledWith(100, {
+        id: 100,
+        name: 'Test Series',
+        chapter_number: 12,
+        year: 2023,
+        description: 'Test description',
+        description_en: 'Test description EN',
+        qualification: 8.5,
+        demography_id: 1,
+        visible: true,
+      });
       expect(mockSeriesWriteRepository.create).not.toHaveBeenCalled();
+      expect(result).toEqual(updatedSeriesResponse);
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(100);
     });
 
     it('should check for duplicate with normalized name (trimmed)', async () => {
@@ -736,15 +825,17 @@ describe('CreateSeriesHandler', () => {
         image: undefined,
       };
 
-      mockSeriesWriteRepository.findByNameAndYear.mockResolvedValue(null);
-      mockSeriesWriteRepository.create.mockResolvedValue(createdSeries);
+      mockSeriesReadRepository.findByNameAndYear.mockResolvedValue(null);
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
       mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(createdSeries);
 
       await createSeriesHandler.execute(commandWithWhitespace);
 
       // Should check with normalized (trimmed) name
-      expect(mockSeriesWriteRepository.findByNameAndYear).toHaveBeenCalledWith('Test Series', 2023);
+      expect(mockSeriesReadRepository.findByNameAndYear).toHaveBeenCalledWith('Test Series', 2023);
       expect(mockSeriesWriteRepository.create).toHaveBeenCalled();
+      expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
     });
   });
 });

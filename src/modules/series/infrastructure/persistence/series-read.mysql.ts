@@ -197,8 +197,9 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
    */
   async getProductions(filters: any): Promise<any[]> {
     // Transplanted from legacy repository - uses the exact same logic
+    // Use JOIN with productions table to filter by visible
     const viewName = 'view_all_info_produtions';
-    const initialQuery = `SELECT * FROM ${viewName} WHERE visible = 1`;
+    const initialQuery = `SELECT v.* FROM ${viewName} v INNER JOIN productions p ON v.id = p.id WHERE p.visible = 1`;
     const conditions: string[] = [];
     const conditionsVals: any[] = [];
 

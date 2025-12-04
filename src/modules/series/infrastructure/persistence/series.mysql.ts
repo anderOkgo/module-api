@@ -11,7 +11,8 @@ export class ProductionMysqlRepository implements ProductionRepository {
 
   public async getProduction(production: Series): Promise<Series[]> {
     const viewName = 'view_all_info_produtions';
-    const initialQuery = `SELECT * FROM ${viewName} WHERE visible = 1`;
+    // Use JOIN with productions table to filter by visible
+    const initialQuery = `SELECT v.* FROM ${viewName} v INNER JOIN productions p ON v.id = p.id WHERE p.visible = 1`;
     const conditions: string[] = [];
     const conditionsVals: any[] = [];
 

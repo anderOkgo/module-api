@@ -117,7 +117,7 @@ export class SeriesController {
         req.body.description_en && req.body.description_en.trim() !== '' ? req.body.description_en : undefined,
         req.body.qualification && req.body.qualification !== '' ? parseFloat(req.body.qualification) : undefined,
         req.body.demography_id && req.body.demography_id !== '' ? parseInt(req.body.demography_id) : undefined,
-        req.body.visible !== undefined ? req.body.visible === 'true' : undefined
+        req.body.visible !== undefined ? Boolean(req.body.visible) : undefined
       );
 
       const result = await this.updateSeriesHandler.execute(command);

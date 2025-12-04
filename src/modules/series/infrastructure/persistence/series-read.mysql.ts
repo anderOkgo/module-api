@@ -88,12 +88,13 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
       SELECT p.*, d.name as demographic_name
       FROM productions p
       LEFT JOIN demographics d ON p.demography_id = d.id
+      WHERE p.visible = 1
       ORDER BY p.rank ASC, p.qualification DESC
       LIMIT ? OFFSET ?
     `;
 
     // Query for total
-    const countQuery = 'SELECT COUNT(*) as total FROM productions';
+    const countQuery = 'SELECT COUNT(*) as total FROM productions WHERE visible = 1';
 
     const [dataResult, countResult] = await Promise.all([
       this.database.executeSafeQuery(dataQuery, [limit, offset]),
@@ -118,7 +119,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
       SELECT p.*, d.name as demographic_name
       FROM productions p
       LEFT JOIN demographics d ON p.demography_id = d.id
-      WHERE 1=1
+      WHERE p.visible = 1
     `;
     const params: any[] = [];
 
@@ -134,10 +135,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
       query += ' AND p.demography_id = ?';
       params.push(filters.demography_id);
     }
-    if (filters.visible !== undefined) {
-      query += ' AND p.visible = ?';
-      params.push(filters.visible);
-    }
+    // Note: visible filter is always 1 for public queries, admin can override if needed
 
     query += ' ORDER BY p.rank ASC, p.qualification DESC LIMIT ? OFFSET ?';
     params.push(filters.limit || 50, filters.offset || 0);
@@ -200,7 +198,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
   async getProductions(filters: any): Promise<any[]> {
     // Transplanted from legacy repository - uses the exact same logic
     const viewName = 'view_all_info_produtions';
-    const initialQuery = `SELECT * FROM ${viewName} WHERE 1`;
+    const initialQuery = `SELECT * FROM ${viewName} WHERE visible = 1`;
     const conditions: string[] = [];
     const conditionsVals: any[] = [];
 

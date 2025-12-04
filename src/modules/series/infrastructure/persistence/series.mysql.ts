@@ -11,7 +11,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
 
   public async getProduction(production: Series): Promise<Series[]> {
     const viewName = 'view_all_info_produtions';
-    const initialQuery = `SELECT * FROM ${viewName} WHERE 1`;
+    const initialQuery = `SELECT * FROM ${viewName} WHERE visible = 1`;
     const conditions: string[] = [];
     const conditionsVals: any[] = [];
 
@@ -113,6 +113,7 @@ export class ProductionMysqlRepository implements ProductionRepository {
       SELECT p.*, d.name as demographic_name
       FROM productions p
       LEFT JOIN demographics d ON p.demography_id = d.id
+      WHERE p.visible = 1
       ORDER BY p.rank ASC, p.qualification DESC
       LIMIT ? OFFSET ?
     `;
@@ -184,31 +185,23 @@ export class ProductionMysqlRepository implements ProductionRepository {
       SELECT p.*, d.name as demographic_name
       FROM productions p
       LEFT JOIN demographics d ON p.demography_id = d.id
-      WHERE 1=1
+      WHERE p.visible = 1
     `;
-    const conditions: string[] = [];
     const params: any[] = [];
 
     if (filters.name) {
-      conditions.push('p.name LIKE ?');
+      query += ' AND p.name LIKE ?';
       params.push(`%${filters.name}%`);
     }
     if (filters.year) {
-      conditions.push('p.year = ?');
+      query += ' AND p.year = ?';
       params.push(filters.year);
     }
     if (filters.demography_id) {
-      conditions.push('p.demography_id = ?');
+      query += ' AND p.demography_id = ?';
       params.push(filters.demography_id);
     }
-    if (filters.visible !== undefined) {
-      conditions.push('p.visible = ?');
-      params.push(filters.visible);
-    }
-
-    if (conditions.length > 0) {
-      query += ' AND ' + conditions.join(' AND ');
-    }
+    // Note: visible filter is always 1 for public queries, admin can override if needed
 
     const limit = filters.limit ?? 100;
     const offset = filters.offset ?? 0;

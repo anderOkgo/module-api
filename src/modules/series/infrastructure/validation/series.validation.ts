@@ -23,15 +23,32 @@ export const validateProduction = (input: any): ValidationResult => {
   const result = { ...input };
 
   // Validate and clean 'id'
-  if (typeof result.id === 'string') {
-    const idValues = result.id.split(',').map((value: string) => parseInt(value.trim()));
-    if (idValues.some((value: number) => isNaN(value))) {
-      errors.id = 'ID must contain valid numbers separated by commas.';
+  if (result.id !== undefined) {
+    if (typeof result.id === 'string') {
+      // Si es string, convertir a array separando por comas
+      const idValues = result.id.split(',').map((value: string) => parseInt(value.trim()));
+      if (idValues.some((value: number) => isNaN(value))) {
+        errors.id = 'ID must contain valid numbers separated by commas.';
+      } else {
+        result.id = idValues;
+      }
+    } else if (Array.isArray(result.id)) {
+      // Si ya es un array, validar que todos sean números válidos
+      const idValues = result.id.map((value: any) => {
+        if (typeof value === 'string') {
+          return parseInt(value.trim());
+        }
+        return typeof value === 'number' ? value : NaN;
+      });
+      if (idValues.some((value: number) => isNaN(value))) {
+        errors.id = 'ID must contain valid numbers.';
+      } else {
+        result.id = idValues;
+      }
     } else {
-      result.id = idValues;
+      // Si no es string ni array, eliminar
+      delete result.id;
     }
-  } else {
-    delete result.id;
   }
 
   // Validate 'production_name'

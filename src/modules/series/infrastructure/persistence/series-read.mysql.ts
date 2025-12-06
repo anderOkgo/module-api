@@ -216,19 +216,43 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
       id: HDB.generateInCondition,
     };
 
+    // Track if we're filtering by IDs to preserve order
+    const hasIdFilter = Array.isArray(filters.id) && filters.id.length > 0;
+    let idOrderValues: (string | number)[] = [];
+
     // Apply filters using the same legacy logic
     for (const [key, value] of Object.entries(filters)) {
       if (conditionMap[key]) {
-        conditions.push(conditionMap[key](key, value));
-        // Don't add value for ORDER BY as it doesn't need parameters
-        if (key !== 'production_ranking_number') {
+        // Para 'id', usar 'v.id' para evitar ambigüedad con la tabla productions
+        const label = key === 'id' ? 'v.id' : key;
+
+        if (key === 'id' && hasIdFilter && Array.isArray(value)) {
+          // Para IDs, usar condición IN y guardar los valores para el ORDER BY FIELD
+          const idArray = value as (string | number)[];
+          conditions.push(HDB.generateInCondition(label, idArray));
+          idOrderValues = idArray;
           conditionsVals.push(value);
+        } else {
+          conditions.push(conditionMap[key](label, value));
+          // Don't add value for ORDER BY as it doesn't need parameters
+          if (key !== 'production_ranking_number') {
+            conditionsVals.push(value);
+          }
         }
       }
     }
 
-    // Add sorting and limit (transplanted from legacy)
-    filters.production_ranking_number ?? conditions.push(HDB.generateOrderBy('id', 'DESC'));
+    // Add sorting: si hay filtro por IDs, usar FIELD() para preservar el orden
+    // Si no, usar el orden por defecto solo si no hay production_ranking_number
+    if (hasIdFilter && idOrderValues.length > 0) {
+      // Usar FIELD() para ordenar según el orden de los IDs enviados
+      conditions.push(` ORDER BY FIELD(v.id, ${idOrderValues.map(() => '?').join(', ')})`);
+      // Agregar los IDs nuevamente para el FIELD()
+      conditionsVals.push(...idOrderValues);
+    } else if (!filters.production_ranking_number) {
+      // Solo aplicar orden por defecto si no hay filtro por IDs y no hay production_ranking_number
+      conditions.push(HDB.generateOrderBy('id', 'DESC'));
+    }
     conditions.push(HDB.generateLimit());
     const fullQuery = `${initialQuery} ${conditions.join(' ')}`;
 

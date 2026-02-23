@@ -23,6 +23,8 @@ export interface FinanRepository {
   getMonthlyBalance(username: string, currency: string): Promise<any[]>;
   getBalanceUntilDate(username: string, currency: string): Promise<any[]>;
   getMonthlyExpensesUntilCurrentDay(username: string, currency: string): Promise<any[]>;
+  getMonthlyBudget(username: string, currency: string): Promise<number>;
+  getCurrentMonthExpenses(username: string, currency: string): Promise<number>;
 
   // Special methods (admin)
   getGeneralInfo(): Promise<any[]>;

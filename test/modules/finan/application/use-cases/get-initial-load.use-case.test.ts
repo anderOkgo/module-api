@@ -19,6 +19,8 @@ const mockRepository: jest.Mocked<FinanRepository> = {
   getMonthlyBalance: jest.fn(),
   getBalanceUntilDate: jest.fn(),
   getMonthlyExpensesUntilCurrentDay: jest.fn(),
+  getMonthlyBudget: jest.fn(),
+  getCurrentMonthExpenses: jest.fn(),
   getGeneralInfo: jest.fn(),
   getTripInfo: jest.fn(),
   operateForLinkedMovement: jest.fn(),
@@ -42,6 +44,9 @@ describe('GetInitialLoadUseCase', () => {
       monthlyBalance: [{ month: '2023-01', balance: 1000 }],
       balanceUntilDate: [{ date: '2023-01-01', balance: 1000 }],
       monthlyExpensesUntilDay: [{ day: 1, expense: 100 }],
+      monthlyBudget: 5000,
+      currentMonthExpenses: 500,
+      remainingBudget: 4500,
     };
 
     it('should execute successfully with all required data', async () => {
@@ -62,6 +67,10 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue(
         mockInitialLoadResponse.monthlyExpensesUntilDay
       );
+      mockRepository.getMonthlyBudget.mockResolvedValue(mockInitialLoadResponse.monthlyBudget ?? 0);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(
+        mockInitialLoadResponse.currentMonthExpenses ?? 0
+      );
 
       const result = await getInitialLoadUseCase.execute(request);
 
@@ -74,6 +83,8 @@ describe('GetInitialLoadUseCase', () => {
       expect(mockRepository.getMonthlyBalance).toHaveBeenCalledWith('testuser', 'USD');
       expect(mockRepository.getBalanceUntilDate).toHaveBeenCalledWith('testuser', 'USD');
       expect(mockRepository.getMonthlyExpensesUntilCurrentDay).toHaveBeenCalledWith('testuser', 'USD');
+      expect(mockRepository.getMonthlyBudget).toHaveBeenCalledWith('testuser', 'USD');
+      expect(mockRepository.getCurrentMonthExpenses).toHaveBeenCalledWith('testuser', 'USD');
     });
 
     it('should use start_date when date is not provided', async () => {
@@ -91,6 +102,8 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyBalance.mockResolvedValue([]);
       mockRepository.getBalanceUntilDate.mockResolvedValue([]);
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.getMonthlyBudget.mockResolvedValue(0);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(0);
 
       await getInitialLoadUseCase.execute(request);
 
@@ -111,6 +124,8 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyBalance.mockResolvedValue([]);
       mockRepository.getBalanceUntilDate.mockResolvedValue([]);
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.getMonthlyBudget.mockResolvedValue(0);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(0);
 
       await getInitialLoadUseCase.execute(request);
 
@@ -136,6 +151,8 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyBalance.mockResolvedValue([]);
       mockRepository.getBalanceUntilDate.mockResolvedValue([]);
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.getMonthlyBudget.mockResolvedValue(0);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(0);
 
       await getInitialLoadUseCase.execute(request);
 
@@ -156,6 +173,8 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyBalance.mockResolvedValue([]);
       mockRepository.getBalanceUntilDate.mockResolvedValue([]);
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.getMonthlyBudget.mockResolvedValue(0);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(0);
 
       await getInitialLoadUseCase.execute(request);
 
@@ -176,6 +195,8 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyBalance.mockResolvedValue([]);
       mockRepository.getBalanceUntilDate.mockResolvedValue([]);
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.getMonthlyBudget.mockResolvedValue(0);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(0);
       mockRepository.getGeneralInfo.mockResolvedValue([{ info: 'general' }]);
       mockRepository.getTripInfo.mockResolvedValue([{ trip: 'vacation' }]);
       mockRepository.createTableForUser.mockResolvedValue(undefined);
@@ -203,6 +224,8 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyBalance.mockResolvedValue([]);
       mockRepository.getBalanceUntilDate.mockResolvedValue([]);
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.getMonthlyBudget.mockResolvedValue(0);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(0);
       mockRepository.createTableForUser.mockResolvedValue(undefined);
       mockRepository.findByNameAndDate.mockResolvedValue(null);
 
@@ -293,9 +316,10 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyBalance.mockResolvedValue([]);
       mockRepository.getBalanceUntilDate.mockResolvedValue([]);
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.getMonthlyBudget.mockResolvedValue(0);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(0);
       mockRepository.createTableForUser.mockResolvedValue(undefined);
       mockRepository.findByNameAndDate.mockResolvedValue(null);
-      mockRepository.createTableForUser.mockResolvedValue(undefined);
 
       await getInitialLoadUseCase.execute(request);
 
@@ -341,6 +365,8 @@ describe('GetInitialLoadUseCase', () => {
       mockRepository.getMonthlyBalance.mockResolvedValue([]);
       mockRepository.getBalanceUntilDate.mockResolvedValue([]);
       mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.getMonthlyBudget.mockResolvedValue(0);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(0);
 
       await getInitialLoadUseCase.execute(request);
 

@@ -182,6 +182,75 @@ export class FinanMysqlRepository implements FinanRepository {
     }
   }
 
+  /** Savings goal (5 millones) and fixed expense (salud+pensión 855k) */
+  private static readonly SAVINGS_GOAL = 5_000_000;
+  private static readonly FIXED_HEALTH_PENSION = 855_000;
+
+  /**
+   * Monthly budget = (payroll + interest-lulo) - savings_goal - fixed_health_pension.
+   * Uses current month if data exists, else previous month for each.
+   * Tags: payroll, interest-lulo
+   */
+  async getMonthlyBudget(username: string, currency: string): Promise<number> {
+    const tableName = `movements_${username}`;
+    const query = `
+      SELECT LOWER(TRIM(tag)) as tag, DATE_FORMAT(date_movement, '%Y-%m') as month_key, SUM(value) as total
+      FROM ${tableName}
+      WHERE currency = ? AND LOWER(TRIM(tag)) IN ('payroll', 'interest-lulo')
+        AND DATE_FORMAT(date_movement, '%Y-%m') IN (
+          DATE_FORMAT(CURDATE(), '%Y-%m'),
+          DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m')
+        )
+      GROUP BY LOWER(TRIM(tag)), DATE_FORMAT(date_movement, '%Y-%m')
+    `;
+    const rows = await this.Database.executeSafeQuery(query, [currency]);
+
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+
+    let payrollCur = 0;
+    let payrollPrev = 0;
+    let interestCur = 0;
+    let interestPrev = 0;
+    for (const row of rows || []) {
+      const val = parseFloat(row.total ?? '0') || 0;
+      const tag = String(row.tag ?? '')
+        .toLowerCase()
+        .trim();
+      const monthKey = String(row.month_key ?? '').trim();
+      if (tag === 'payroll') {
+        if (monthKey === currentMonth) payrollCur = val;
+        else if (monthKey === prevMonthStr) payrollPrev = val;
+      } else if (tag === 'interest-lulo') {
+        if (monthKey === currentMonth) interestCur = val;
+        else if (monthKey === prevMonthStr) interestPrev = val;
+      }
+    }
+    const payroll = payrollCur > 0 ? payrollCur : payrollPrev;
+    const interest = interestCur > 0 ? interestCur : interestPrev;
+    const base = payroll + interest;
+    const budget = base - FinanMysqlRepository.SAVINGS_GOAL - FinanMysqlRepository.FIXED_HEALTH_PENSION;
+    return Number(Math.max(0, budget).toFixed(2));
+  }
+
+  /**
+   * Sum of all expenses (type_source_id=2) for the current month up to today.
+   */
+  async getCurrentMonthExpenses(username: string, currency: string): Promise<number> {
+    const tableName = `movements_${username}`;
+    const query = `
+      SELECT COALESCE(SUM(value), 0) as total
+      FROM ${tableName}
+      WHERE currency = ?
+        AND type_source_id = 2
+        AND date_movement >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+        AND date_movement < CURDATE() + INTERVAL 1 DAY
+    `;
+    const result = await this.Database.executeSafeQuery(query, [currency]);
+    return Number((parseFloat(result?.[0]?.total ?? '0') || 0).toFixed(2));
+  }
   // ==================== SPECIAL METHODS ====================
 
   async getGeneralInfo(): Promise<any[]> {

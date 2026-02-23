@@ -31,6 +31,8 @@ export class GetInitialLoadUseCase {
         monthlyBalance,
         balanceUntilDate,
         monthlyExpensesUntilDay,
+        monthlyBudget,
+        currentMonthExpenses,
       ] = await Promise.all([
         this.repository.getTotalExpenseDay(username, currency, date),
         this.repository.getMovements(username, currency),
@@ -40,6 +42,8 @@ export class GetInitialLoadUseCase {
         this.repository.getMonthlyBalance(username, currency),
         this.repository.getBalanceUntilDate(username, currency),
         this.repository.getMonthlyExpensesUntilCurrentDay(username, currency),
+        this.repository.getMonthlyBudget(username, currency),
+        this.repository.getCurrentMonthExpenses(username, currency),
       ]);
 
       // 4. Build base response
@@ -52,6 +56,9 @@ export class GetInitialLoadUseCase {
         monthlyBalance,
         balanceUntilDate,
         monthlyExpensesUntilDay,
+        monthlyBudget,
+        currentMonthExpenses,
+        remainingBudget: (monthlyBudget ?? 0) - (currentMonthExpenses ?? 0),
       };
 
       // 5. Add additional information for specific users

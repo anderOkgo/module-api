@@ -90,6 +90,14 @@ describe('FinanRepository Interface', () => {
       return [{ day: 1, expense: 100 }];
     }
 
+    async getMonthlyBudget(username: string, currency: string): Promise<number> {
+      return 5000;
+    }
+
+    async getCurrentMonthExpenses(username: string, currency: string): Promise<number> {
+      return 500;
+    }
+
     async getGeneralInfo(): Promise<any[]> {
       return [{ info: 'general' }];
     }

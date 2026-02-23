@@ -76,6 +76,9 @@ export interface InitialLoadResponse {
   monthlyBalance: any[];
   balanceUntilDate: any[];
   monthlyExpensesUntilDay: any[];
+  monthlyBudget?: number;
+  currentMonthExpenses?: number;
+  remainingBudget?: number;
   generalInfo?: any[];
   tripInfo?: any[];
 }

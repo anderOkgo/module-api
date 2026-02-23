@@ -187,22 +187,23 @@ export class FinanMysqlRepository implements FinanRepository {
   private static readonly FIXED_HEALTH_PENSION = 855_000;
 
   /**
-   * Monthly budget = (payroll + interest-lulo) - savings_goal - fixed_health_pension.
+   * Monthly budget = (payroll + interest-lulo) - savings_goal - conditional_health_pension.
    * Uses current month if data exists, else previous month for each.
-   * Tags: payroll, interest-lulo
+   * Tags: payroll, interest-lulo, aporte-enlinea
    */
   async getMonthlyBudget(username: string, currency: string): Promise<number> {
     const tableName = `movements_${username}`;
     const query = `
-      SELECT LOWER(TRIM(tag)) as tag, DATE_FORMAT(date_movement, '%Y-%m') as month_key, SUM(value) as total
-      FROM ${tableName}
-      WHERE currency = ? AND LOWER(TRIM(tag)) IN ('payroll', 'interest-lulo')
-        AND DATE_FORMAT(date_movement, '%Y-%m') IN (
-          DATE_FORMAT(CURDATE(), '%Y-%m'),
-          DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m')
-        )
-      GROUP BY LOWER(TRIM(tag)), DATE_FORMAT(date_movement, '%Y-%m')
-    `;
+    SELECT LOWER(TRIM(tag)) as tag, DATE_FORMAT(date_movement, '%Y-%m') as month_key, SUM(value) as total
+    FROM ${tableName}
+    WHERE currency = ?
+      AND LOWER(TRIM(tag)) IN ('payroll', 'interest-lulo', 'aporte-enlinea')
+      AND DATE_FORMAT(date_movement, '%Y-%m') IN (
+        DATE_FORMAT(CURDATE(), '%Y-%m'),
+        DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m')
+      )
+    GROUP BY LOWER(TRIM(tag)), DATE_FORMAT(date_movement, '%Y-%m')
+  `;
     const rows = await this.Database.executeSafeQuery(query, [currency]);
 
     const now = new Date();
@@ -214,24 +215,42 @@ export class FinanMysqlRepository implements FinanRepository {
     let payrollPrev = 0;
     let interestCur = 0;
     let interestPrev = 0;
+
+    let aporteCur = 0;
+    let aportePrev = 0;
+
     for (const row of rows || []) {
       const val = parseFloat(row.total ?? '0') || 0;
       const tag = String(row.tag ?? '')
         .toLowerCase()
         .trim();
       const monthKey = String(row.month_key ?? '').trim();
+
       if (tag === 'payroll') {
         if (monthKey === currentMonth) payrollCur = val;
         else if (monthKey === prevMonthStr) payrollPrev = val;
       } else if (tag === 'interest-lulo') {
         if (monthKey === currentMonth) interestCur = val;
         else if (monthKey === prevMonthStr) interestPrev = val;
+      } else if (tag === 'aporte-enlinea') {
+        if (monthKey === currentMonth) aporteCur = val;
+        else if (monthKey === prevMonthStr) aportePrev = val;
       }
     }
+
     const payroll = payrollCur > 0 ? payrollCur : payrollPrev;
     const interest = interestCur > 0 ? interestCur : interestPrev;
+
+    // Si el mes actual tiene pago → no restar, si no → restar
+    const aporte = aporteCur > 0 ? aporteCur : aportePrev;
+    const shouldSubtractHealthPension = aporteCur <= 0;
+
     const base = payroll + interest;
-    const budget = base - FinanMysqlRepository.SAVINGS_GOAL - FinanMysqlRepository.FIXED_HEALTH_PENSION;
+
+    const healthPensionDiscount = shouldSubtractHealthPension ? FinanMysqlRepository.FIXED_HEALTH_PENSION : 0;
+
+    const budget = base - FinanMysqlRepository.SAVINGS_GOAL - healthPensionDiscount;
+
     return Number(Math.max(0, budget).toFixed(2));
   }
 

@@ -13,7 +13,7 @@
     "test:cov:finan": "jest --coverage --testPathPattern=modules/finan",
     "test:cov:series": "jest --coverage --testPathPattern=modules/series",
     "build": "tsc",
-    "servers": " cmd /c tsc -w | nodemon dist/index.js",
+    "servers": "start /b tsc -w & nodemon dist/index.js",
     "bup": "npm run build && call com/db-sync-FTP-both.bat"
   },
   "keywords": [],

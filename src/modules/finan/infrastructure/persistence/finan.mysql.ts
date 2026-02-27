@@ -216,15 +216,15 @@ export class FinanMysqlRepository implements FinanRepository {
     // 2. Consulta de movimientos (tu lógica original)
     const tableName = `movements_${username}`;
     const query = `
-      SELECT LOWER(TRIM(tag)) as tag, DATE_FORMAT(date_movement, '%Y-%m') as month_key, SUM(value) as total
+      SELECT type_source_id, LOWER(TRIM(tag)) as tag, DATE_FORMAT(date_movement, '%Y-%m') as month_key, SUM(value) as total
       FROM ${tableName}
       WHERE currency = ?
-        AND LOWER(TRIM(tag)) IN ('payroll', 'interest-lulo', 'aporte-enlinea')
+        AND (type_source_id = 1 OR LOWER(TRIM(tag)) = 'aporte-enlinea')
         AND DATE_FORMAT(date_movement, '%Y-%m') IN (
           DATE_FORMAT(CURDATE(), '%Y-%m'),
           DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m')
         )
-      GROUP BY LOWER(TRIM(tag)), DATE_FORMAT(date_movement, '%Y-%m')
+      GROUP BY type_source_id, LOWER(TRIM(tag)), DATE_FORMAT(date_movement, '%Y-%m')
     `;
 
     const rows = await this.Database.executeSafeQuery(query, [currency]);
@@ -235,38 +235,52 @@ export class FinanMysqlRepository implements FinanRepository {
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevMonthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
 
-    let payrollCur = 0;
-    let payrollPrev = 0;
-    let interestCur = 0;
-    let interestPrev = 0;
+    // Mapas para agrupar ingresos por tag
+    const incomesCur: Record<string, number> = {};
+    const incomesPrev: Record<string, number> = {};
     let aporteCur = 0;
 
     // 4. Clasificación de resultados
     for (const row of rows || []) {
       const val = parseFloat(row.total ?? '0') || 0;
+      const typeId = parseInt(row.type_source_id ?? '0');
       const tag = String(row.tag ?? '')
         .toLowerCase()
         .trim();
       const monthKey = String(row.month_key ?? '').trim();
 
-      if (tag === 'payroll') {
-        if (monthKey === currentMonth) payrollCur = val;
-        else if (monthKey === prevMonthStr) payrollPrev = val;
-      } else if (tag === 'interest-lulo') {
-        if (monthKey === currentMonth) interestCur = val;
-        else if (monthKey === prevMonthStr) interestPrev = val;
-      } else if (tag === 'aporte-enlinea') {
-        if (monthKey === currentMonth) aporteCur = val;
+      if (typeId === 1) {
+        if (monthKey === currentMonth) {
+          incomesCur[tag] = (incomesCur[tag] || 0) + val;
+        } else if (monthKey === prevMonthStr) {
+          incomesPrev[tag] = (incomesPrev[tag] || 0) + val;
+        }
+      }
+
+      if (tag === 'aporte-enlinea' && monthKey === currentMonth) {
+        aporteCur += val;
       }
     }
 
-    // 5. Cálculo del presupuesto usando las constantes de la DB
-    const payroll = payrollCur > 0 ? payrollCur : payrollPrev;
-    const interest = interestCur > 0 ? interestCur : interestPrev;
-    const base = payroll + interest;
+    // 5. Cálculo del presupuesto (Base)
+    const stableTags = ['payroll', 'interest-lulo'];
+    let base = 0;
 
-    // Si no hay aporte en el mes actual, restamos la pensión fija de la DB
-    const healthPensionDiscount = aporteCur <= 0 ? fixedHealthPension : 0;
+    // Sumamos TODO lo que entró este mes (Basado en tipos: Income)
+    for (const tag in incomesCur) {
+      base += incomesCur[tag];
+    }
+
+    // SOLO para payroll e intereses: si falta en el mes actual, buscamos en el anterior
+    for (const tag of stableTags) {
+      if (!(incomesCur[tag] > 0) && incomesPrev[tag] > 0) {
+        base += incomesPrev[tag];
+      }
+    }
+
+    // Siempre restamos el costo de salud/pensión (el real si existe, o el estimado de la DB)
+    // Esto hace que el presupuesto sea estable y represente el dinero "gastable" real.
+    const healthPensionDiscount = aporteCur > 0 ? aporteCur : fixedHealthPension;
 
     const budget = base - savingsGoal - healthPensionDiscount;
 
@@ -285,6 +299,7 @@ export class FinanMysqlRepository implements FinanRepository {
         AND type_source_id = 2
         AND date_movement >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
         AND date_movement < CURDATE() + INTERVAL 1 DAY
+        AND LOWER(TRIM(tag)) != 'aporte-enlinea'
     `;
     const result = await this.Database.executeSafeQuery(query, [currency]);
     return Number((parseFloat(result?.[0]?.total ?? '0') || 0).toFixed(2));

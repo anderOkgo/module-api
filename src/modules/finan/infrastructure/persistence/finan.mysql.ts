@@ -196,7 +196,7 @@ export class FinanMysqlRepository implements FinanRepository {
     const constantsQuery = `
       SELECT name, description
       FROM constants
-      WHERE name IN ('SAVINGS_GOAL', 'FIXED_HEALTH_PENSION')
+      WHERE name IN ('SAVINGS_GOAL', 'FIXED_HEALTH_PENSION', 'EXPECTED_PAYROLL')
         AND currency_id = 2
     `;
     const constantsRows = await this.Database.executeSafeQuery(constantsQuery, []);
@@ -210,8 +210,10 @@ export class FinanMysqlRepository implements FinanRepository {
       {} as Record<string, number>
     );
 
-    const savingsGoal = constantsMap['SAVINGS_GOAL'] || 0;
-    const fixedHealthPension = constantsMap['FIXED_HEALTH_PENSION'] || 0;
+    const savingsGoal = constantsMap['SAVINGS_GOAL'] || FinanMysqlRepository.SAVINGS_GOAL;
+    const fixedHealthPension =
+      constantsMap['FIXED_HEALTH_PENSION'] || FinanMysqlRepository.FIXED_HEALTH_PENSION;
+    const expectedPayroll = constantsMap['EXPECTED_PAYROLL'] || 0;
 
     // 2. Consulta de movimientos (tu lógica original)
     const tableName = `movements_${username}`;
@@ -271,10 +273,14 @@ export class FinanMysqlRepository implements FinanRepository {
       base += incomesCur[tag];
     }
 
-    // SOLO para payroll e intereses: si falta en el mes actual, buscamos en el anterior
+    // SOLO para payroll e intereses: si falta en el mes actual, buscamos en la constante o en el mes anterior
     for (const tag of stableTags) {
-      if (!(incomesCur[tag] > 0) && incomesPrev[tag] > 0) {
-        base += incomesPrev[tag];
+      if (!(incomesCur[tag] > 0)) {
+        if (tag === 'payroll' && expectedPayroll > 0) {
+          base += expectedPayroll;
+        } else if (incomesPrev[tag] > 0) {
+          base += incomesPrev[tag];
+        }
       }
     }
 

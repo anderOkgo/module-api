@@ -755,11 +755,11 @@ export const seriesSwaggerDocumentation = {
     },
   },
 
-  // 9. DELETE /api/series/{id} - Delete series
+  // 9. DELETE /api/series/{id} - Soft delete series (visible = false)
   deleteSeries: {
     '/api/series/{id}': {
       delete: {
-        summary: 'Delete series',
+        summary: 'Soft delete series (sets visible to false)',
         tags: ['Series'],
         security: [
           {

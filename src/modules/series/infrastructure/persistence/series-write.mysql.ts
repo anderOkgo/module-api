@@ -63,7 +63,7 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
   }
 
   async delete(id: number): Promise<boolean> {
-    const query = 'DELETE FROM productions WHERE id = ?';
+    const query = 'UPDATE productions SET visible = 0 WHERE id = ?';
     const result = await this.database.executeSafeQuery(query, [id]);
 
     if (result.errorSys) {

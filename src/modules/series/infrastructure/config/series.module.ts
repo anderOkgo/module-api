@@ -43,7 +43,7 @@ export function buildSeriesModule() {
   // 4. Command Handlers (write) - CQRS
   const createSeriesHandler = new CreateSeriesHandler(writeRepository, readRepository, imageService);
   const updateSeriesHandler = new UpdateSeriesHandler(writeRepository, readRepository);
-  const deleteSeriesHandler = new DeleteSeriesHandler(writeRepository, readRepository, imageService);
+  const deleteSeriesHandler = new DeleteSeriesHandler(writeRepository, readRepository);
   const assignGenresHandler = new AssignGenresHandler(writeRepository, readRepository);
   const removeGenresHandler = new RemoveGenresHandler(writeRepository, readRepository);
   const addTitlesHandler = new AddTitlesHandler(writeRepository, readRepository);

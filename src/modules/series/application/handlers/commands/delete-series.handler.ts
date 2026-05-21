@@ -2,15 +2,13 @@ import { CommandHandler } from '../../common/command.interface';
 import { DeleteSeriesCommand } from '../../commands/delete-series.command';
 import { SeriesWriteRepository } from '../../../application/ports/series-write.repository';
 import { SeriesReadRepository } from '../../../application/ports/series-read.repository';
-import { ImageService } from '../../services/image.service';
 
 export class DeleteSeriesHandler
   implements CommandHandler<DeleteSeriesCommand, { success: boolean; message: string }>
 {
   constructor(
     private readonly writeRepository: SeriesWriteRepository,
-    private readonly readRepository: SeriesReadRepository,
-    private readonly imageService: ImageService
+    private readonly readRepository: SeriesReadRepository
   ) {}
 
   async execute(command: DeleteSeriesCommand): Promise<{ success: boolean; message: string }> {
@@ -25,16 +23,12 @@ export class DeleteSeriesHandler
       return { success: false, message: 'Series not found' };
     }
 
-    // 3. Delete image from filesystem
-    if (series.image && series.image.trim() !== '') {
-      try {
-        await this.imageService.deleteImage(series.image);
-      } catch (error) {
-        console.warn(`Could not delete image for series ${command.id}:`, error);
-      }
+    // 3. Already hidden (idempotent delete)
+    if (!series.visible) {
+      return { success: true, message: 'Series deleted successfully' };
     }
 
-    // 4. Delete from DB
+    // 4. Soft delete: set visible = false (keeps row and image)
     const deleted = await this.writeRepository.delete(command.id);
 
     if (!deleted) {

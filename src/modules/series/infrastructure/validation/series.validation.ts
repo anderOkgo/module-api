@@ -4,6 +4,7 @@ export interface ValidateProduction {
   production_name?: string;
   production_number_chapters?: string;
   production_description?: string;
+  production_description_en?: string;
   production_year?: string;
   demographic_name?: string;
   genre_names?: string;
@@ -86,6 +87,16 @@ export const validateProduction = (input: any): ValidationResult => {
     }
   } else {
     delete result.production_description;
+  }
+
+  // Validate 'production_description_en'
+  if (result.production_description_en) {
+    if (typeof result.production_description_en !== 'string' || result.production_description_en.length > 50) {
+      errors.production_description_en =
+        'Production description (EN) must be a string with a maximum length of 50 characters.';
+    }
+  } else {
+    delete result.production_description_en;
   }
 
   // Validate 'production_year'

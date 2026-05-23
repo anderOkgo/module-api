@@ -13,6 +13,7 @@ class Database {
       password: process.env.MYPASSWORD!,
       database: process.env[dbName]!,
       port: parseInt(process.env.MYPORT!, 10),
+      charset: 'utf8mb4',
     });
   }
 

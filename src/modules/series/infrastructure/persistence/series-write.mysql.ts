@@ -124,10 +124,11 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
   async addTitles(seriesId: number, titles: string[]): Promise<boolean> {
     if (titles.length === 0) return true;
 
-    const values = titles.map((t) => `(${seriesId}, '${t.replace(/'/g, "''")}')`).join(',');
-    const query = `INSERT INTO titles (production_id, name) VALUES ${values}`;
+    const placeholders = titles.map(() => '(?, ?)').join(',');
+    const params = titles.flatMap((t) => [seriesId, t]);
+    const query = `INSERT INTO titles (production_id, name) VALUES ${placeholders}`;
 
-    const result = await this.database.executeSafeQuery(query, []);
+    const result = await this.database.executeSafeQuery(query, params);
 
     if (result.errorSys) {
       throw new Error(result.message);

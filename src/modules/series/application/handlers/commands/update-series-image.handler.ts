@@ -35,21 +35,22 @@ export class UpdateSeriesImageHandler
         throw new Error('Series not found');
       }
 
-      // 3. Delete previous image if exists
-      if (existingSeries.image && existingSeries.image.trim() !== '') {
-        try {
-          await this.imageService.deleteImage(existingSeries.image);
-        } catch (error) {
-          console.warn(`Could not delete old image for series ${seriesId}:`, error);
-          // Don't fail the update if old image cannot be deleted
-        }
-      }
+      const oldImagePath = existingSeries.image && existingSeries.image.trim() !== '' ? existingSeries.image : null;
 
-      // 4. Process and save new image
+      // 3. Process and save new image
       const imagePath = await this.imageService.processAndSaveImage(imageFile.buffer, seriesId);
 
-      // 5. Update path in DB
+      // 4. Update path in DB
       await this.writeRepository.updateImage(seriesId, imagePath);
+
+      // 5. Delete previous image only after new one is confirmed saved
+      if (oldImagePath) {
+        try {
+          await this.imageService.deleteImage(oldImagePath);
+        } catch (error) {
+          console.warn(`Could not delete old image for series ${seriesId}:`, error);
+        }
+      }
 
       return {
         success: true,

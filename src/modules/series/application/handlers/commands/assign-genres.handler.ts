@@ -24,6 +24,14 @@ export class AssignGenresHandler
     // 3. Normalize IDs (remove duplicates)
     const uniqueGenreIds = [...new Set(command.genreIds)];
 
+    // 3b. Validate that all genre IDs exist in the database
+    const existingGenres = await this.readRepository.getGenres();
+    const existingGenreIds = new Set(existingGenres.map((g) => g.id));
+    const nonExistentIds = uniqueGenreIds.filter((id) => !existingGenreIds.has(id));
+    if (nonExistentIds.length > 0) {
+      throw new Error(`Invalid genre IDs: ${nonExistentIds.join(', ')}`);
+    }
+
     // 4. Assign genres
     await this.writeRepository.assignGenres(command.seriesId, uniqueGenreIds);
 

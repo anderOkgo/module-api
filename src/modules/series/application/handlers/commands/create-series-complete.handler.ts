@@ -29,6 +29,9 @@ export class CreateSeriesCompleteHandler
       // 1. Validate input
       this.validateInput(seriesData);
 
+      // 1b. Validate relations exist in database
+      await this.validateRelations(seriesData);
+
       // 2. Normalize data
       const normalized = this.normalizeData(seriesData);
 
@@ -200,5 +203,25 @@ export class CreateSeriesCompleteHandler
     }
 
     return normalized;
+  }
+
+  private async validateRelations(data: CreateSeriesCompleteRequest): Promise<void> {
+    // Validate demographic
+    const demographics = await this.readRepository.getDemographics();
+    const existingDemoIds = new Set(demographics.map((d) => d.id));
+    if (!existingDemoIds.has(data.demography_id)) {
+      throw new Error(`Demography ID ${data.demography_id} does not exist`);
+    }
+
+    // Validate genres if provided
+    if (data.genres && data.genres.length > 0) {
+      const uniqueGenreIds = [...new Set(data.genres)];
+      const genres = await this.readRepository.getGenres();
+      const existingGenreIds = new Set(genres.map((g) => g.id));
+      const nonExistentIds = uniqueGenreIds.filter((id) => !existingGenreIds.has(id));
+      if (nonExistentIds.length > 0) {
+        throw new Error(`Invalid genre IDs: ${nonExistentIds.join(', ')}`);
+      }
+    }
   }
 }

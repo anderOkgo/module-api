@@ -20,6 +20,15 @@ export class UpdateSeriesHandler implements CommandHandler<UpdateSeriesCommand, 
       throw new Error('Series not found');
     }
 
+    // 2b. Validate demographic exists in database if provided
+    if (command.demography_id !== undefined) {
+      const demographics = await this.readRepository.getDemographics();
+      const existingDemoIds = new Set(demographics.map((d) => d.id));
+      if (!existingDemoIds.has(command.demography_id)) {
+        throw new Error(`Demography ID ${command.demography_id} does not exist`);
+      }
+    }
+
     // 3. Normalize
     const normalizedData = this.normalize(command);
 

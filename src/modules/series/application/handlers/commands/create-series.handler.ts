@@ -16,6 +16,13 @@ export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, 
     // 1. Validate
     this.validate(command);
 
+    // 1b. Validate demographic exists in database
+    const demographics = await this.readRepository.getDemographics();
+    const existingDemoIds = new Set(demographics.map((d) => d.id));
+    if (!existingDemoIds.has(command.demography_id)) {
+      throw new Error(`Demography ID ${command.demography_id} does not exist`);
+    }
+
     // 2. Normalize
     const normalizedData = this.normalize(command);
 

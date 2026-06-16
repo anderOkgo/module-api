@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import { Database } from './infrastructure/my.database.helper';
 
 // Load environment variables
@@ -76,6 +77,7 @@ class Server {
   }
 
   private middlewares() {
+    this.app.use(compression());
     this.app.use(express.json());
   }
 

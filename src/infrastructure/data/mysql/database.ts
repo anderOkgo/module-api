@@ -1,29 +1,33 @@
-import mysql, { Connection, MysqlError } from 'mysql';
+import mysql, { Pool, PoolConnection, MysqlError } from 'mysql';
 import dotenv from 'dotenv';
 import sendEmail from '../../../infrastructure/services/email';
 
 class Database {
-  private connection: Connection;
+  private pool: Pool;
 
   constructor(dbName: string) {
     dotenv.config();
-    this.connection = mysql.createConnection({
+    this.pool = mysql.createPool({
       host: process.env.MYHOST!,
       user: process.env.MYUSER!,
       password: process.env.MYPASSWORD!,
       database: process.env[dbName]!,
       port: parseInt(process.env.MYPORT!, 10),
       charset: 'utf8mb4',
+      connectionLimit: 10,
+      waitForConnections: true,
+      queueLimit: 0,
     });
   }
 
   open(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.connection.connect((err?: MysqlError) => {
+      this.pool.getConnection((err: MysqlError | null, connection: PoolConnection) => {
         if (err) {
           reject(new Error(`Error connecting to MySQL: ${err.message}`));
         } else {
           console.log('Connected to MySQL successfully!');
+          connection.release();
           resolve();
         }
       });
@@ -44,7 +48,7 @@ class Database {
 
   executeQuery(query: string, params: any = {}): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.connection.query(query, params, (error: MysqlError | null, result: any) => {
+      this.pool.query(query, params, (error: MysqlError | null, result: any) => {
         if (error) {
           reject(error);
         } else {
@@ -56,34 +60,39 @@ class Database {
 
   close(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.connection.end((err?: MysqlError) => {
+      this.pool.end((err?: MysqlError) => {
         if (err) {
-          console.error(`Error closing MySQL connection: ${err.message}`);
+          console.error(`Error closing MySQL pool: ${err.message}`);
           reject(err);
         } else {
-          console.log('MySQL connection closed successfully!');
+          console.log('MySQL pool closed successfully!');
           resolve();
         }
       });
     });
   }
 
-  status(): string {
-    return this.connection.state;
-  }
-
   myEscape(str: string): string {
-    return this.connection.escape(str);
+    return this.pool.escape(str);
   }
 
+  // Acquires a pooled connection and pings it, releasing it back to the pool
+  // afterwards. Used as a lightweight liveness/keep-alive check.
   async testConnection(): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      this.connection.ping((err?: MysqlError) => {
+      this.pool.getConnection((err: MysqlError | null, connection: PoolConnection) => {
         if (err) {
           reject(err);
-        } else {
-          resolve(true);
+          return;
         }
+        connection.ping((pingErr?: MysqlError) => {
+          connection.release();
+          if (pingErr) {
+            reject(pingErr);
+          } else {
+            resolve(true);
+          }
+        });
       });
     });
   }

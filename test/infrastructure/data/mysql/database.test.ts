@@ -11,20 +11,23 @@ jest.mock('../../../../src/infrastructure/services/email', () => ({
 
 describe('Database', () => {
   let database: Database;
+  let mockPool: any;
   let mockConnection: any;
 
   beforeEach(() => {
     mockConnection = {
-      connect: jest.fn(),
-      query: jest.fn(),
-      end: jest.fn(),
-      on: jest.fn(),
+      release: jest.fn(),
       ping: jest.fn(),
-      escape: jest.fn(),
-      state: 'authenticated',
     };
 
-    (mysql.createConnection as jest.Mock).mockReturnValue(mockConnection);
+    mockPool = {
+      getConnection: jest.fn(),
+      query: jest.fn(),
+      end: jest.fn(),
+      escape: jest.fn(),
+    };
+
+    (mysql.createPool as jest.Mock).mockReturnValue(mockPool);
     database = new Database('TEST_DB');
   });
 
@@ -34,18 +37,19 @@ describe('Database', () => {
 
   describe('open', () => {
     it('should connect successfully', async () => {
-      mockConnection.connect.mockImplementation((callback: Function) => {
-        callback(null);
+      mockPool.getConnection.mockImplementation((callback: Function) => {
+        callback(null, mockConnection);
       });
 
       await database.open();
 
-      expect(mockConnection.connect).toHaveBeenCalled();
+      expect(mockPool.getConnection).toHaveBeenCalled();
+      expect(mockConnection.release).toHaveBeenCalled();
     });
 
     it('should reject on connection error', async () => {
       const error = new Error('Connection failed');
-      mockConnection.connect.mockImplementation((callback: Function) => {
+      mockPool.getConnection.mockImplementation((callback: Function) => {
         callback(error);
       });
 
@@ -56,19 +60,19 @@ describe('Database', () => {
   describe('executeQuery', () => {
     it('should execute query successfully', async () => {
       const mockResult = [{ id: 1, name: 'test' }];
-      mockConnection.query.mockImplementation((query: string, params: any, callback: Function) => {
+      mockPool.query.mockImplementation((query: string, params: any, callback: Function) => {
         callback(null, mockResult);
       });
 
       const result = await database.executeQuery('SELECT * FROM test', ['param1']);
 
-      expect(mockConnection.query).toHaveBeenCalledWith('SELECT * FROM test', ['param1'], expect.any(Function));
+      expect(mockPool.query).toHaveBeenCalledWith('SELECT * FROM test', ['param1'], expect.any(Function));
       expect(result).toEqual(mockResult);
     });
 
     it('should reject on query error', async () => {
       const error = new Error('Query failed');
-      mockConnection.query.mockImplementation((query: string, params: any, callback: Function) => {
+      mockPool.query.mockImplementation((query: string, params: any, callback: Function) => {
         callback(error, null);
       });
 
@@ -79,7 +83,7 @@ describe('Database', () => {
   describe('executeSafeQuery', () => {
     it('should execute query and return result', async () => {
       const mockResult = [{ id: 1, name: 'test' }];
-      mockConnection.query.mockImplementation((query: string, params: any, callback: Function) => {
+      mockPool.query.mockImplementation((query: string, params: any, callback: Function) => {
         callback(null, mockResult);
       });
 
@@ -90,7 +94,7 @@ describe('Database', () => {
 
     it('should return error object on query failure', async () => {
       const error = new Error('Query failed');
-      mockConnection.query.mockImplementation((query: string, params: any, callback: Function) => {
+      mockPool.query.mockImplementation((query: string, params: any, callback: Function) => {
         callback(error, null);
       });
 
@@ -101,19 +105,19 @@ describe('Database', () => {
   });
 
   describe('close', () => {
-    it('should close connection successfully', async () => {
-      mockConnection.end.mockImplementation((callback: Function) => {
+    it('should close pool successfully', async () => {
+      mockPool.end.mockImplementation((callback: Function) => {
         callback(null);
       });
 
       await database.close();
 
-      expect(mockConnection.end).toHaveBeenCalled();
+      expect(mockPool.end).toHaveBeenCalled();
     });
 
     it('should reject on close error', async () => {
       const error = new Error('Close failed');
-      mockConnection.end.mockImplementation((callback: Function) => {
+      mockPool.end.mockImplementation((callback: Function) => {
         callback(error);
       });
 
@@ -122,7 +126,10 @@ describe('Database', () => {
   });
 
   describe('testConnection', () => {
-    it('should ping successfully', async () => {
+    it('should ping successfully and release the connection', async () => {
+      mockPool.getConnection.mockImplementation((callback: Function) => {
+        callback(null, mockConnection);
+      });
       mockConnection.ping.mockImplementation((callback: Function) => {
         callback(null);
       });
@@ -130,36 +137,42 @@ describe('Database', () => {
       const result = await database.testConnection();
 
       expect(mockConnection.ping).toHaveBeenCalled();
+      expect(mockConnection.release).toHaveBeenCalled();
       expect(result).toBe(true);
     });
 
-    it('should reject on ping error', async () => {
+    it('should reject when a pooled connection cannot be acquired', async () => {
+      const error = new Error('Connection failed');
+      mockPool.getConnection.mockImplementation((callback: Function) => {
+        callback(error);
+      });
+
+      await expect(database.testConnection()).rejects.toThrow(error);
+    });
+
+    it('should reject on ping error but still release the connection', async () => {
       const error = new Error('Ping failed');
+      mockPool.getConnection.mockImplementation((callback: Function) => {
+        callback(null, mockConnection);
+      });
       mockConnection.ping.mockImplementation((callback: Function) => {
         callback(error);
       });
 
       await expect(database.testConnection()).rejects.toThrow(error);
+      expect(mockConnection.release).toHaveBeenCalled();
     });
   });
 
   describe('myEscape', () => {
     it('should escape string', () => {
       const escapedString = "'test'";
-      mockConnection.escape.mockReturnValue(escapedString);
+      mockPool.escape.mockReturnValue(escapedString);
 
       const result = database.myEscape('test');
 
-      expect(mockConnection.escape).toHaveBeenCalledWith('test');
+      expect(mockPool.escape).toHaveBeenCalledWith('test');
       expect(result).toBe(escapedString);
-    });
-  });
-
-  describe('status', () => {
-    it('should return connection state', () => {
-      const result = database.status();
-
-      expect(result).toBe('authenticated');
     });
   });
 });

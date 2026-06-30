@@ -17,10 +17,12 @@ class Server {
   public app: Application;
   private server: any;
   private port: string;
+  private database: Database;
 
   constructor() {
     this.app = express();
     this.port = process.env.PORT || '3000';
+    this.database = new Database('MYDATABASEANIME');
     this.middlewares();
     this.routes();
     this.connectDB();
@@ -36,8 +38,7 @@ class Server {
 
   private async connectDB() {
     try {
-      const database: Database = new Database('MYDATABASEANIME');
-      await database.open();
+      await this.database.open();
     } catch (error) {
       console.error('Database connection failed', error);
       process.exit(1);
@@ -62,8 +63,14 @@ class Server {
       this.healthCheck(req, res);
     });
 
-    // Default API status endpoint
-    this.app.get('/', (req: Request, res: Response) => {
+    // Default API status endpoint. Also pinged by the keep-alive cron, so it
+    // touches the DB pool to keep pooled connections from going stale/idle.
+    this.app.get('/', async (req: Request, res: Response) => {
+      try {
+        await this.database.testConnection();
+      } catch (error) {
+        console.error('Keep-alive DB ping failed:', error instanceof Error ? error.message : error);
+      }
       res.json({ msg: 'API Working' });
     });
 
@@ -112,8 +119,7 @@ class Server {
 
       // Check database connection
       try {
-        const db = new Database('MYDATABASE');
-        await db.testConnection();
+        await this.database.testConnection();
         healthStatus.services.database = 'UP';
       } catch (error) {
         healthStatus.status = 'DOWN';

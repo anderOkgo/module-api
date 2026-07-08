@@ -9,4 +9,4 @@ start "" %Link_restart_node.txt%
     "synchronize remote  ""%LocalPath.txt%\"" /%FTPFolder.txt%" ^
     "exit" ^
 IF %ERRORLEVEL% EQU 0 (Echo No error found) ELSE (Echo An error was found)
-PAUSE
+TIMEOUT /T 5

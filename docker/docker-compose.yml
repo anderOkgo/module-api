@@ -17,6 +17,7 @@ services:
       - ./sql:/docker-entrypoint-initdb.d
       - ../animecream-data/sql:/docker-entrypoint-initdb.d/animecream
       - ../auth-data/sql:/docker-entrypoint-initdb.d/auth
+      - ../finan-data/sql:/docker-entrypoint-initdb.d/finan
       - ./logs:/var/log/mysql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --sql-mode="STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO"
     networks:

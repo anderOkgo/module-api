@@ -12,6 +12,7 @@
     "test:cov:auth": "jest --coverage --testPathPattern=modules/auth",
     "test:cov:finan": "jest --coverage --testPathPattern=modules/finan",
     "test:cov:series": "jest --coverage --testPathPattern=modules/series",
+    "test:e2e": "jest --testPathIgnorePatterns=/node_modules/ --testPathPattern=test/e2e --runInBand --forceExit",
     "build": "tsc",
     "servers": "start /b tsc -w & nodemon dist/index.js",
     "bup": "npm run build && call com/db-sync-FTP-both.bat"

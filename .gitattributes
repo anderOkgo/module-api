@@ -1,0 +1,4 @@
+# Shell scripts run inside Linux containers — CRLF line endings would break
+# their shebang line ("bad interpreter" / `$'\r': command not found` errors).
+# Force LF regardless of the checkout platform's core.autocrlf setting.
+*.sh text eol=lf

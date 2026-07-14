@@ -6,6 +6,20 @@ Turn this codebase into a base solid enough to produce an **executable specifica
 
 Prose documentation (`docs/architecture.md`, `docs/modules/*.md`) already covers the "what exists." This roadmap covers the work needed before that prose can be trusted as a spec: a clean, fully-passing test suite, no dead code, and a CI gate to keep it that way — followed by the new spec layers themselves.
 
+## Important: this is a multi-repo system
+
+`module-api` is only the application-code piece. Discovered while building the E2E suite (2026-07-14): the database schema/data lifecycle is deliberately kept in **three separate sibling repositories**, in the same workspace, one per logical database:
+
+- `animecream-data` — schema for `animecre_cake514` (the `series` module's DB)
+- `auth-data` — schema for `animecre_auth`
+- `finan-data` — schema for `animecre_finan`
+
+Each follows the same convention (see `animecream-data/README.md` for the full rationale): `sql/db-structure.sql` (bootstrap-only, DROP+CREATE), `sql/db-views-procs.sql` and `sql/db-trigger.sql` (idempotent, re-run on every deploy), `sql/migrations/000N_*.sql` (incremental, idempotent, never edited after commit), and `db-deploy-schema.bat` orchestrating local test → remote deploy.
+
+`module-api`'s own `docker/docker-compose.yml` mounted `../animecream-data/sql` and `../auth-data/sql` (and never even mounted `../finan-data/sql` at all) as MariaDB init sources — as nested subdirectories, which MariaDB's official `docker-entrypoint.sh` explicitly ignores (it only processes top-level `*.sql`/`*.sh` files, never recurses; confirmed via the container logs, which print `ignoring /docker-entrypoint-initdb.d/animecream`). This mount was never functional; the long-running local `animecream-mariadb` container's data volume is what's actually been carrying the schema for the last 9 months, not the init-script mount. **Fixed 2026-07-14** — see Phase 4c below.
+
+**Implication for the "regenerate from scratch" goal**: a complete specification of this system has to account for all four repos, not just this one. Not in scope to fix today, but worth its own line item under Phase 4.
+
 ## Status legend
 
 `TODO` not started · `IN PROGRESS` · `DONE` · `BLOCKED` (needs a decision)
@@ -201,6 +215,35 @@ Not yet committed — pending user review.
 
 ---
 
+## Phase 4b — E2E suite against the real database
+
+**Status: DONE** (2026-07-14)
+
+`test/e2e/` (21 tests, opt-in via `npm run test:e2e` — excluded from the default `jest` run via `jest.config.js`'s `testPathIgnorePatterns`, since it needs a live `animecream-mariadb` container, not something CI can assume). No repository is mocked here: real MySQL connections, real stored procedures, real views, real bcrypt/JWT. Covers auth (full two-step register-with-real-verification-code flow, login against a real bcrypt hash), finan (full CRUD on a real dynamically-created per-user movements table), and series (full CRUD + genre/title relations against the real catalog). Each suite creates only distinctively-named/dedicated fixtures (`e2e<timestamp>` usernames, `__E2E_TEST_SERIES_<timestamp>__` series names) and deletes them in `afterAll` — verified zero leftovers in the real DB after a run. Real catalog data (genres, demographics) is read-only.
+
+Found one thing only real-data E2E could ever surface: `update_rank()` (called after every series create/update) rewrites `qualification` for **every row in `productions`**, interpolating it between 7.0–9.7 based on rank position across the whole catalog — it does not persist the submitted value verbatim. A mocked test would never reveal this; the first E2E run caught it immediately (a test asserting the literal submitted value failed with a real re-ranked number back). Fixed the test to assert range + DB/response consistency instead of an exact value — this is correct, intentional application behavior, not a bug.
+
+Also surfaced, while investigating where the schema actually lives: the whole database schema/data lifecycle turns out to live in three separate sibling repositories (`animecream-data`, `auth-data`, `finan-data`) — see "Important: this is a multi-repo system" at the top of this document.
+
+---
+
+## Phase 4c — Fixed the `docker-compose.yml` init-script bug, wired two smaller findings
+
+**Status: DONE** (2026-07-14)
+
+**`finan.validation.ts`'s `validateInitialLoad`** (the open question from Phase 2.6): merged into `validateGetInitialLoad` rather than wiring it in separately — the two checked non-overlapping things (currency format vs. start/end-date validity), so `getInitialLoad` now validates all three in one pass, and the now-fully-redundant `validateInitialLoad` function was deleted. `finan.controller.ts` needed no changes (it already called `validateGetInitialLoad`). 100%/100% maintained; net -1 test (one 6-test `describe` block removed, 5 new date-validation cases added to the surviving function's block).
+
+**The `docker-compose.yml` init bug**: fixed by adding `docker/sql/00-run-nested-init-scripts.sh` — a top-level script (which MariaDB's entrypoint *does* process) that manually applies each sibling repo's `db-structure.sql` → `db-views-procs.sql` → `db-trigger.sql` (in that order; skips `db-data.sql` — real data shouldn't auto-load into a fresh CI/dev DB — and `db-swap.sql`, a generated artifact for the separate migration-deploy pipeline). Also added the previously-missing `../finan-data/sql` mount to `docker-compose.yml` (finan's schema wasn't mounted *at all* before). Two things had to be worked out empirically, not guessed:
+- The installed MariaDB version's (10.3.39, per `docker/Dockerfile`) entrypoint doesn't expose a `docker_process_sql` helper to sourced scripts (that's a newer-image convention) — the script calls `mysql -uroot -p"$MYSQL_ROOT_PASSWORD"` directly instead, which is portable across versions.
+- `db-structure.sql` contains `CREATE DATABASE IF NOT EXISTS <name>` but no `USE <name>` before its `DROP TABLE`/`CREATE TABLE` statements, and `mysql <db> < file.sql` requires the target database to already exist at connection time — so the script creates the database in a separate, database-less `mysql -e` call before piping the file in with the database name as an argument.
+- Windows/Docker Desktop refused to mount a host directory onto a nested container path (`/docker-entrypoint-initdb.d/animecream`) that didn't already exist inside the parent bind-mounted directory (`error mounting ... file exists`) — fixed by committing empty `docker/sql/{animecream,auth,finan}/.gitkeep` placeholders so the mount points pre-exist.
+
+Verified for real: built the actual image (`docker build -f docker/Dockerfile docker`), ran a brand-new container (fresh named volume, real sibling-repo mounts, none of the 9-months-persistent state) end to end, and diffed its resulting tables/views/procedures against the long-running `animecream-mariadb` container — identical across all three databases. Cleaned up the throwaway image/container afterward.
+
+Also added `.gitattributes` (`*.sh text eol=lf`) — without it, Windows' `core.autocrlf` would silently convert the new shell script to CRLF on checkout, which breaks its shebang inside the Linux container.
+
+---
+
 ## Progress log
 
 - **2026-07-14** — Phase 0 complete. Findings documented above. Starting Phase 1 (test-by-test triage) next.
@@ -216,3 +259,6 @@ Not yet committed — pending user review.
 - **2026-07-14** — Phase 4a done: added `test/integration/` (60 tests across auth/finan/series/app-level), which exposed that 15/16 series handlers and 3 persistence classes had zero real unit tests (hidden by the "0/0 excluded" coverage artifact). Wrote full unit test suites for all of it plus 3 smaller infra services. **1236/1236 tests passing, 82/82 suites, coverage is genuinely 100%/100%/100%/100%.** Not yet committed — pending user review.
 - **2026-07-14** — Both prior commits (`4261619` integration tests, and the coverage-hardening one before it) confirmed pushed to `origin/main`.
 - **2026-07-14** — Phase 3 (CI gate) done: `.github/workflows/ci.yml` runs type-check + full test suite with a 100% coverage gate on every push/PR to `main`. Fixed a latent cross-platform bug in `test:cov:threshold` along the way (inline `--coverageThreshold` JSON in the npm script broke under Windows' `cmd.exe` shell; moved the threshold into `jest.config.js`). Verified locally: `tsc --noEmit` clean, `npm run test:cov:threshold` exits 0. Not yet committed — pending user review. Next up (user chose this order): E2E suite against the Docker MariaDB instance, then a standalone HTTP smoke-test script.
+- **2026-07-14** — CI gate commit (`8c7a850`) pushed. Started the E2E suite: discovered `animecream-mariadb`'s data volume (running for 9 months) has real data (`movements_anderokgo`/`movements_mariaz` are the author's actual finance tracking), so briefly explored dumping a structure-only schema into `module-api` before the user pointed out the real source of truth — the three sibling `*-data` repos (see "Important: this is a multi-repo system" above). Reverted the dump attempt (would have created a second, divergent schema source). User confirmed it's fine to write to this DB directly (it's a copy). Proceeding to build the E2E suite against the live container, using dedicated/distinctively-named test fixtures rather than touching `anderokgo`/`mariaz`/real series data.
+- **2026-07-14** — Phase 4b done: `test/e2e/` (21 tests) passing against the real database, zero fixture leftovers verified. Along the way, real E2E surfaced genuine application behavior no mock could ever show (`update_rank()` rewriting `qualification` catalog-wide) — fixed the test's assertion, not the app (it's correct, intentional behavior).
+- **2026-07-14** — Phase 4c done, closing two items the user asked for directly: merged `validateInitialLoad` into `validateGetInitialLoad` (Phase 2.6's open question) and fixed the `docker-compose.yml` nested-init-script bug for real, verified against a from-scratch container build+run, not just reasoned about. Full suite still 100%/100%/100%/100% (1235 tests, one net fewer than before due to the validator merge). Not yet committed — pending user review.

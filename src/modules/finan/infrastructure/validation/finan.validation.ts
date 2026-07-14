@@ -30,23 +30,12 @@ export const validateGetInitialLoad = (body: RequestBody): ValidationResult => {
     errors.push('Currency must be a 3-character code');
   }
 
-  return { error: errors.length > 0, errors };
-};
-
-export const validateInitialLoad = (body: RequestBody): ValidationResult => {
-  const errors: string[] = [];
-
-  //validations specific for initial-load
   if (body.start_date && !isValidDate(body.start_date)) {
     errors.push('Start date is invalid');
   }
 
   if (body.end_date && !isValidDate(body.end_date)) {
     errors.push('End date is invalid');
-  }
-
-  if (body.currency && typeof body.currency !== 'string') {
-    errors.push('Currency must be a string');
   }
 
   return { error: errors.length > 0, errors };

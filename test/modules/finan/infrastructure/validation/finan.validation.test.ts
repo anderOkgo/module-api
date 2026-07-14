@@ -1,7 +1,6 @@
 import {
   isPositiveNumber,
   validateGetInitialLoad,
-  validateInitialLoad,
   validatePutMovement,
   validateUpdateMovements,
   validateDeleteMovement,
@@ -132,77 +131,48 @@ describe('FinanValidation', () => {
         expect(result.errors).toEqual([]);
       });
     });
-  });
 
-  describe('validateInitialLoad', () => {
-    it('should pass validation with valid data', () => {
-      const body: RequestBody = {
-        currency: 'USD',
-        start_date: '2023-01-01',
-        end_date: '2023-12-31',
-      };
+    it('should fail validation with an invalid start_date', () => {
+      const body: RequestBody = { currency: 'USD', start_date: 'invalid-date' };
 
-      const result = validateInitialLoad(body);
-
-      expect(result.error).toBe(false);
-      expect(result.errors).toEqual([]);
-    });
-
-    it('should fail validation with invalid start_date', () => {
-      const body: RequestBody = {
-        currency: 'USD',
-        start_date: 'invalid-date',
-      };
-
-      const result = validateInitialLoad(body);
+      const result = validateGetInitialLoad(body);
 
       expect(result.error).toBe(true);
       expect(result.errors).toContain('Start date is invalid');
     });
 
-    it('should fail validation with invalid end_date', () => {
-      const body: RequestBody = {
-        currency: 'USD',
-        end_date: 'invalid-date',
-      };
+    it('should fail validation with an invalid end_date', () => {
+      const body: RequestBody = { currency: 'USD', end_date: 'invalid-date' };
 
-      const result = validateInitialLoad(body);
+      const result = validateGetInitialLoad(body);
 
       expect(result.error).toBe(true);
       expect(result.errors).toContain('End date is invalid');
     });
 
-    it('should fail validation with non-string currency', () => {
-      const body: RequestBody = {
-        currency: 123,
-      };
+    it('should reject a numeric currency (fails the length check, since it has no .length)', () => {
+      const body: RequestBody = { currency: 123 };
 
-      const result = validateInitialLoad(body);
+      const result = validateGetInitialLoad(body);
 
       expect(result.error).toBe(true);
-      expect(result.errors).toContain('Currency must be a string');
+      expect(result.errors).toContain('Currency must be a 3-character code');
     });
 
-    it('should pass validation with valid dates', () => {
+    it('should pass validation with valid start_date/end_date', () => {
       const validDates = ['2023-01-01', '2023-12-31', '2024-02-29'];
 
       validDates.forEach((date) => {
-        const body: RequestBody = {
-          currency: 'USD',
-          start_date: date,
-          end_date: date,
-        };
-        const result = validateInitialLoad(body);
+        const body: RequestBody = { currency: 'USD', start_date: date, end_date: date };
+        const result = validateGetInitialLoad(body);
         expect(result.error).toBe(false);
       });
     });
 
-    it('should handle missing optional fields', () => {
-      const body: RequestBody = {
-        currency: 'USD',
-      };
+    it('should not require start_date/end_date', () => {
+      const body: RequestBody = { currency: 'USD' };
 
-      const result = validateInitialLoad(body);
+      const result = validateGetInitialLoad(body);
 
       expect(result.error).toBe(false);
       expect(result.errors).toEqual([]);

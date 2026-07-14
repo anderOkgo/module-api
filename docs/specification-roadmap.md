@@ -150,11 +150,13 @@ Verification: `tsc --noEmit` clean; full suite **963/963 tests passing, 56/56 su
 
 ## Phase 3 — CI gate
 
-**Status: TODO**
+**Status: DONE** (2026-07-14)
 
-- [ ] Add a GitHub Actions workflow (or equivalent) that runs `npm test` on every push/PR.
-- [ ] Fail the build on any test failure — this is what should have caught the Phase 0 drift in the first place.
-- [ ] Consider gating on the coverage thresholds already defined in `package.json`'s `test:cov:threshold` script (currently 80% global) — could be raised now that the real baseline is ~99-100%.
+- [x] Added `.github/workflows/ci.yml` — runs on every push to `main` and every PR targeting `main`. Steps: checkout → `npm ci` → `tsc --noEmit` → `npm run test:cov:threshold` (full suite with coverage).
+- [x] Fails the build on any test failure, type error, or coverage regression below 100% — this is what should have caught the Phase 0 drift in the first place.
+- [x] Coverage threshold raised from 80% to **100%** (statements/branches/functions/lines), matching the real baseline established in Phases 2.5/4a. Moved from an inline `--coverageThreshold` CLI JSON argument (broken on Windows: `npm` shells out via `cmd.exe` there, which mangles single-quoted JSON — the script silently only ever worked on POSIX runners) to a proper `jest.config.js` `coverageThreshold` block, which works identically on every OS and doesn't depend on shell quoting.
+
+Any future PR that adds code without full test coverage will now fail CI — this is the mechanism that keeps the rest of this roadmap's work from silently eroding.
 
 ---
 
@@ -212,3 +214,5 @@ Not yet committed — pending user review.
 - **2026-07-14** — Removed the 3 dead defensive branches (`put-movement.use-case.ts`, `get-initial-load.use-case.ts`, `image.ts`) instead of leaving them as documented non-issues. **Coverage is now genuinely 100%/100%/100%/100% per Jest's own aggregate.** Not yet committed — pending user review.
 - **2026-07-14** — Phase 2.6 (`ts-prune` orphaned-export sweep) done. Removed 4 genuinely dead exports (+ tests), converted 1 phantom default export to a named one it actually needed, and — with user confirmation — fixed a real bug: `updateMovement`/`deleteMovement` were never validating their `id` route param because the correct validators existed but were never wired into `finan.controller.ts`. One open question left for the user: `validateInitialLoad` is a second, stricter, unused validator competing with the one `getInitialLoad` already uses — needs a product call, not just a wiring fix. 963/963 tests passing, 56/56 suites, 100% coverage aggregate. Not yet committed.
 - **2026-07-14** — Phase 4a done: added `test/integration/` (60 tests across auth/finan/series/app-level), which exposed that 15/16 series handlers and 3 persistence classes had zero real unit tests (hidden by the "0/0 excluded" coverage artifact). Wrote full unit test suites for all of it plus 3 smaller infra services. **1236/1236 tests passing, 82/82 suites, coverage is genuinely 100%/100%/100%/100%.** Not yet committed — pending user review.
+- **2026-07-14** — Both prior commits (`4261619` integration tests, and the coverage-hardening one before it) confirmed pushed to `origin/main`.
+- **2026-07-14** — Phase 3 (CI gate) done: `.github/workflows/ci.yml` runs type-check + full test suite with a 100% coverage gate on every push/PR to `main`. Fixed a latent cross-platform bug in `test:cov:threshold` along the way (inline `--coverageThreshold` JSON in the npm script broke under Windows' `cmd.exe` shell; moved the threshold into `jest.config.js`). Verified locally: `tsc --noEmit` clean, `npm run test:cov:threshold` exits 0. Not yet committed — pending user review. Next up (user chose this order): E2E suite against the Docker MariaDB instance, then a standalone HTTP smoke-test script.

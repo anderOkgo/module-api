@@ -45,6 +45,8 @@ describe('CreateSeriesHandler', () => {
     jest.clearAllMocks();
     // Default: no duplicate found
     mockSeriesReadRepository.findByNameAndYear.mockResolvedValue(null);
+    // Default: demography_id 1 (used by most test commands) exists
+    mockSeriesReadRepository.getDemographics.mockResolvedValue([{ id: 1, name: 'Shounen' }]);
   });
 
   describe('execute', () => {
@@ -371,6 +373,27 @@ describe('CreateSeriesHandler', () => {
       await expect(createSeriesHandler.execute(negativeDemoCommand)).rejects.toThrow(
         'Valid demography_id is required'
       );
+    });
+
+    it('should throw error when demography_id does not exist in database', async () => {
+      const unknownDemoCommand = new CreateSeriesCommand(
+        'Test Series',
+        1,
+        2023,
+        'Test description',
+        'Test description EN',
+        8.5,
+        999, // Passes the >0 check but does not exist in the database
+        true,
+        undefined
+      );
+
+      mockSeriesReadRepository.getDemographics.mockResolvedValue([{ id: 1, name: 'Shounen' }]);
+
+      await expect(createSeriesHandler.execute(unknownDemoCommand)).rejects.toThrow(
+        'Demography ID 999 does not exist'
+      );
+      expect(mockSeriesWriteRepository.create).not.toHaveBeenCalled();
     });
 
     it('should throw error for description too long', async () => {

@@ -11,7 +11,7 @@ export class SeriesImageProcessorService implements ImageProcessorPort {
 
   async processAndSaveImage(imageBuffer: Buffer, seriesId: number): Promise<string> {
     const optimizedImageBuffer = await ImageProcessor.optimizeImage(imageBuffer);
-    // Agregar timestamp al nombre para forzar recarga del navegador
+    // Append timestamp to the filename to force browser cache invalidation
     const timestamp = Date.now();
     const filename = `${seriesId}_${timestamp}.jpg`;
     await ImageProcessor.saveOptimizedImage(optimizedImageBuffer, filename, this.UPLOAD_DIR);

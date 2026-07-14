@@ -7,16 +7,20 @@ jest.mock('../../../../../src/infrastructure/services/image');
 
 const MockedImageProcessor = ImageProcessor as jest.Mocked<typeof ImageProcessor>;
 
+const FIXED_TIMESTAMP = 1700000000000;
+
 describe('SeriesImageProcessorService', () => {
   let imageProcessorService: SeriesImageProcessorService;
 
   beforeEach(() => {
     imageProcessorService = new SeriesImageProcessorService();
     jest.clearAllMocks();
+    jest.spyOn(Date, 'now').mockReturnValue(FIXED_TIMESTAMP);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('processAndSaveImage', () => {
@@ -24,7 +28,7 @@ describe('SeriesImageProcessorService', () => {
       const imageBuffer = Buffer.from('test-image-data');
       const seriesId = 1;
       const optimizedBuffer = Buffer.from('optimized-image-data');
-      const filename = '1.jpg';
+      const filename = `1_${FIXED_TIMESTAMP}.jpg`;
 
       MockedImageProcessor.optimizeImage.mockResolvedValue(optimizedBuffer);
       MockedImageProcessor.saveOptimizedImage.mockResolvedValue('/path/to/saved/image.jpg');
@@ -37,7 +41,7 @@ describe('SeriesImageProcessorService', () => {
         filename,
         expect.any(String)
       );
-      expect(result).toBe('/img/tarjeta/1.jpg');
+      expect(result).toBe(`/img/tarjeta/${filename}`);
     });
 
     it('should handle different series IDs', async () => {
@@ -52,10 +56,10 @@ describe('SeriesImageProcessorService', () => {
 
       for (const seriesId of testCases) {
         const result = await imageProcessorService.processAndSaveImage(imageBuffer, seriesId);
-        expect(result).toBe(`/img/tarjeta/${seriesId}.jpg`);
+        expect(result).toBe(`/img/tarjeta/${seriesId}_${FIXED_TIMESTAMP}.jpg`);
         expect(MockedImageProcessor.saveOptimizedImage).toHaveBeenCalledWith(
           optimizedBuffer,
-          `${seriesId}.jpg`,
+          `${seriesId}_${FIXED_TIMESTAMP}.jpg`,
           expect.any(String)
         );
       }
@@ -116,10 +120,10 @@ describe('SeriesImageProcessorService', () => {
 
       const result = await imageProcessorService.processAndSaveImage(imageBuffer, seriesId);
 
-      expect(result).toBe('/img/tarjeta/12345.jpg');
+      expect(result).toBe(`/img/tarjeta/12345_${FIXED_TIMESTAMP}.jpg`);
       expect(MockedImageProcessor.saveOptimizedImage).toHaveBeenCalledWith(
         optimizedBuffer,
-        '12345.jpg',
+        `12345_${FIXED_TIMESTAMP}.jpg`,
         expect.any(String)
       );
     });
@@ -221,10 +225,10 @@ describe('SeriesImageProcessorService', () => {
 
       const result = await imageProcessorService.processAndSaveImage(imageBuffer, seriesId);
 
-      expect(result).toBe('/img/tarjeta/0.jpg');
+      expect(result).toBe(`/img/tarjeta/0_${FIXED_TIMESTAMP}.jpg`);
       expect(MockedImageProcessor.saveOptimizedImage).toHaveBeenCalledWith(
         optimizedBuffer,
-        '0.jpg',
+        `0_${FIXED_TIMESTAMP}.jpg`,
         expect.any(String)
       );
     });
@@ -240,10 +244,10 @@ describe('SeriesImageProcessorService', () => {
 
       const result = await imageProcessorService.processAndSaveImage(imageBuffer, seriesId);
 
-      expect(result).toBe('/img/tarjeta/-1.jpg');
+      expect(result).toBe(`/img/tarjeta/-1_${FIXED_TIMESTAMP}.jpg`);
       expect(MockedImageProcessor.saveOptimizedImage).toHaveBeenCalledWith(
         optimizedBuffer,
-        '-1.jpg',
+        `-1_${FIXED_TIMESTAMP}.jpg`,
         expect.any(String)
       );
     });
@@ -259,7 +263,7 @@ describe('SeriesImageProcessorService', () => {
       const result = await imageProcessorService.processAndSaveImage(emptyBuffer, seriesId);
 
       expect(MockedImageProcessor.optimizeImage).toHaveBeenCalledWith(emptyBuffer);
-      expect(result).toBe('/img/tarjeta/1.jpg');
+      expect(result).toBe(`/img/tarjeta/1_${FIXED_TIMESTAMP}.jpg`);
     });
 
     it('should handle concurrent operations', async () => {
@@ -277,8 +281,8 @@ describe('SeriesImageProcessorService', () => {
         imageProcessorService.processAndSaveImage(imageBuffer2, seriesId2),
       ]);
 
-      expect(result1).toBe('/img/tarjeta/1.jpg');
-      expect(result2).toBe('/img/tarjeta/2.jpg');
+      expect(result1).toBe(`/img/tarjeta/1_${FIXED_TIMESTAMP}.jpg`);
+      expect(result2).toBe(`/img/tarjeta/2_${FIXED_TIMESTAMP}.jpg`);
       expect(MockedImageProcessor.optimizeImage).toHaveBeenCalledTimes(2);
       expect(MockedImageProcessor.saveOptimizedImage).toHaveBeenCalledTimes(2);
     });
@@ -286,7 +290,6 @@ describe('SeriesImageProcessorService', () => {
     it('should handle mixed operations', async () => {
       const imageBuffer = Buffer.from('test-image-data');
       const seriesId = 1;
-      const imagePath = '/img/tarjeta/1.jpg';
       const optimizedBuffer = Buffer.from('optimized-image-data');
 
       MockedImageProcessor.optimizeImage.mockResolvedValue(optimizedBuffer);
@@ -296,9 +299,10 @@ describe('SeriesImageProcessorService', () => {
       const saveResult = await imageProcessorService.processAndSaveImage(imageBuffer, seriesId);
       await imageProcessorService.deleteImage(saveResult);
 
-      expect(saveResult).toBe('/img/tarjeta/1.jpg');
+      const expectedPath = `/img/tarjeta/1_${FIXED_TIMESTAMP}.jpg`;
+      expect(saveResult).toBe(expectedPath);
       expect(MockedImageProcessor.deleteImage).toHaveBeenCalledWith(
-        path.join(process.cwd(), 'uploads', 'series', '/img/tarjeta/1.jpg')
+        path.join(process.cwd(), 'uploads', 'series', expectedPath)
       );
     });
   });

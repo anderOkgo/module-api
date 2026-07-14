@@ -244,6 +244,26 @@ Also added `.gitattributes` (`*.sh text eol=lf`) — without it, Windows' `core.
 
 ---
 
+## Phase 4d — `src/server.ts` coverage (0% → 100%)
+
+**Status: DONE** (2026-07-14)
+
+The last never-tested file. Its constructor has real bootstrap side effects (opens a live DB connection, calls `process.exit(1)` on failure, binds a real port via `app.listen()`) that make it fundamentally un-unit-testable as originally written — nothing could construct `Server` without those side effects firing.
+
+**Refactored, behavior-preserving:** extracted `buildApp(database)`, `errorHandlerMiddleware`, and `healthCheck` as named exports — pure app-assembly logic (middleware, routes, error handling) with zero side effects, parameterized on `Database` instead of reading `this`. `Server`'s constructor now calls `buildApp()` internally and still does the real bootstrap (`connectDB()` + `listening()`) exactly as before; `src/index.ts` (`new Server()`) is unaffected.
+
+Two real findings surfaced while doing this, both fixed:
+- **`errorHandlerMiddleware`'s `'Not Found'` / `'Method Not Allowed'` branches were dead code** — confirmed nothing anywhere in the codebase ever throws `new Error('Not Found')` or `new Error('Method Not Allowed')`. The comment `// Removed default routes - using direct endpoint` explains why: a catch-all route that used to throw those errors was removed at some point, orphaning the handler branches. Removed them.
+- **The real server had no actual 404 handling** — with the throwing catch-all gone, an unknown route just fell through to Express's default HTML 404, never reaching `errorHandlerMiddleware` at all. Added a real `app.use((req, res) => res.status(404).json({ error: 'Not Found' }))` catch-all before the error handler — this is also what finally makes `test/integration/helpers/build-test-app.ts`'s JSON-404 assumption (invented for those tests, back in Phase 4a, before this fix existed) actually match production.
+
+`test/server.test.ts` (17 tests): `buildApp()` tested via supertest with a mocked `Database` and mocked per-module routers (health up/down, root's keep-alive ping success/failure incl. non-Error rejections, `/api`, `/api-docs`, sub-router mounting, the new 404, malformed-JSON 400); `errorHandlerMiddleware` and `healthCheck` tested directly as functions for their remaining branches; `Server`'s own bootstrap tested with `Database` mocked (successful connect+listen, `process.exit(1)` on connection failure, and the `PORT` env fallback — verified by intercepting `express.application.listen` at the prototype level so no real port is ever bound, even for that last test).
+
+Also closed a coverage gap this incidentally exposed in `swagger.ts` (same "nothing ever imported it unmocked" story as Phase 4a): `filterUserDocumentation`'s production-only branch (hides the registration endpoint from the public docs) had never been exercised. `test/infrastructure/services/swagger.test.ts` freshly `require()`s the module under both `NODE_ENV` values to hit both branches (the filtering happens once, eagerly, at module-load time).
+
+**Final state: 1254/1254 tests passing, 84/84 suites (+21 E2E, unaffected), 100%/100%/100%/100% coverage.**
+
+---
+
 ## Progress log
 
 - **2026-07-14** — Phase 0 complete. Findings documented above. Starting Phase 1 (test-by-test triage) next.
@@ -262,3 +282,4 @@ Also added `.gitattributes` (`*.sh text eol=lf`) — without it, Windows' `core.
 - **2026-07-14** — CI gate commit (`8c7a850`) pushed. Started the E2E suite: discovered `animecream-mariadb`'s data volume (running for 9 months) has real data (`movements_anderokgo`/`movements_mariaz` are the author's actual finance tracking), so briefly explored dumping a structure-only schema into `module-api` before the user pointed out the real source of truth — the three sibling `*-data` repos (see "Important: this is a multi-repo system" above). Reverted the dump attempt (would have created a second, divergent schema source). User confirmed it's fine to write to this DB directly (it's a copy). Proceeding to build the E2E suite against the live container, using dedicated/distinctively-named test fixtures rather than touching `anderokgo`/`mariaz`/real series data.
 - **2026-07-14** — Phase 4b done: `test/e2e/` (21 tests) passing against the real database, zero fixture leftovers verified. Along the way, real E2E surfaced genuine application behavior no mock could ever show (`update_rank()` rewriting `qualification` catalog-wide) — fixed the test's assertion, not the app (it's correct, intentional behavior).
 - **2026-07-14** — Phase 4c done, closing two items the user asked for directly: merged `validateInitialLoad` into `validateGetInitialLoad` (Phase 2.6's open question) and fixed the `docker-compose.yml` nested-init-script bug for real, verified against a from-scratch container build+run, not just reasoned about. Full suite still 100%/100%/100%/100% (1235 tests, one net fewer than before due to the validator merge). Not yet committed — pending user review.
+- **2026-07-14** — Phase 4d done: `server.ts` (the last 0%-coverage file, unreachable by tests as originally written since its constructor has real bootstrap side effects) refactored to separate pure app-assembly from bootstrap, then fully tested. Found and fixed two real things along the way: dead 404/405 branches in the error handler, and the real server never actually sent a JSON 404 for unknown routes at all. Also closed a `swagger.ts` gap the same investigation exposed (production doc-filtering branch never exercised). **1254/1254 tests passing, 84/84 suites, 100%/100%/100%/100% coverage.** Not yet committed — pending user review.

@@ -106,3 +106,7 @@ dist
 # settings and release folders
 keys
 0.symbolics.bat
+
+# Uploaded/processed images (runtime data; also written by integration tests
+# that exercise the real image-processing pipeline)
+uploads/

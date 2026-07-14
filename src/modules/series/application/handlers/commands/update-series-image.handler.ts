@@ -22,12 +22,8 @@ export class UpdateSeriesImageHandler
     try {
       const { seriesId, imageFile } = command;
 
-      // 1. Validate input
+      // 1. Validate input (throws 'Image file is required' if imageFile is missing/empty)
       this.validateInput(seriesId, imageFile);
-
-      if (!imageFile) {
-        throw new Error('Image file is required');
-      }
 
       // 2. Verify that the series exists
       const existingSeries = await this.readRepository.findById(seriesId);
@@ -38,7 +34,7 @@ export class UpdateSeriesImageHandler
       const oldImagePath = existingSeries.image && existingSeries.image.trim() !== '' ? existingSeries.image : null;
 
       // 3. Process and save new image
-      const imagePath = await this.imageService.processAndSaveImage(imageFile.buffer, seriesId);
+      const imagePath = await this.imageService.processAndSaveImage(imageFile!.buffer, seriesId);
 
       // 4. Update path in DB
       await this.writeRepository.updateImage(seriesId, imagePath);

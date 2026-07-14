@@ -160,12 +160,42 @@ Verification: `tsc --noEmit` clean; full suite **963/963 tests passing, 56/56 su
 
 ## Phase 4 — Executable specification layers
 
-**Status: TODO** (blocked on Phases 1–3)
+**Status: IN PROGRESS** (item 2 substantially done — see Phase 4a; blocked on Phase 3 for the rest)
 
-1. **`docs/SPECIFICATION.md`** — generative design rules (not descriptive): module layering invariants, CQRS conventions, port/adapter rules, entity invariants, error-handling conventions. This is the "philosophy" layer an AI needs to regenerate the system rather than copy it.
-2. **Formalize HTTP/e2e tests** — turn the ad-hoc frontend-simulation scripts into a repeatable `test/e2e/` suite (supertest and/or Newman against the existing Postman collection in `docs/postman/`), run in CI.
-3. **Test-pyramid audit** — confirm unit/integration/e2e tests assert behavior through public interfaces (ports, endpoints) rather than implementation details, so a regenerated system with different internals can still pass them.
-4. Consider ADRs for major architectural decisions (hexagonal layering, CQRS, eventual microservice split) and, if/when the module split happens, contract testing (e.g. Pact) between `auth`/`finan`/`series`.
+1. **`docs/SPECIFICATION.md`** — generative design rules (not descriptive): module layering invariants, CQRS conventions, port/adapter rules, entity invariants, error-handling conventions. This is the "philosophy" layer an AI needs to regenerate the system rather than copy it. **TODO.**
+2. **Formalize HTTP/e2e tests** — turn the ad-hoc frontend-simulation scripts into a repeatable `test/integration/` suite. **Done, see Phase 4a** — the remaining piece (Newman against a real Postman collection) is moot since `docs/postman/` doesn't actually exist in the repo (see Progress log, 2026-07-14) — would need to be created from scratch if still wanted.
+3. **Test-pyramid audit** — confirm unit/integration/e2e tests assert behavior through public interfaces (ports, endpoints) rather than implementation details. **Done as a side effect of Phase 4a** — see the "real coverage gap" finding below.
+4. Consider ADRs for major architectural decisions (hexagonal layering, CQRS, eventual microservice split) and, if/when the module split happens, contract testing (e.g. Pact) between `auth`/`finan`/`series`. **TODO.**
+
+---
+
+## Phase 4a — HTTP integration tests, and the real coverage gap they exposed
+
+**Status: DONE** (2026-07-14)
+
+Added `test/integration/` (4 files, `build-test-app.ts`/`jwt.ts` shared helpers): real Express app, real routers, real middleware (`validateToken`/`validateAdmin` with genuine JWT verification), real controllers/use-cases/handlers — only the repository classes are mocked (`jest.mock` on `finan.mysql.ts`, `user.mysql.ts`, `series-read/write.mysql.ts`), plus `email.ts` for auth (no real SMTP calls). Covers all 3 modules end to end: auth (register with real verification-code flow, login with real bcrypt + JWT), finan (all 4 endpoints × auth/validation/success/error), series (all 16 endpoints across public/`validateToken`/`validateAdmin` tiers, including real `sharp` image processing on upload).
+
+**The discovery:** running the integration suite alongside the unit suite dropped the aggregate coverage from 100% to ~77%. Not a regression — it revealed that **15 of 16 `series` application handlers** (every one except `create-series.handler.ts`) and **3 persistence classes** (`user.mysql.ts`, `series-read.mysql.ts`, `series-write.mysql.ts`) had **zero dedicated unit tests**. They looked like "100%" in every prior report only because they had zero coverable statements ever attributed to them (the same Istanbul "0/0 excluded" artifact documented in Phase 2.5) — nothing had ever loaded them, mocked or real, until the integration tests did. Their actual business logic (duplicate-detection, demography/genre existence checks, genre/title diffing on update, SQL query building) had never been exercised by anything.
+
+With the user's explicit confirmation, wrote full dedicated unit test suites for all of it:
+
+| File | Before (first touched by integration tests) | After |
+|---|---|---|
+| `update-series.handler.ts` | 55.93% / 38.57% | 100% / 100% |
+| `create-series-complete.handler.ts` | 39.08% / 43.82% | 100% / 100% (30 tests — the most complex handler: create-vs-update branching, genre/title diffing) |
+| `delete-series.handler.ts`, `assign-genres`, `remove-genres`, `add-titles`, `remove-titles`, `update-series-image` handlers | 70–77% / 60–71% | 100% / 100% each |
+| `get-series-by-id`, `search-series`, `get-all-series`, `get-productions`, `get-genres`, `get-demographics`, `get-production-years` (query handlers) | 47–100% / 0–75% | 100% / 100% each |
+| `user.mysql.ts` | 0% / 0% (real gap, not the barrel-file artifact) | 100% / 100% (29 tests) |
+| `series-read.mysql.ts` | 0% / 0% | 100% / 100% (25 tests — including the legacy dynamic-filter `getProductions` query builder) |
+| `series-write.mysql.ts` | 0% / 0% | 100% / 100% (25 tests) |
+
+Also closed 3 smaller gaps the integration tests exposed for the same underlying reason (first real exercise of previously-"0/0" code): `validate-admin.ts` (malformed/invalid/claim-missing token paths, sync-throw path), `jwt-token-generator.service.ts` (the `verify()` method was never called by anything — only `generate()` was), `smtp-email.service.ts` (`sendWelcomeEmail`/`sendPasswordResetEmail` were never called by any use case yet — only `sendVerificationCode` is currently wired). None of these were used incorrectly, just never directly tested; the middleware/service logic was already correct.
+
+This pass was pure test-writing — no source changes were needed to `series-*.mysql.ts` or `user.mysql.ts`; their SQL-building logic was already correct, just never verified.
+
+**Final state: 1236/1236 tests passing, 82/82 suites, 100%/100%/100%/100% coverage — this time genuinely, with no files excluded from the aggregate by having zero coverable statements.**
+
+Not yet committed — pending user review.
 
 ---
 
@@ -181,3 +211,4 @@ Verification: `tsc --noEmit` clean; full suite **963/963 tests passing, 56/56 su
 - **2026-07-14** — Restored `src/infrastructure/services/cyfer.ts` (+ test) at the user's request; it was incorrectly removed as dead code in Phase 2. Closed its one remaining coverage gap. 968/968 tests passing, 56/56 suites.
 - **2026-07-14** — Removed the 3 dead defensive branches (`put-movement.use-case.ts`, `get-initial-load.use-case.ts`, `image.ts`) instead of leaving them as documented non-issues. **Coverage is now genuinely 100%/100%/100%/100% per Jest's own aggregate.** Not yet committed — pending user review.
 - **2026-07-14** — Phase 2.6 (`ts-prune` orphaned-export sweep) done. Removed 4 genuinely dead exports (+ tests), converted 1 phantom default export to a named one it actually needed, and — with user confirmation — fixed a real bug: `updateMovement`/`deleteMovement` were never validating their `id` route param because the correct validators existed but were never wired into `finan.controller.ts`. One open question left for the user: `validateInitialLoad` is a second, stricter, unused validator competing with the one `getInitialLoad` already uses — needs a product call, not just a wiring fix. 963/963 tests passing, 56/56 suites, 100% coverage aggregate. Not yet committed.
+- **2026-07-14** — Phase 4a done: added `test/integration/` (60 tests across auth/finan/series/app-level), which exposed that 15/16 series handlers and 3 persistence classes had zero real unit tests (hidden by the "0/0 excluded" coverage artifact). Wrote full unit test suites for all of it plus 3 smaller infra services. **1236/1236 tests passing, 82/82 suites, coverage is genuinely 100%/100%/100%/100%.** Not yet committed — pending user review.

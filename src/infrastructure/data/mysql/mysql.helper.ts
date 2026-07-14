@@ -1,9 +1,6 @@
 export const generateInCondition = (label: string, val: (string | number)[]) =>
   ` AND ${label} IN (${val.map(() => '?').join(', ')})`;
 
-export const generateInConditionWithOrder = (label: string, val: (string | number)[]) =>
-  ` AND ${label} IN (${val.map(() => '?').join(', ')}) ORDER BY FIELD(${label}, ${val.map(() => '?').join(', ')})`;
-
 export const generateLikeCondition = (label: string) => ` AND ${label} LIKE CONCAT('%', ?, '%')`;
 
 export const generateEqualCondition = (label: string) => ` AND ${label} = ?`;

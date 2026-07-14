@@ -782,6 +782,32 @@ describe('SeriesController - Fixed Tests', () => {
         message: 'Image processing failed',
       });
     });
+
+    it('should handle non-Error rejections in updateSeriesImage', async () => {
+      mockRequest.params = { id: '123' };
+      mockRequest.file = {
+        fieldname: 'image',
+        originalname: 'test.jpg',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        size: 1024,
+        buffer: Buffer.from('test-image-data'),
+        destination: '',
+        filename: '',
+        path: '',
+      } as any;
+
+      mockHandlers.updateSeriesImageHandler.execute.mockRejectedValue('raw string failure');
+
+      await controller.updateSeriesImage(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Internal server error',
+        message: 'Unknown error',
+      });
+    });
   });
 
   describe('assignGenres', () => {
@@ -891,6 +917,21 @@ describe('SeriesController - Fixed Tests', () => {
         message: 'Genre assignment failed',
       });
     });
+
+    it('should handle non-Error rejections in assignGenres', async () => {
+      mockRequest.params = { id: '123' };
+      mockRequest.body = { genreIds: [1, 2] };
+
+      mockHandlers.assignGenresHandler.execute.mockRejectedValue('raw string failure');
+
+      await controller.assignGenres(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Internal server error',
+        message: 'Unknown error',
+      });
+    });
   });
 
   describe('removeGenres', () => {
@@ -916,6 +957,36 @@ describe('SeriesController - Fixed Tests', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(mockResult);
     });
 
+    it('should remove genres successfully with genre_ids', async () => {
+      const mockResult = { success: true, message: 'Genres removed successfully' };
+      mockRequest.params = { id: '123' };
+      mockRequest.body = { genre_ids: [3, 4] };
+
+      mockHandlers.removeGenresHandler.execute.mockResolvedValue(mockResult);
+
+      await controller.removeGenres(mockRequest as Request, mockResponse as Response);
+
+      expect(mockHandlers.removeGenresHandler.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ seriesId: 123, genreIds: [3, 4] })
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+    });
+
+    it('should default genreIds to an empty array when none are provided', async () => {
+      const mockResult = { success: true, message: 'Genres removed successfully' };
+      mockRequest.params = { id: '123' };
+      mockRequest.body = {};
+
+      mockHandlers.removeGenresHandler.execute.mockResolvedValue(mockResult);
+
+      await controller.removeGenres(mockRequest as Request, mockResponse as Response);
+
+      expect(mockHandlers.removeGenresHandler.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ seriesId: 123, genreIds: [] })
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+    });
+
     it('should handle removeGenres errors', async () => {
       // Arrange
       const error = new Error('Genre removal failed');
@@ -932,6 +1003,21 @@ describe('SeriesController - Fixed Tests', () => {
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'Internal server error',
         message: 'Genre removal failed',
+      });
+    });
+
+    it('should handle non-Error rejections in removeGenres', async () => {
+      mockRequest.params = { id: '123' };
+      mockRequest.body = { genreIds: [1] };
+
+      mockHandlers.removeGenresHandler.execute.mockRejectedValue('raw string failure');
+
+      await controller.removeGenres(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Internal server error',
+        message: 'Unknown error',
       });
     });
   });
@@ -997,6 +1083,21 @@ describe('SeriesController - Fixed Tests', () => {
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'Internal server error',
         message: 'Title addition failed',
+      });
+    });
+
+    it('should handle non-Error rejections in addTitles', async () => {
+      mockRequest.params = { id: '123' };
+      mockRequest.body = { titles: ['New Title'] };
+
+      mockHandlers.addTitlesHandler.execute.mockRejectedValue('raw string failure');
+
+      await controller.addTitles(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Internal server error',
+        message: 'Unknown error',
       });
     });
   });
@@ -1106,6 +1207,21 @@ describe('SeriesController - Fixed Tests', () => {
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'Internal server error',
         message: 'Title removal failed',
+      });
+    });
+
+    it('should handle non-Error rejections in removeTitles', async () => {
+      mockRequest.params = { id: '123' };
+      mockRequest.body = { titleIds: [1] };
+
+      mockHandlers.removeTitlesHandler.execute.mockRejectedValue('raw string failure');
+
+      await controller.removeTitles(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Internal server error',
+        message: 'Unknown error',
       });
     });
   });

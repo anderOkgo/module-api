@@ -416,31 +416,153 @@ describe('ImageProcessor - Final Coverage Tests', () => {
       expect(mockSharpInstance.jpeg).toHaveBeenCalledTimes(2);
     });
 
-    it('should test aggressive compression when quality is very low', async () => {
-      // Test aggressive compression branch (line 87)
+    it('should test aggressive compression when quality drops to 30 or below', async () => {
+      // Starting quality 65 reaches <=30 after 7 loop iterations (65->57->52->47->42->37->32->27),
+      // at which point the while loop's `quality > 30` guard stops it and the final
+      // aggressive-compression block (line 86-99, including line 87) runs.
       const largeBuffer = Buffer.from('large-image-data');
-      Object.defineProperty(largeBuffer, 'length', { value: 25000 }); // 24.4 KB
+      Object.defineProperty(largeBuffer, 'length', { value: 25000 }); // always over the limit
 
-      // Mock sequence: large buffer throughout, then final aggressive compression
-      mockSharpInstance.toBuffer
-        .mockResolvedValueOnce(largeBuffer) // Initial call
-        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 1
-        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 2
-        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 3
-        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 4
-        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 5
-        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 6
-        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 7
-        .mockResolvedValueOnce(largeBuffer) // After quality reduction attempt 8
-        .mockResolvedValueOnce(largeBuffer); // Final aggressive compression
+      mockSharpInstance.toBuffer.mockResolvedValue(largeBuffer);
 
       const result = await ImageProcessor.optimizeImage(mockBuffer, {
-        maxSizeKB: 20, // Limit that will trigger reduction
-        quality: 90, // High quality to trigger reduction
+        maxSizeKB: 20,
+        quality: 65,
       });
 
       expect(result).toBe(largeBuffer);
-      expect(mockSharpInstance.jpeg).toHaveBeenCalledTimes(9); // 8 attempts + 1 initial
+      expect(mockSharpInstance.jpeg).toHaveBeenCalledTimes(9); // 1 initial + 7 loop iterations + 1 aggressive
+      expect(mockSharpInstance.jpeg).toHaveBeenLastCalledWith({
+        quality: 30,
+        progressive: true,
+        mozjpeg: true,
+        optimizeScans: true,
+      });
+    });
+
+    it('should skip quality steps that are not lower than the current quality', async () => {
+      // qualitySteps = [85, 80, 75, ...]; starting quality 82 makes the 85 step >= quality,
+      // hitting the `continue` branch, while the rest of the steps still run normally.
+      const largeBuffer = Buffer.from('large-image-data');
+      Object.defineProperty(largeBuffer, 'length', { value: 30000 }); // always over the limit
+
+      mockSharpInstance.metadata.mockResolvedValue({ width: 1920, height: 1080, format: 'jpeg' });
+      mockSharpInstance.toBuffer.mockResolvedValue(largeBuffer);
+
+      const result = await ImageProcessor.optimizeImageAdvanced(mockBuffer, {
+        maxSizeKB: 20,
+        quality: 82,
+      });
+
+      expect(result).toBe(largeBuffer);
+    });
+
+    it('should fall through advanced optimization strategy 3 when all quality steps are still too large', async () => {
+      const largeBuffer = Buffer.from('large-image-data');
+      Object.defineProperty(largeBuffer, 'length', { value: 30000 }); // always over the limit
+
+      mockSharpInstance.metadata.mockResolvedValue({ width: 1920, height: 1080, format: 'jpeg' });
+      mockSharpInstance.toBuffer.mockResolvedValue(largeBuffer);
+
+      const result = await ImageProcessor.optimizeImageAdvanced(mockBuffer, {
+        maxSizeKB: 20,
+        quality: 90,
+      });
+
+      expect(result).toBe(largeBuffer);
+      // 1 initial strategy-1 call + 12 quality steps + 1 final strategy-3 call
+      expect(mockSharpInstance.jpeg).toHaveBeenCalledTimes(14);
+      expect(mockSharpInstance.jpeg).toHaveBeenLastCalledWith(
+        expect.objectContaining({ quality: 30, quantisationTable: 3 })
+      );
+    });
+  });
+
+  describe('saveOptimizedImage error handling', () => {
+    it('should wrap filesystem errors when saving', async () => {
+      mockFs.existsSync.mockReturnValue(true);
+
+      // The module binds `writeFile = promisify(fs.writeFile)` once at import time, so
+      // to make it reject we need a fresh module instance with a rejecting promisify.
+      jest.resetModules();
+      jest.doMock('util', () => ({
+        promisify: jest.fn(() => jest.fn().mockRejectedValue(new Error('Disk full'))),
+      }));
+      jest.doMock('fs', () => ({ existsSync: jest.fn().mockReturnValue(true), mkdirSync: jest.fn() }));
+      jest.doMock('path', () => ({ join: jest.fn((...args) => args.join('/')) }));
+
+      const { ImageProcessor: FreshImageProcessor } = require('../../../src/infrastructure/services/image');
+
+      await expect(FreshImageProcessor.saveOptimizedImage(mockBuffer, 'test.jpg', '/uploads')).rejects.toThrow(
+        'Error saving image: Disk full'
+      );
+
+      jest.dontMock('util');
+      jest.dontMock('fs');
+      jest.dontMock('path');
+      jest.resetModules();
+    });
+
+    it('should wrap non-Error rejections when saving', async () => {
+      jest.resetModules();
+      jest.doMock('util', () => ({
+        promisify: jest.fn(() => jest.fn().mockRejectedValue('raw string failure')),
+      }));
+      jest.doMock('fs', () => ({ existsSync: jest.fn().mockReturnValue(true), mkdirSync: jest.fn() }));
+      jest.doMock('path', () => ({ join: jest.fn((...args) => args.join('/')) }));
+
+      const { ImageProcessor: FreshImageProcessor } = require('../../../src/infrastructure/services/image');
+
+      await expect(FreshImageProcessor.saveOptimizedImage(mockBuffer, 'test.jpg', '/uploads')).rejects.toThrow(
+        'Error saving image: Unknown error'
+      );
+
+      jest.dontMock('util');
+      jest.dontMock('fs');
+      jest.dontMock('path');
+      jest.resetModules();
+    });
+  });
+
+  describe('deleteImage error handling', () => {
+    it('should wrap filesystem errors when deleting', async () => {
+      jest.resetModules();
+      jest.doMock('util', () => ({
+        promisify: jest.fn(() => jest.fn().mockRejectedValue(new Error('Permission denied'))),
+      }));
+      jest.doMock('fs', () => ({ existsSync: jest.fn().mockReturnValue(true) }));
+      jest.doMock('path', () => ({ join: jest.fn((...args) => args.join('/')) }));
+
+      const { ImageProcessor: FreshImageProcessor } = require('../../../src/infrastructure/services/image');
+
+      await expect(FreshImageProcessor.deleteImage('/uploads/test.jpg')).rejects.toThrow(
+        'Error deleting image: Permission denied'
+      );
+
+      jest.dontMock('util');
+      jest.dontMock('fs');
+      jest.dontMock('path');
+      jest.resetModules();
+    });
+
+    it('should wrap non-Error rejections when deleting', async () => {
+      jest.resetModules();
+      jest.doMock('util', () => ({
+        promisify: jest.fn(() => jest.fn().mockRejectedValue('raw string failure')),
+      }));
+      jest.doMock('fs', () => ({ existsSync: jest.fn().mockReturnValue(true) }));
+      jest.doMock('path', () => ({ join: jest.fn((...args) => args.join('/')) }));
+
+      const { ImageProcessor: FreshImageProcessor } = require('../../../src/infrastructure/services/image');
+
+      await expect(FreshImageProcessor.deleteImage('/uploads/test.jpg')).rejects.toThrow(
+        'Error deleting image: Unknown error'
+      );
+
+      jest.dontMock('util');
+      jest.dontMock('fs');
+      jest.dontMock('path');
+      jest.resetModules();
     });
   });
 });

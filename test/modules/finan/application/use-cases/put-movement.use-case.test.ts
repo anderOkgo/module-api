@@ -319,6 +319,18 @@ describe('PutMovementUseCase', () => {
       expect(result.message).toContain('Invalid date format');
     });
 
+    it('should return error when movement_type is missing', async () => {
+      const invalidRequest: CreateMovementRequest = {
+        ...validRequest,
+        movement_type: undefined as any,
+      };
+
+      const result = await putMovementUseCase.execute(invalidRequest);
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Movement type is required');
+    });
+
     it('should return error when movement_type is invalid', async () => {
       const invalidRequest: CreateMovementRequest = {
         ...validRequest,

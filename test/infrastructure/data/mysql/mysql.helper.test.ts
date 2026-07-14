@@ -3,6 +3,7 @@ import {
   generateLikeCondition,
   generateEqualCondition,
   generateLimit,
+  generateOrderBy,
   generateBetweenCondition,
   generateAndCondition,
 } from '../../../../src/infrastructure/data/mysql/mysql.helper';
@@ -15,6 +16,14 @@ describe('MySQL Helper Functions', () => {
       const result = generateInCondition(label, values);
 
       expect(result).toEqual(` AND ${label} IN (?, ?, ?)`);
+    });
+  });
+
+  describe('generateOrderBy', () => {
+    it('should generate the ORDER BY clause', () => {
+      const result = generateOrderBy('column', 'DESC');
+
+      expect(result).toEqual(' ORDER BY column DESC');
     });
   });
 

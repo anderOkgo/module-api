@@ -1,4 +1,5 @@
-import Series, {
+import {
+  Series,
   SeriesCreateRequest,
   SeriesUpdateRequest,
   SeriesResponse,

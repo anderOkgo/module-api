@@ -14,7 +14,3 @@ export interface MovementRequest {
   movement_tag: string;
   currency: string;
 }
-
-export interface MovementUpdateRequest extends Partial<MovementRequest> {
-  id: number;
-}

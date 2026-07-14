@@ -27,11 +27,6 @@ describe('Upload Service - Simple Test', () => {
       expect(uploadModule.uploadMiddleware).toBeDefined();
       expect(typeof uploadModule.uploadMiddleware).toBe('function');
     });
-
-    it('should export default upload', () => {
-      expect(uploadModule.default).toBeDefined();
-      expect(typeof uploadModule.default).toBe('object');
-    });
   });
 
   describe('ImageProcessor integration', () => {
@@ -78,7 +73,6 @@ describe('Upload Service - Simple Test', () => {
   describe('multer storage configuration', () => {
     it('should use memory storage', () => {
       // Test that the upload module is properly configured
-      expect(uploadModule.default).toBeDefined();
       expect(uploadModule.uploadSingle).toBeDefined();
       expect(uploadModule.uploadMiddleware).toBeDefined();
     });
@@ -114,13 +108,11 @@ describe('Upload Service - Simple Test', () => {
     it('should export all required functions', () => {
       expect(uploadModule.uploadSingle).toBeDefined();
       expect(uploadModule.uploadMiddleware).toBeDefined();
-      expect(uploadModule.default).toBeDefined();
     });
 
     it('should have correct function types', () => {
       expect(typeof uploadModule.uploadSingle).toBe('function');
       expect(typeof uploadModule.uploadMiddleware).toBe('function');
-      expect(typeof uploadModule.default).toBe('object');
     });
   });
 
@@ -147,7 +139,6 @@ describe('Upload Service - Simple Test', () => {
   describe('multer configuration verification', () => {
     it('should have proper multer setup', () => {
       // Test that the multer configuration is properly set up
-      expect(uploadModule.default).toBeDefined();
       expect(uploadModule.uploadSingle).toBeDefined();
       expect(uploadModule.uploadMiddleware).toBeDefined();
     });
@@ -164,23 +155,15 @@ describe('Upload Service - Simple Test', () => {
       // Test all exported functions to ensure they exist and are callable
       expect(uploadModule.uploadSingle).toBeDefined();
       expect(uploadModule.uploadMiddleware).toBeDefined();
-      expect(uploadModule.default).toBeDefined();
 
       expect(typeof uploadModule.uploadSingle).toBe('function');
       expect(typeof uploadModule.uploadMiddleware).toBe('function');
-      expect(typeof uploadModule.default).toBe('object');
     });
 
     it('should have proper function signatures', () => {
       // Test that functions have the expected signatures
       expect(typeof uploadModule.uploadSingle).toBe('function');
       expect(typeof uploadModule.uploadMiddleware).toBe('function');
-    });
-
-    it('should export default multer instance', () => {
-      // Test that default export is the multer instance
-      expect(uploadModule.default).toBeDefined();
-      expect(typeof uploadModule.default).toBe('object');
     });
   });
 });

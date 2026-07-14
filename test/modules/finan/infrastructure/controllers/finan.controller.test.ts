@@ -7,12 +7,16 @@ import { DeleteMovementUseCase } from '../../../../../src/modules/finan/applicat
 import {
   validatePutMovement,
   validateGetInitialLoad,
+  validateUpdateMovements,
+  validateDeleteMovement,
 } from '../../../../../src/modules/finan/infrastructure/validation/finan.validation';
 
 // Mock the validation functions
 jest.mock('../../../../../src/modules/finan/infrastructure/validation/finan.validation', () => ({
   validatePutMovement: jest.fn(),
   validateGetInitialLoad: jest.fn(),
+  validateUpdateMovements: jest.fn(),
+  validateDeleteMovement: jest.fn(),
 }));
 
 // Mock the use cases
@@ -34,6 +38,8 @@ const mockDeleteMovementUseCase = {
 
 const mockValidateGetInitialLoad = validateGetInitialLoad as jest.MockedFunction<typeof validateGetInitialLoad>;
 const mockValidatePutMovement = validatePutMovement as jest.MockedFunction<typeof validatePutMovement>;
+const mockValidateUpdateMovements = validateUpdateMovements as jest.MockedFunction<typeof validateUpdateMovements>;
+const mockValidateDeleteMovement = validateDeleteMovement as jest.MockedFunction<typeof validateDeleteMovement>;
 
 describe('FinanController', () => {
   let finanController: FinanController;
@@ -60,6 +66,8 @@ describe('FinanController', () => {
     // Default validation mocks - pass validation by default
     mockValidateGetInitialLoad.mockReturnValue({ error: false, errors: [] });
     mockValidatePutMovement.mockReturnValue({ error: false, errors: [] });
+    mockValidateUpdateMovements.mockReturnValue({ error: false, errors: [] });
+    mockValidateDeleteMovement.mockReturnValue({ error: false, errors: [] });
   });
 
   it('should get initial load data successfully', async () => {
@@ -288,17 +296,31 @@ describe('FinanController', () => {
 
     it('should return validation error for updateMovement', async () => {
       const validationErrors = ['Movement name is required'];
-      mockValidatePutMovement.mockReturnValue({ error: true, errors: validationErrors });
+      mockValidateUpdateMovements.mockReturnValue({ error: true, errors: validationErrors });
 
       req.body = { movement_name: '' };
       req.params = { id: '1' };
 
       await finanController.updateMovement(req as Request, res as Response);
 
-      expect(mockValidatePutMovement).toHaveBeenCalledWith(req.body);
+      expect(mockValidateUpdateMovements).toHaveBeenCalledWith(req.body, 1);
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(validationErrors);
       expect(mockUpdateMovementUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it('should return validation error for deleteMovement', async () => {
+      const validationErrors = ['ID is invalid'];
+      mockValidateDeleteMovement.mockReturnValue({ error: true, errors: validationErrors });
+
+      req.params = { id: 'not-a-number' };
+
+      await finanController.deleteMovement(req as Request, res as Response);
+
+      expect(mockValidateDeleteMovement).toHaveBeenCalledWith(NaN);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(validationErrors);
+      expect(mockDeleteMovementUseCase.execute).not.toHaveBeenCalled();
     });
   });
 

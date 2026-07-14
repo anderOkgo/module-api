@@ -89,4 +89,3 @@ function convertToOpenAPIPaths(documentation: any) {
 }
 
 export const swaggerSpec = swaggerJsdoc(options);
-export default swaggerSpec;

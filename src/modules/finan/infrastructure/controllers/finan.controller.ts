@@ -3,7 +3,12 @@ import { GetInitialLoadUseCase } from '../../application/use-cases/get-initial-l
 import { PutMovementUseCase } from '../../application/use-cases/put-movement.use-case';
 import { UpdateMovementUseCase } from '../../application/use-cases/update-movement.use-case';
 import { DeleteMovementUseCase } from '../../application/use-cases/delete-movement.use-case';
-import { validatePutMovement, validateGetInitialLoad } from '../validation/finan.validation';
+import {
+  validatePutMovement,
+  validateGetInitialLoad,
+  validateUpdateMovements,
+  validateDeleteMovement,
+} from '../validation/finan.validation';
 
 /**
  * FinanController with dependency injection
@@ -70,11 +75,11 @@ export class FinanController {
    * Swagger documentation: finan.swagger.ts
    */
   updateMovement = async (req: Request, res: Response) => {
-    const validation = validatePutMovement(req.body);
+    const id = parseInt(req.params.id);
+    const validation = validateUpdateMovements(req.body, id);
     if (validation.error) return res.status(400).json(validation.errors);
 
     try {
-      const id = parseInt(req.params.id);
       const username = req.body.username || 'default'; // Fallback for username
       const resp = await this.updateMovementUseCase.execute(id, req.body, username);
 
@@ -100,8 +105,11 @@ export class FinanController {
    * Swagger documentation: finan.swagger.ts
    */
   deleteMovement = async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const validation = validateDeleteMovement(id);
+    if (validation.error) return res.status(400).json(validation.errors);
+
     try {
-      const id = parseInt(req.params.id);
       const username = req.body.username || 'default'; // Fallback for username
       const resp = await this.deleteMovementUseCase.execute(id, username);
 

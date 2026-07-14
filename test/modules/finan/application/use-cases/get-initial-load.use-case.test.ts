@@ -87,6 +87,32 @@ describe('GetInitialLoadUseCase', () => {
       expect(mockRepository.getCurrentMonthExpenses).toHaveBeenCalledWith('testuser', 'USD');
     });
 
+    it('should default remainingBudget parts to 0 when monthlyBudget/currentMonthExpenses are undefined', async () => {
+      const request: InitialLoadRequest = {
+        username: 'testuser',
+        currency: 'USD',
+        date: '2023-01-01',
+      };
+
+      mockRepository.getTotalExpenseDay.mockResolvedValue(mockInitialLoadResponse.totalExpenseDay);
+      mockRepository.getMovements.mockResolvedValue(mockInitialLoadResponse.movements);
+      mockRepository.getMovementsByTag.mockResolvedValue(mockInitialLoadResponse.movementTag);
+      mockRepository.getTotalBalance.mockResolvedValue(mockInitialLoadResponse.totalBalance);
+      mockRepository.getYearlyBalance.mockResolvedValue(mockInitialLoadResponse.yearlyBalance);
+      mockRepository.getMonthlyBalance.mockResolvedValue(mockInitialLoadResponse.monthlyBalance);
+      mockRepository.getBalanceUntilDate.mockResolvedValue(mockInitialLoadResponse.balanceUntilDate);
+      mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue(
+        mockInitialLoadResponse.monthlyExpensesUntilDay
+      );
+      // Runtime values can diverge from the TS type; simulate a repository returning undefined.
+      mockRepository.getMonthlyBudget.mockResolvedValue(undefined as any);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(undefined as any);
+
+      const result = await getInitialLoadUseCase.execute(request);
+
+      expect(result.remainingBudget).toBe(0);
+    });
+
     it('should use start_date when date is not provided', async () => {
       const request: InitialLoadRequest = {
         username: 'testuser',

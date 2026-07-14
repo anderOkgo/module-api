@@ -176,25 +176,24 @@ export class ImageProcessor {
         }
       }
 
-      // Strategy 3: If still too large, use more aggressive compression
-      if (sizeKB > config.maxSizeKB) {
-        optimizedBuffer = await sharp(inputBuffer)
-          .resize(config.width, config.height, {
-            fit: 'cover',
-            position: 'center',
-            kernel: sharp.kernel.lanczos3,
-          })
-          .jpeg({
-            quality: 30,
-            progressive: true,
-            mozjpeg: true,
-            optimizeScans: true,
-            trellisQuantisation: true,
-            overshootDeringing: true,
-            quantisationTable: 3, // Optimized quantization table
-          })
-          .toBuffer();
-      }
+      // Strategy 3: still too large after every quality step (the loop above returns as
+      // soon as an acceptable size is reached) — use more aggressive compression.
+      optimizedBuffer = await sharp(inputBuffer)
+        .resize(config.width, config.height, {
+          fit: 'cover',
+          position: 'center',
+          kernel: sharp.kernel.lanczos3,
+        })
+        .jpeg({
+          quality: 30,
+          progressive: true,
+          mozjpeg: true,
+          optimizeScans: true,
+          trellisQuantisation: true,
+          overshootDeringing: true,
+          quantisationTable: 3, // Optimized quantization table
+        })
+        .toBuffer();
 
       return optimizedBuffer;
     } catch (error) {
@@ -289,5 +288,3 @@ export class ImageProcessor {
     }
   }
 }
-
-export default ImageProcessor;

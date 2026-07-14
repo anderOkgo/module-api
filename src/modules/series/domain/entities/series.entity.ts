@@ -2,7 +2,7 @@
  * Main Series entity
  * Represents a production (anime/manga) in the system
  */
-export default interface Series {
+export interface Series {
   id: number;
   name: string;
   chapter_numer: number; // Keep DB column name

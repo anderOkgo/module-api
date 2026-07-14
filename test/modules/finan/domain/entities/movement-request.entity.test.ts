@@ -1,7 +1,6 @@
 import {
   InitialLoadRequest,
   MovementRequest,
-  MovementUpdateRequest,
 } from '../../../../../src/modules/finan/domain/entities/movement-request.entity';
 
 describe('Movement Request Entities', () => {
@@ -129,67 +128,6 @@ describe('Movement Request Entities', () => {
 
       expect(usdRequest.currency).toBe('USD');
       expect(eurRequest.currency).toBe('EUR');
-    });
-  });
-
-  describe('MovementUpdateRequest interface', () => {
-    it('should create a valid MovementUpdateRequest with id', () => {
-      const request: MovementUpdateRequest = {
-        id: 123,
-        movement_name: 'Updated Movement',
-        movement_val: 200,
-        movement_date: '2023-02-01',
-        movement_type: '2',
-        movement_tag: 'updated-tag',
-        currency: 'EUR',
-      };
-
-      expect(request.id).toBe(123);
-      expect(request.movement_name).toBe('Updated Movement');
-      expect(request.movement_val).toBe(200);
-      expect(request.movement_date).toBe('2023-02-01');
-      expect(request.movement_type).toBe('2');
-      expect(request.movement_tag).toBe('updated-tag');
-      expect(request.currency).toBe('EUR');
-    });
-
-    it('should allow partial updates', () => {
-      const partialRequest: MovementUpdateRequest = {
-        id: 456,
-        movement_name: 'Partially Updated',
-      };
-
-      expect(partialRequest.id).toBe(456);
-      expect(partialRequest.movement_name).toBe('Partially Updated');
-      expect(partialRequest.movement_val).toBeUndefined();
-      expect(partialRequest.movement_date).toBeUndefined();
-      expect(partialRequest.movement_type).toBeUndefined();
-      expect(partialRequest.movement_tag).toBeUndefined();
-      expect(partialRequest.currency).toBeUndefined();
-    });
-
-    it('should extend MovementRequest interface correctly', () => {
-      // Test that MovementUpdateRequest has all MovementRequest properties plus id
-      const request: MovementUpdateRequest = {
-        id: 789,
-        movement_name: 'Test',
-        movement_val: 100,
-        movement_date: '2023-01-01',
-        movement_type: '1',
-        movement_tag: 'test',
-        currency: 'USD',
-      };
-
-      // All MovementRequest properties should be available
-      expect(request.movement_name).toBe('Test');
-      expect(request.movement_val).toBe(100);
-      expect(request.movement_date).toBe('2023-01-01');
-      expect(request.movement_type).toBe('1');
-      expect(request.movement_tag).toBe('test');
-      expect(request.currency).toBe('USD');
-
-      // Plus the id property
-      expect(request.id).toBe(789);
     });
   });
 

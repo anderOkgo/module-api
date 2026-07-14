@@ -15,7 +15,8 @@ export class GetInitialLoadUseCase {
       this.validateInput(data);
 
       // 2. Normalize data
-      const username = data.username?.toLowerCase().trim() ?? '';
+      // validateInput already guarantees username is a non-empty string at this point.
+      const username = data.username!.toLowerCase().trim();
       const currency = data.currency ?? 'USD';
       const date = data.date ?? data.start_date ?? this.getCurrentDate();
 

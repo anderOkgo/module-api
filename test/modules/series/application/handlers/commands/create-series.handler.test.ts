@@ -625,6 +625,38 @@ describe('CreateSeriesHandler', () => {
       expect(mockSeriesReadRepository.findById).toHaveBeenCalledWith(1);
     });
 
+    it('should default visible to true when not provided', async () => {
+      const commandWithoutVisible = new CreateSeriesCommand(
+        'Test Series',
+        12,
+        2023,
+        'Test description',
+        'Test description EN',
+        8.5,
+        1,
+        undefined as any,
+        undefined
+      );
+
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
+      mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue({ id: 1, visible: true });
+
+      await createSeriesHandler.execute(commandWithoutVisible);
+
+      expect(mockSeriesWriteRepository.create).toHaveBeenCalledWith(expect.objectContaining({ visible: true }));
+    });
+
+    it('should throw when the series cannot be retrieved after creation', async () => {
+      mockSeriesWriteRepository.create.mockResolvedValue({ id: 1 });
+      mockSeriesWriteRepository.updateRank.mockResolvedValue();
+      mockSeriesReadRepository.findById.mockResolvedValue(null);
+
+      await expect(createSeriesHandler.execute(validCommand)).rejects.toThrow(
+        'Failed to retrieve series with id 1'
+      );
+    });
+
     it('should handle updateRank failure', async () => {
       const createdSeries = {
         id: 1,

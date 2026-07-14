@@ -83,6 +83,36 @@ describe('RegisterUserUseCase', () => {
       expect(mockUserRepository.deleteVerificationCode).toHaveBeenCalledWith('test@example.com');
     });
 
+    it('should default first_name and last_name to empty strings when not provided', async () => {
+      const { first_name, last_name, ...dataWithoutNames } = validUserData;
+
+      mockUserRepository.findByEmail.mockResolvedValue(null);
+      mockUserRepository.findByUsername.mockResolvedValue(null);
+      mockUserRepository.validateVerificationCode.mockResolvedValue(true);
+      mockPasswordHasher.hash.mockResolvedValue('hashedpassword');
+      mockUserRepository.create.mockResolvedValue({
+        id: 1,
+        ...dataWithoutNames,
+        first_name: '',
+        last_name: '',
+        role: UserRole.USER,
+        password: 'hashedpassword',
+        active: true,
+        created: '2023-01-01 00:00:00',
+        modified: '2023-01-01 00:00:00',
+      });
+      mockUserRepository.deleteVerificationCode.mockResolvedValue();
+
+      await registerUserUseCase.execute({
+        ...dataWithoutNames,
+        verificationCode: 123456,
+      } as UserCreateRequest);
+
+      expect(mockUserRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ first_name: '', last_name: '' })
+      );
+    });
+
     it('should send verification code when not provided', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockUserRepository.findByUsername.mockResolvedValue(null);

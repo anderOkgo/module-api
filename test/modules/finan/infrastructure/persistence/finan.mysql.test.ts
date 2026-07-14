@@ -565,6 +565,182 @@ describe('FinanMysqlRepository', () => {
     });
   });
 
+  describe('createTableForUser', () => {
+    it('should create table using lowercased username', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue(undefined);
+
+      await repository.createTableForUser('TestUser');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('CALL proc_create_movements_table(?)', [
+        'testuser',
+      ]);
+    });
+  });
+
+  describe('findByNameAndDate', () => {
+    it('should find movement by name and date', async () => {
+      const mockMovement = { id: 1, name: 'Rent', date_movement: '2023-01-01' };
+      mockDatabase.executeSafeQuery.mockResolvedValue([mockMovement]);
+
+      const result = await repository.findByNameAndDate('Rent', '2023-01-01', 'testuser');
+
+      expect(result).toEqual(mockMovement);
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        'SELECT * FROM movements_testuser WHERE name = ? AND date_movement = ? LIMIT 1',
+        ['Rent', '2023-01-01']
+      );
+    });
+
+    it('should return null when no movement matches', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue([]);
+
+      const result = await repository.findByNameAndDate('Unknown', '2023-01-01', 'testuser');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getCurrentMonthExpenses', () => {
+    it('should return the parsed total when present', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue([{ total: '1234.5' }]);
+
+      const result = await repository.getCurrentMonthExpenses('testuser', 'USD');
+
+      expect(result).toBe(1234.5);
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(expect.stringContaining('COALESCE(SUM(value), 0)'), [
+        'USD',
+      ]);
+    });
+
+    it('should return 0 when the result row is missing', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue([]);
+
+      const result = await repository.getCurrentMonthExpenses('testuser', 'USD');
+
+      expect(result).toBe(0);
+    });
+
+    it('should return 0 when total is not numeric', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue([{ total: null }]);
+
+      const result = await repository.getCurrentMonthExpenses('testuser', 'USD');
+
+      expect(result).toBe(0);
+    });
+  });
+
+  describe('getMonthlyBudget', () => {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+    it('should use DB constants and current-month payroll/aporte when present', async () => {
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce([
+          { name: 'SAVINGS_GOAL', description: '1000' },
+          { name: 'FIXED_HEALTH_PENSION', description: '200' },
+          { name: 'EXPECTED_PAYROLL', description: '500' },
+        ])
+        .mockResolvedValueOnce([
+          { type_source_id: 1, tag: 'payroll', month_key: currentMonth, total: '3000' },
+          { type_source_id: 1, tag: 'aporte-enlinea', month_key: currentMonth, total: '300' },
+        ]);
+
+      const result = await repository.getMonthlyBudget('testuser', 'USD');
+
+      // base = 3000 + 300 (all income this month) - savingsGoal 1000 - healthPensionDiscount (aporteCur=300)
+      expect(result).toBe(3300 - 1000 - 300);
+    });
+
+    it('should fall back to default constants when the DB returns none', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+      const result = await repository.getMonthlyBudget('testuser', 'USD');
+
+      // No income at all: base = 0, no expectedPayroll, no prevMonth data -> stays 0
+      // budget = 0 - 5_000_000 - 855_000, clamped to 0
+      expect(result).toBe(0);
+    });
+
+    it('should use expectedPayroll when payroll is missing this month', async () => {
+      // Note: the source uses `constantsMap[x] || default`, so a DB value of literally 0
+      // would fall back to the static default (0 is falsy) — use small nonzero values here
+      // to isolate the expectedPayroll branch specifically.
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce([
+          { name: 'SAVINGS_GOAL', description: '10' },
+          { name: 'FIXED_HEALTH_PENSION', description: '5' },
+          { name: 'EXPECTED_PAYROLL', description: '1000' },
+        ])
+        .mockResolvedValueOnce([]);
+
+      const result = await repository.getMonthlyBudget('testuser', 'USD');
+
+      // base = expectedPayroll (1000); budget = 1000 - savingsGoal(10) - fixedHealthPension(5)
+      expect(result).toBe(985);
+    });
+
+    it('should fall back to previous month for payroll and interest-lulo when no expectedPayroll', async () => {
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce([
+          { name: 'SAVINGS_GOAL', description: '10' },
+          { name: 'FIXED_HEALTH_PENSION', description: '5' },
+        ])
+        .mockResolvedValueOnce([
+          { type_source_id: 1, tag: 'payroll', month_key: prevMonth, total: '200' },
+          { type_source_id: 1, tag: 'interest-lulo', month_key: prevMonth, total: '50' },
+        ]);
+
+      const result = await repository.getMonthlyBudget('testuser', 'USD');
+
+      // base = 200 + 50 (both stable tags recovered from prev month); budget = 250 - 10 - 5
+      expect(result).toBe(235);
+    });
+
+    it('should never return a negative budget', async () => {
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce([{ name: 'SAVINGS_GOAL', description: '999999999' }])
+        .mockResolvedValueOnce([]);
+
+      const result = await repository.getMonthlyBudget('testuser', 'USD');
+
+      expect(result).toBe(0);
+    });
+
+    it('should handle null constants/rows and non-numeric or unmatched-month values', async () => {
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce(null) // constantsRows falsy -> `|| []`
+        .mockResolvedValueOnce([
+          { type_source_id: 2, tag: 'expense', month_key: currentMonth, total: '100' }, // typeId !== 1, tag !== aporte-enlinea -> no branch taken
+          { type_source_id: 1, tag: 'misc', month_key: '1999-01', total: 'not-a-number' }, // typeId===1 but month matches neither -> falls through; val NaN -> `|| 0`
+        ]);
+
+      const result = await repository.getMonthlyBudget('testuser', 'USD');
+
+      // Nothing contributes to income; defaults apply for savingsGoal/fixedHealthPension -> clamps to 0
+      expect(result).toBe(0);
+    });
+
+    it('should handle a non-numeric constant description and rows with missing fields', async () => {
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce([{ name: 'SAVINGS_GOAL', description: 'not-a-number' }]) // parseFloat -> NaN -> `|| 0`
+        .mockResolvedValueOnce([{}]); // row with all fields missing -> exercises every `??` fallback
+
+      const result = await repository.getMonthlyBudget('testuser', 'USD');
+
+      expect(result).toBe(0);
+    });
+
+    it('should handle a null movement rows result', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([]).mockResolvedValueOnce(null); // rows falsy -> `|| []`
+
+      const result = await repository.getMonthlyBudget('testuser', 'USD');
+
+      expect(result).toBe(0);
+    });
+  });
+
   describe('Edge cases', () => {
     it('should handle empty query results', async () => {
       mockDatabase.executeSafeQuery.mockResolvedValue([[]]);

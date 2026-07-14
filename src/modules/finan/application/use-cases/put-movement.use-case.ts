@@ -138,11 +138,10 @@ export class PutMovementUseCase {
   }
 
   private async handleLinkedMovement(request: CreateMovementRequest): Promise<void> {
-    if (!request.operate_for) return;
-
     // Business logic: update linked movement
+    // Only called from execute() when request.operate_for is already truthy.
     await this.repository.operateForLinkedMovement(
-      request.operate_for,
+      request.operate_for!,
       request.movement_val,
       request.movement_type,
       request.username

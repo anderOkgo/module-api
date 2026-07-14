@@ -58,6 +58,38 @@ describe('SeriesValidation', () => {
       expect(result.errors?.id).toBe('ID must contain valid numbers separated by commas.');
     });
 
+    it('should validate ID provided as an array of numbers', () => {
+      const arrayIdInput = { id: [1, 2, 3] };
+      const result = validateProduction(arrayIdInput);
+
+      expect(result.valid).toBe(true);
+      expect(result.result.id).toEqual([1, 2, 3]);
+    });
+
+    it('should validate ID provided as an array of numeric strings', () => {
+      const arrayIdInput = { id: ['1', '2', '3'] };
+      const result = validateProduction(arrayIdInput);
+
+      expect(result.valid).toBe(true);
+      expect(result.result.id).toEqual([1, 2, 3]);
+    });
+
+    it('should reject an ID array containing invalid values', () => {
+      const invalidArrayIdInput = { id: [1, 'abc', {}] };
+      const result = validateProduction(invalidArrayIdInput);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors?.id).toBe('ID must contain valid numbers.');
+    });
+
+    it('should discard ID when it is neither a string nor an array', () => {
+      const invalidTypeIdInput: any = { id: 123, production_name: 'Test' };
+      const result = validateProduction(invalidTypeIdInput);
+
+      expect(result.valid).toBe(true);
+      expect(result.result.id).toBeUndefined();
+    });
+
     it('should handle single ID', () => {
       const singleIdInput = { id: '123' };
       const result = validateProduction(singleIdInput);
@@ -150,6 +182,25 @@ describe('SeriesValidation', () => {
       );
     });
 
+    it('should validate production_description_en field correctly', () => {
+      const validDescEnInput = { production_description_en: 'Valid description EN' };
+      const result = validateProduction(validDescEnInput);
+
+      expect(result.valid).toBe(true);
+      expect(result.result.production_description_en).toBe('Valid description EN');
+    });
+
+    it('should reject production_description_en that is too long', () => {
+      const longDescEn = 'A'.repeat(51);
+      const longDescEnInput = { production_description_en: longDescEn };
+      const result = validateProduction(longDescEnInput);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors?.production_description_en).toBe(
+        'Production description (EN) must be a string with a maximum length of 50 characters.'
+      );
+    });
+
     it('should validate production_year field correctly', () => {
       const validYearInput = { production_year: '2020,2023' };
       const result = validateProduction(validYearInput);
@@ -226,6 +277,17 @@ describe('SeriesValidation', () => {
       // The validation function actually passes this because it only checks if ANY genre is valid
       expect(result.valid).toBe(true);
       expect(result.result.genre_names).toEqual(['VeryLongGenreNameThatExceedsFiftyCharactersLimit']);
+    });
+
+    it('should reject genre_names when every genre exceeds 50 characters', () => {
+      const tooLongGenre = 'A'.repeat(51);
+      const invalidGenresInput = { genre_names: tooLongGenre };
+      const result = validateProduction(invalidGenresInput);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors?.genre_names).toBe(
+        'Genre names must be strings with a maximum length of 50 characters separated by commas.'
+      );
     });
 
     it('should validate limit field correctly', () => {

@@ -176,10 +176,10 @@ Any future PR that adds code without full test coverage will now fail CI — thi
 
 ## Phase 4 — Executable specification layers
 
-**Status: IN PROGRESS** (item 2 substantially done — see Phase 4a; blocked on Phase 3 for the rest)
+**Status: IN PROGRESS** (items 2 and 3 done — see Phases 4a/4b/4e; item 1 and 4 remain)
 
 1. **`docs/SPECIFICATION.md`** — generative design rules (not descriptive): module layering invariants, CQRS conventions, port/adapter rules, entity invariants, error-handling conventions. This is the "philosophy" layer an AI needs to regenerate the system rather than copy it. **TODO.**
-2. **Formalize HTTP/e2e tests** — turn the ad-hoc frontend-simulation scripts into a repeatable `test/integration/` suite. **Done, see Phase 4a** — the remaining piece (Newman against a real Postman collection) is moot since `docs/postman/` doesn't actually exist in the repo (see Progress log, 2026-07-14) — would need to be created from scratch if still wanted.
+2. **Formalize HTTP/e2e tests** — turn the ad-hoc frontend-simulation scripts into a repeatable `test/integration/` suite. **Done, see Phase 4a** — the remaining piece (Newman against a real Postman collection) is moot since `docs/postman/` doesn't actually exist in the repo (see Progress log, 2026-07-14) — would need to be created from scratch if still wanted. E2E (Phase 4b) and the operational smoke test (Phase 4e) round this out.
 3. **Test-pyramid audit** — confirm unit/integration/e2e tests assert behavior through public interfaces (ports, endpoints) rather than implementation details. **Done as a side effect of Phase 4a** — see the "real coverage gap" finding below.
 4. Consider ADRs for major architectural decisions (hexagonal layering, CQRS, eventual microservice split) and, if/when the module split happens, contract testing (e.g. Pact) between `auth`/`finan`/`series`. **TODO.**
 
@@ -264,6 +264,43 @@ Also closed a coverage gap this incidentally exposed in `swagger.ts` (same "noth
 
 ---
 
+## Phase 4e — Standalone HTTP smoke-test script
+
+**Status: DONE** (2026-07-14)
+
+The last item of the CI-gate → E2E-suite → smoke-test plan (user-chosen order, Phase 3's progress-log entry). Unlike `test/e2e/`, this isn't a Jest suite run against a disposable/CI-provisioned instance — it's `scripts/smoke-test.js`, a standalone Node/axios script meant to be pointed at any *already-running* instance (local dev, staging, or production) after a deploy, to confirm the API actually works before trusting the deploy.
+
+**First cut vs. final version:** the first version only touched 16 read-only/negative-path endpoints and skipped every mutating one. The user explicitly pushed back on this ("yo quería que se probaran todos los endpoints absolutamente todos") and offered real credentials, so the script was rewritten to exercise **every one of the 21 real API routes** (4 app-level + 15 series + 2 auth + 4 finan... counted individually the series module alone is 15 routes across public/user/admin tiers), not just a subset — see the full checklist below.
+
+Design constraints, all deliberate:
+- **Safe by default with no credentials.** Every check that runs with no login supplied is either read-only against public data or a negative-path check (missing/invalid auth, bad login, malformed email) that can never create or mutate a real row.
+- **Real login, not a pre-minted token, is the default credential path.** `SMOKE_ADMIN_LOGIN`/`SMOKE_ADMIN_PASSWORD` and `SMOKE_USER_LOGIN`/`SMOKE_USER_PASSWORD` env vars make the script call the real `POST /api/users/login` itself (so login success is also genuinely tested, not assumed) rather than requiring the operator to hand-generate a JWT. `SMOKE_ADMIN_TOKEN`/`SMOKE_USER_TOKEN` remain supported as a fallback for when sending a real password over the wire isn't wanted (e.g. against production). If only an admin login is supplied, its token is reused for the user-tier checks too, since `validateToken` only requires a valid token, not a specific role — the user's own call, since they pointed the same account at both fields.
+- **Credentials never touch the conversation or CLI.** They're read from environment variables, auto-loaded from a gitignored `.env.smoke.local` file the operator edits directly — never a positional CLI argument (which would leak into shell history and process listings) and never typed into chat.
+- **Mutating checks use disposable, distinctively-named fixtures and clean up after themselves**, the same pattern `test/e2e/` uses: `__SMOKE_TEST_SERIES_<ts>__` / `__SMOKE_TEST_COMPLETE_<ts>__` for series, `SMOKE_TEST_MOVEMENT_<ts>` for finan movements, tagged `smoke-test`.
+- **`validateStatus: () => true`** on the shared axios client — every check asserts on the actual status code itself rather than relying on axios's throw-on-4xx/5xx behavior.
+- **Exit code 0/1** based on whether every check passed — usable directly as a deploy-pipeline gate.
+
+**Full endpoint checklist (35 checks when both admin and user credentials are supplied):**
+- App-level (4): `/`, `/health`, `/api`, `/api-docs`, plus an unknown-route 404 check.
+- Series public (6): boot `POST /`, `GET /years`, `GET /genres`, `GET /demographics`, `POST /search`, `GET /:id` (404 case).
+- Auth gates, unauthenticated (3): `GET /list`, `POST /create`, `POST /finan/initial-load` all correctly reject with 401.
+- Auth negative (2): bad login, invalid-email registration attempt.
+- Auth real login (1 or 2): real `POST /login` success for the supplied account(s).
+- Series authenticated (1): `GET /list` with a valid token.
+- Finan full CRUD (4): `POST /insert` → `POST /initial-load` (confirms the row appears) → `PUT /update/:id` → `DELETE /delete/:id` (a real hard delete, confirmed against the DB).
+- Series admin full CRUD (11): `POST /create` (real multipart image upload via the real `sharp` pipeline) → `GET /:id` → `PUT /:id` → `PUT /:id/image` (second real image upload) → `POST /:id/genres` (invalid-id rejection, then real assignment) → `DELETE /:id/genres` → `POST /:id/titles` → `GET /:id` (confirms genres+titles reflected) → `DELETE /:id/titles` → `DELETE /:id` (soft delete).
+- Series admin create-complete (2): `POST /create-complete` (the JSON-body, one-shot create-with-genres-and-titles path) → `DELETE /:id` cleanup.
+
+**One real, permanent limitation, documented in-script:** `DELETE /api/series/:id` is a soft delete (`visible = 0`) — the HTTP API exposes no hard-delete endpoint, so disposable series fixtures remain as invisible rows in `productions` forever (unlike finan movements, which really are removed). Acceptable for a local/disposable DB; worth knowing before pointing this at production repeatedly. Also, **registration success is still not smoke-testable**: `POST /api/users/add`'s second step requires a verification code delivered by a real SMTP send, which this script has no way to receive — only `test/e2e/auth.e2e.test.ts` (mocked email transport) exercises that path for real.
+
+Verified for real, twice: the first (16-check, no-mutation) version was manually verified against a live local server, including a deliberately-broken-connection run that surfaced and fixed an empty-`error.message`-on-`ECONNREFUSED` bug (`describeError()` fallback: `error.message || error.code || String(error)`). The expanded (35-check, full-CRUD) version was then run for real against the local Docker MariaDB copy using the project owner's real admin account (`SMOKE_ADMIN_LOGIN`/`SMOKE_ADMIN_PASSWORD` in `.env.smoke.local`, gitignored) — **35/35 passed** on the first attempt. Cleanup was independently confirmed by querying the database directly afterward: the finan movement fixture was gone entirely; the two series fixtures existed only as `visible = 0` rows, exactly as designed.
+
+Added `npm run smoke` (`node scripts/smoke-test.js`) as the shortcut, matching the `test:e2e` pattern. Added `form-data` as an explicit dependency (was previously only a transitive one via `axios`) since the script now builds real multipart requests for the image-upload endpoints. Not a Jest suite, so it's not part of `jest.config.js`'s `testPathIgnorePatterns` bookkeeping and isn't counted in the test-suite totals below — it's an operational tool, not part of the acceptance-criteria test pyramid.
+
+This closes out Phase 4's HTTP/e2e-simulation item in full: unit → integration → E2E → operational smoke test that genuinely exercises every endpoint, one layer per phase.
+
+---
+
 ## Progress log
 
 - **2026-07-14** — Phase 0 complete. Findings documented above. Starting Phase 1 (test-by-test triage) next.
@@ -283,3 +320,5 @@ Also closed a coverage gap this incidentally exposed in `swagger.ts` (same "noth
 - **2026-07-14** — Phase 4b done: `test/e2e/` (21 tests) passing against the real database, zero fixture leftovers verified. Along the way, real E2E surfaced genuine application behavior no mock could ever show (`update_rank()` rewriting `qualification` catalog-wide) — fixed the test's assertion, not the app (it's correct, intentional behavior).
 - **2026-07-14** — Phase 4c done, closing two items the user asked for directly: merged `validateInitialLoad` into `validateGetInitialLoad` (Phase 2.6's open question) and fixed the `docker-compose.yml` nested-init-script bug for real, verified against a from-scratch container build+run, not just reasoned about. Full suite still 100%/100%/100%/100% (1235 tests, one net fewer than before due to the validator merge). Not yet committed — pending user review.
 - **2026-07-14** — Phase 4d done: `server.ts` (the last 0%-coverage file, unreachable by tests as originally written since its constructor has real bootstrap side effects) refactored to separate pure app-assembly from bootstrap, then fully tested. Found and fixed two real things along the way: dead 404/405 branches in the error handler, and the real server never actually sent a JSON 404 for unknown routes at all. Also closed a `swagger.ts` gap the same investigation exposed (production doc-filtering branch never exercised). **1254/1254 tests passing, 84/84 suites, 100%/100%/100%/100% coverage.** Not yet committed — pending user review.
+- **2026-07-14** — Phase 4e done (first cut): `scripts/smoke-test.js` (standalone HTTP smoke test, safe-by-default with opt-in authenticated checks) written and manually verified against a real running server + real Docker MariaDB — happy path, authenticated/admin paths, and the failure-reporting path (fixed an empty-error-message bug for connection-level failures along the way). Added `npm run smoke`.
+- **2026-07-14** — User pushed back: the first cut only covered 16 read-only/negative-path checks, not every endpoint, and offered real credentials to close the gap. Rewrote the script to log in for real (`SMOKE_ADMIN_LOGIN`/`PASSWORD`, `SMOKE_USER_LOGIN`/`PASSWORD`, auto-loaded from a new gitignored `.env.smoke.local`) and exercise the full CRUD cycle on every mutating endpoint (series create/update/image-upload/genres/titles/create-complete/delete, finan insert/update/delete) using disposable fixtures cleaned up afterward, mirroring `test/e2e/`'s pattern. Ran it for real against the local DB with the project owner's own admin account: **35/35 checks passed** on the first attempt; cleanup independently confirmed via direct DB queries (finan fixture hard-deleted, series fixtures left only as `visible=0` rows — the HTTP API has no hard-delete for series). Added `form-data` as an explicit dependency for the real multipart image-upload checks. This closes out the CI-gate → E2E-suite → smoke-test plan in full, this time genuinely covering every endpoint. Not yet committed — pending user review.

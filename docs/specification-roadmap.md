@@ -457,6 +457,76 @@ Added the Phase 6 regression as one more check inside the existing single-file s
 
 1. Expand coverage beyond this one regression toward a genuinely *exhaustive* acceptance contract: every validation rule, every documented edge case per endpoint, not just the happy path — **within the existing single-file-script shape**, per the lesson above, unless a future need for structured/CI-parseable output ever justifies revisiting that trade-off explicitly with the user first.
 2. Revisit `docs/SPECIFICATION.md` (Phase 4, item 1, still `TODO`) alongside this — the black-box suite is the *behavioral* half of an executable spec; the generative design-rules doc would be the *architectural* half (why the code is shaped this way), which a language-agnostic HTTP suite deliberately has no opinion on.
+3. See the **Acceptance Criteria Catalog** below — the concrete, ongoing mechanism for item 1.
+
+---
+
+## Acceptance Criteria Catalog
+
+**Status: IN PROGRESS** (methodology + first 5 entries recorded 2026-07-15; most of the system's business rules are not catalogued yet — see "How this grows" below)
+
+This is the living answer to "how do we surface every acceptance criterion the system enforces, independent of the TypeScript that happens to implement it today." Kept in this file for now, per the user's explicit call — split into dedicated file(s) later if it grows large enough to justify it, but not fragmented prematurely.
+
+### Methodology (recorded 2026-07-15, so this doesn't have to be re-derived)
+
+**Not every test is an acceptance criterion.** This codebase has ~1273 unit/integration tests; the overwhelming majority of them are *implementation-robustness* tests (e.g. "throws when the database reports an errorSys", "handles a null query result"), not business rules a rewrite in another language would need to reproduce identically. Trying to extract acceptance criteria by reading all ~1273 tests one by one produces mostly noise. The two categories, and how to tell them apart:
+
+- **Real acceptance criterion**: a rule about *observable behavior* that the business actually depends on — something a from-scratch rewrite must replicate, or real users/data get corrupted or confused. Usually surprising, non-obvious from the endpoint's name alone, and often discovered the hard way (a bug report, a production incident, a "wait, why does it do that?" moment) rather than designed upfront. Example: `visible` must come back from `GET /api/series/:id` as a real JSON boolean, not a raw MySQL 0/1 — because the admin panel round-trips that exact value on the next `PUT` without the user touching the checkbox, so a non-boolean silently flips a visible series to hidden on an unrelated edit.
+- **Implementation-robustness test**: proves *this* TypeScript/MySQL implementation doesn't crash or misbehave internally. Valuable for this codebase's day-to-day safety (that's what the 100%-coverage unit suite is for), but not part of the portable contract — a Python rewrite is free to handle a DB connection error completely differently, as long as the *HTTP-observable* result (say, a 500 with an `error` field) stays the same.
+
+**The three-way relationship this catalog is built around:**
+
+```
+Acceptance Criteria Catalog (this section, prose)  ←→  scripts/smoke-test.js (executable, HTTP-only)
+                    ↓ both constrain, neither depends on ↓
+                         source code (any language, regeneratable)
+```
+
+The catalog is the human-readable statement of *what* must be true. `scripts/smoke-test.js` is the executable proof that it *is* true, for whatever's actually running, via HTTP only (see Phase 7). Source code satisfies both, and — this is the point — could be thrown away and regenerated from scratch, in any language, and as long as it keeps satisfying the catalog and passing the script, it counts as correct. Each entry below should eventually link to its corresponding check in `scripts/smoke-test.js`.
+
+**How this grows:** don't attempt to enumerate every validation rule in the system in one pass. Start with the *surprising* ones — the ones a careful, competent engineer rewriting this system from the endpoint list alone would still get wrong, because they're invisible without reading deep into the code or living through the bug. Mundane rules (min name length, numeric ranges, required fields) are lower priority — they're usually obvious from the DTO/validation function itself and less likely to be silently lost in a rewrite. Add new entries whenever a bug hunt or investigation surfaces another one of these (like Phase 5/6 did for 4 of the 5 below).
+
+### Catalog
+
+#### 1. Series qualification is silently rescaled on every write
+
+**Rule:** whatever `qualification` value a client submits for a series is **not** stored verbatim. After every create/update, `update_rank()` re-ranks the *entire* `productions` catalog by qualification and re-normalizes every row's qualification to an evenly-spaced 7.000–9.700 scale by rank position. This is intentional (confirmed with the user, Phase 5): it keeps decimal room to insert new series between existing ones later, since qualification is what determines display order.
+
+**Enforced in:** `animecream-data/sql/db-views-procs.sql` (`update_rank` procedure), invoked by `updateRank()` in `src/modules/series/infrastructure/persistence/series-write.mysql.ts`, called from `create-series.handler.ts`, `update-series.handler.ts`, and `create-series-complete.handler.ts` after every write.
+
+**Verified in `scripts/smoke-test.js`:** not yet. The script submits `qualification: 8` on create and `qualification: 7.5` on update but never re-fetches the series to assert what value actually comes back (it would almost never equal what was submitted). **TODO.**
+
+#### 2. `visible` must round-trip as a real JSON boolean, not a raw 0/1
+
+**Rule:** `GET /api/series/:id` must return `visible` as an actual `true`/`false`, never the raw MySQL `TINYINT` (`0`/`1`) it's stored as. This isn't cosmetic: the admin edit panel loads a series via `GET`, seeds its visibility checkbox from that response, and — if the user never touches the checkbox — submits that exact same value back on `PUT`. If `GET` ever returns a non-boolean, the round-tripped value can silently fail whatever boolean check the `PUT` handler does, and a visible series goes invisible on an edit that had nothing to do with visibility. This was a real production incident.
+
+**Enforced in:** `mapToResponse()` in `src/modules/series/infrastructure/persistence/series-read.mysql.ts` (`visible: Boolean(row.visible)`), and `parseVisible()` in `src/modules/series/infrastructure/controllers/series.controller.ts` (accepts a real boolean, the string `'true'`/`'false'`, or `1`/`0`/`'1'`/`'0'`, since multipart form-data, JSON bodies, and the round-tripped `GET` value all arrive in different shapes).
+
+**Verified in `scripts/smoke-test.js`:** not yet — the script sends `visible: 'true'` on create but never asserts the type of what `GET` returns, and doesn't exercise the round-trip scenario at all. `test/e2e/series.e2e.test.ts` already covers this thoroughly (real regression tests, real incident), but that's the TypeScript-coupled layer, not the portable one. **TODO.**
+
+#### 3. Finan usernames are case-insensitive, everywhere
+
+**Rule:** registration allows uppercase letters in usernames, and nothing normalizes that casing at signup — but every finan operation resolves a per-user table as `movements_<username>`, and those table names are case-sensitive at the database level. So the *effective* rule the system must uphold is: every finan operation must treat the username as if it were lowercased, regardless of how it's cased in the JWT/request, or two operations on the same logical user (e.g. create vs. update) silently address two different tables.
+
+**Enforced in:** `normalizeUsername()` in `src/modules/finan/infrastructure/persistence/finan.mysql.ts`, applied in every method that touches a `movements_<username>` table or stored procedure (Phase 6 — originally only `create`/initial-load normalized, causing update/delete and linked-movement operations to silently fail or no-op for any mixed-case account).
+
+**Verified in `scripts/smoke-test.js`:** yes — the "username-casing regression" check added in this same session (Phase 7), conditional on the configured test account genuinely having a mixed-case username.
+
+#### 4. Series are soft-deleted; finan movements are hard-deleted — deliberately different per module
+
+**Rule:** `DELETE /api/series/:id` never removes the row — it sets `visible = 0` and the row (and its image) stays forever, because a catalog entry is worth preserving even when hidden. `DELETE /api/finan/delete/:id` performs a real `DELETE FROM movements_<user>`, because a financial movement the user deleted should actually be gone. These are not the same "delete" semantics despite sharing a verb and a route shape — a rewrite that made both hard-deletes (or both soft-deletes) would be behaviorally wrong for one of the two modules.
+
+**Enforced in:** `delete()` in `series-write.mysql.ts` (`UPDATE productions SET visible = 0`) vs. `delete()` in `finan.mysql.ts` (`DELETE FROM movements_<user> WHERE id = ?`).
+
+**Verified in `scripts/smoke-test.js`:** partially. Both delete checks assert a `200` status, but neither re-fetches afterward to *prove* the series row still exists (with `visible=0`) or that the finan row is really gone. `test/e2e/` does verify this via direct DB query for both. **TODO** to close the gap at the HTTP-only layer (for finan, that likely means asserting the movement is absent from a follow-up `/initial-load` call, same pattern already used in Phase 6's regression check).
+
+#### 5. Creating a series with a name+year that already exists updates it instead of creating a duplicate
+
+**Rule:** `POST /api/series/create` and `POST /api/series/create-complete` are not pure "create" endpoints — before inserting, both check whether a series with the same `name` + `year` already exists, and if so, **update** that existing row (and, for `create-complete`, diff and reconcile its genres/titles) instead of creating a second, duplicate entry. The endpoint name suggests create-only; the actual behavior is upsert-by-(name, year).
+
+**Enforced in:** `findByNameAndYear()` calls at the top of `create-series.handler.ts` and `create-series-complete.handler.ts`, branching into the update path when a match is found.
+
+**Verified in `scripts/smoke-test.js`:** not yet — the script always creates with a fresh, timestamp-suffixed name, so the duplicate/upsert path never executes. **TODO** (would need to call create twice with the same name+year and assert the second call updates rather than duplicating — mindful of not leaving two real disposable fixtures behind if it does go wrong).
 
 ---
 
@@ -491,3 +561,4 @@ Added the Phase 6 regression as one more check inside the existing single-file s
 - **2026-07-15** — User pushed back further, with the real point behind all of this: they want a specification robust enough that *rebuilding the system from scratch in a different language*, with different test tooling, could still be verified as 100% behaviorally equivalent — and asked whether a language-agnostic HTTP black-box test (their own idea) was the way to get there. Answered yes, and pointed out it already half-exists: `scripts/smoke-test.js` is the one layer of this project's pyramid with zero `src/` imports (pure HTTP-over-the-network), unlike `test/integration`/`test/e2e` which both build the Express app in-process from this codebase's TypeScript. User asked to start with reorganizing/documenting this (not yet converting the script itself). Done: added Phase 7 above, clarified the Goal section, and added a pointer comment to `scripts/smoke-test.js` itself. Expanding the suite into a genuinely exhaustive, framework-based acceptance contract is the explicitly-deferred next step. Not yet committed.
 - **2026-07-15** — User asked to continue Phase 7. Planned (via EnterPlanMode, three explicit decisions confirmed: keep assuming an already-running server rather than auto-spawning one, fully replace `scripts/smoke-test.js` rather than keep both, scope new coverage this round to just the username-casing regression) and implemented `test/acceptance/` (Jest, one file per module, `describe.skip`-gated on which real credentials are configured). Deleted `scripts/smoke-test.js`; `npm run smoke` now ran the new suite. Verified for real against the Docker MariaDB + a freshly rebuilt local server: **36 passed, 1 skipped** (parity + one new check; the skip is the mixed-case regression, correctly inert for the real all-lowercase `anderokgo` account), cleanup independently confirmed via direct DB query. Full gate: `tsc --noEmit` clean, **1273/1273 tests / 84/84 suites / 100% coverage** (unaffected), **26/26 E2E** (unaffected).
 - **2026-07-15** — User pushed back immediately on seeing it: confused about why a "solo un JS" idea turned into 6 TypeScript files plus Jest wiring, and said plainly it complicated things. Correct call — re-read what was actually asked for (one simple, portable script) versus what got built (a small test-framework project that, while it worked, re-coupled this deliberately-decoupled layer to this codebase's own tooling). **Reverted in full**: deleted `test/acceptance/`, restored `jest.config.js` and `package.json` to their pre-Phase-7 state (`git restore`), and instead added the username-casing regression check directly into the original single-file `scripts/smoke-test.js`. Re-verified: **35/35 checks passed** (same total as the original script — the new check ran and would pass for a mixed-case account, but correctly stayed a no-op/skip for the real all-lowercase `anderokgo` account configured locally). See Phase 7's "false start" note for the recorded lesson. Not yet committed.
+- **2026-07-15** — User asked how to actually surface every acceptance criterion the system enforces — is it "read all the unit tests"? Clarified: no, most unit tests are implementation-robustness tests, not business rules a rewrite would need to reproduce; the useful subset is the surprising/non-obvious ones. Added the **Acceptance Criteria Catalog** section above: the methodology (real-rule vs. robustness-test, the catalog/script/source three-way relationship, grow-incrementally guidance), plus the first 5 entries — all rules already discovered the hard way this session (qualification rescale, `visible` boolean round-tripping, finan username case-insensitivity, soft-delete-vs-hard-delete per module, create-is-really-upsert-by-name+year). Documentation only this pass, per the user's request — noted which of the 5 are/aren't yet actually verified by `scripts/smoke-test.js` (3 of 5 have gaps), closing those gaps is explicit future work, not done in this pass. Not yet committed.

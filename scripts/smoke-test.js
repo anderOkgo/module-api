@@ -24,7 +24,13 @@
  *      every mutating endpoint (create/update/assign/remove/delete series,
  *      insert/update/delete a finan movement), using disposable,
  *      distinctively-named fixtures that are cleaned up at the end — the
- *      same pattern test/e2e/ uses against the real database.
+ *      same pattern test/e2e/ uses against the real database. Also, only
+ *      when the configured account's username genuinely has an uppercase
+ *      letter: a regression check for the username-casing bug fixed in
+ *      Phase 6 (docs/specification-roadmap.md) — skipped with a clear
+ *      reason otherwise, since a brand-new mixed-case account can't be
+ *      registered through this script (see the registration limitation
+ *      note further down).
  *
  * Credentials are never hardcoded or passed as CLI args (that would leak
  * into shell history / process listings). Supply them as environment
@@ -235,6 +241,10 @@ async function main() {
   // supplied directly) ----------------------------------------------------
   let adminToken = process.env.SMOKE_ADMIN_TOKEN;
   let userToken = process.env.SMOKE_USER_TOKEN;
+  // Which identifier ended up backing userToken, if we know it (a
+  // pre-minted SMOKE_USER_TOKEN has no known identifier) — used below to
+  // decide whether the username-casing regression check can run for real.
+  let userIdentifier;
 
   if (adminLogin && adminPassword) {
     console.log('\nAuth module (real login):');
@@ -246,10 +256,12 @@ async function main() {
     await check('POST /api/users/login succeeds with real user credentials', async () => {
       userToken = await loginReal(userLogin, userPassword);
     });
+    userIdentifier = userLogin;
   } else if (!userToken && adminToken) {
     // Same account for both roles, or only an admin login supplied — a
     // valid token is all validateToken (non-admin routes) requires.
     userToken = adminToken;
+    userIdentifier = adminLogin;
   }
 
   // ---- User-tier authenticated checks ------------------------------------
@@ -315,6 +327,66 @@ async function main() {
         const res = await client.delete(`/api/finan/delete/${movementId}`, { headers: authHeader(userToken) });
         assertStatus(res, 200, 'DELETE /api/finan/delete/:id');
       });
+    }
+
+    // Regression (see docs/specification-roadmap.md, Phase 6): registration
+    // allows uppercase usernames, and update/delete used to build the wrong
+    // (nonexistent) movements_<username> table for any account whose
+    // username had an uppercase letter — create worked, edit/delete always
+    // failed with "Movement not found". This script can't register a
+    // brand-new mixed-case account itself (blocked by real email
+    // verification, same limitation as everything else here), so it only
+    // runs for real when the *configured* account genuinely has a
+    // mixed-case username — skips with a clear reason otherwise rather than
+    // faking it.
+    if (userIdentifier && /[A-Z]/.test(userIdentifier)) {
+      console.log(`\nFinan module (username-casing regression — account: ${userIdentifier}):`);
+      const mixedCaseSuffix = Date.now().toString().slice(-8);
+      const mixedCaseName = `SMOKE_TEST_MIXEDCASE_${mixedCaseSuffix}`;
+      let mixedCaseId;
+
+      await check('creates, updates, and deletes a movement for the real mixed-case account', async () => {
+        const createRes = await client.post(
+          '/api/finan/insert',
+          {
+            movement_name: mixedCaseName,
+            movement_val: 1,
+            movement_date: '2026-01-01',
+            movement_type: 1,
+            movement_tag: 'smoke-test-mixed-case',
+            currency: 'COP',
+          },
+          { headers: authHeader(userToken) }
+        );
+        assertStatus(createRes, 201, 'POST /api/finan/insert (mixed-case account)');
+        mixedCaseId = createRes.data.data && createRes.data.data.id;
+        if (!mixedCaseId) throw new Error('no movement id returned');
+
+        const updateRes = await client.put(
+          `/api/finan/update/${mixedCaseId}`,
+          {
+            movement_name: `${mixedCaseName}_UPDATED`,
+            movement_val: 2,
+            movement_date: '2026-01-02',
+            movement_type: 1,
+            movement_tag: 'smoke-test-mixed-case',
+            currency: 'COP',
+          },
+          { headers: authHeader(userToken) }
+        );
+        assertStatus(updateRes, 200, 'PUT /api/finan/update/:id (mixed-case account)');
+
+        const deleteRes = await client.delete(`/api/finan/delete/${mixedCaseId}`, {
+          headers: authHeader(userToken),
+        });
+        assertStatus(deleteRes, 200, 'DELETE /api/finan/delete/:id (mixed-case account)');
+      });
+    } else {
+      console.log(
+        '\n(Skipping username-casing regression check — the configured account has no ' +
+          'uppercase letters. Set SMOKE_USER_LOGIN or SMOKE_ADMIN_LOGIN to a real account ' +
+          'with a mixed-case username to exercise this for real.)'
+      );
     }
   } else {
     console.log(

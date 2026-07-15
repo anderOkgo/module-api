@@ -6,6 +6,15 @@
  * every commit (that's what `npm test` + CI already cover with mocked/
  * real-but-disposable data — see test/integration/ and test/e2e/).
  *
+ * This is also the one layer of this project's test pyramid that's
+ * language-agnostic: it only speaks HTTP to a URL, with zero imports from
+ * src/, unlike test/integration and test/e2e (which both build the Express
+ * app in-process from this codebase's own TypeScript). That makes it the
+ * closest thing to a portable acceptance contract — see
+ * docs/specification-roadmap.md, Phase 7, for what that means and what's
+ * still needed before it's a complete one (today it's smoke-level coverage,
+ * not an exhaustive one).
+ *
  * Two tiers of checks:
  *   1. Always run, no credentials needed: app-level health, every public
  *      series endpoint, every auth-gate negative path (missing/invalid

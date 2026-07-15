@@ -6,6 +6,8 @@ Turn this codebase into a base solid enough to produce an **executable specifica
 
 Prose documentation (`docs/architecture.md`, `docs/modules/*.md`) already covers the "what exists." This roadmap covers the work needed before that prose can be trusted as a spec: a clean, fully-passing test suite, no dead code, and a CI gate to keep it that way — followed by the new spec layers themselves.
 
+**Not every test layer can carry that acceptance-criteria weight equally** (clarified 2026-07-15, see Phase 7): unit and integration tests import this codebase's actual TypeScript classes, so they're inseparable from *this* implementation — they'd have to be rewritten from scratch in a rewrite-in-another-language scenario, which means they can't themselves be "the spec" for that scenario. The one layer that treats the system as a pure black box — real HTTP requests over the network to a running server, asserting only on wire-level responses and observable side effects, with zero source-code imports — is the portable one: point the exact same suite at *any* implementation (this one, or a from-scratch rewrite in another language) and it either passes or it doesn't. That's `scripts/smoke-test.js`. See Phase 7 for what that means concretely and what's still needed to make it a genuinely complete contract rather than a smoke-level subset.
+
 ## Important: this is a multi-repo system
 
 `module-api` is only the application-code piece. Discovered while building the E2E suite (2026-07-14): the database schema/data lifecycle is deliberately kept in **three separate sibling repositories**, in the same workspace, one per logical database:
@@ -410,6 +412,42 @@ Not yet deployed — this fix lives only in `module-api` (application code, not 
 
 ---
 
+## Phase 7 — Reframing the test pyramid: which layer is the *portable* spec
+
+**Status: IN PROGRESS** (reorg + documentation done 2026-07-15; expanding the suite itself is the next phase, not done yet)
+
+### The goal this answers
+
+Prompted directly by the user, after Phase 6's bug: if this backend were ever rewritten from scratch in a different programming language, with different test tooling, what's the mechanism that proves the rewrite is 100% behaviorally equivalent to this one — a "criterio de aceptación" ("acceptance criteria") that isn't itself tied to TypeScript/Jest and would therefore have to be reinvented (and possibly reinvented *wrong*) for every rewrite?
+
+### Why most of this test pyramid can't answer that
+
+Every layer below the top one **imports this codebase's own classes** to run:
+
+| Layer | How it runs | Portable to a rewrite in another language? |
+|---|---|---|
+| `test/modules/**/*.test.ts` (unit) | `import`s the class under test directly, mocks its dependencies | No — literally imports TypeScript source |
+| `test/integration/**/*.test.ts` | Builds a real Express `app` object in-process via `buildTestApp()`, which calls `buildFinanModule()`/`buildSeriesModule()`/etc. — still importing this codebase's wiring | No — same reason, one level removed |
+| `test/e2e/**/*.e2e.test.ts` | Same in-process `buildTestApp()` pattern, against the real database instead of mocks | No — the DB is real and language-agnostic, but the *test harness* still isn't |
+| **`scripts/smoke-test.js`** | `axios` HTTP requests to a **URL** (`http://localhost:3001` or any `BASE_URL`) of an **already-running** server — zero imports from `src/` | **Yes.** It only knows the wire contract: routes, request shapes, status codes, response JSON, and whatever it can observe through *other* endpoints. Point it at a Python/Go/Rust rewrite serving the same routes on the same port and it either passes or it doesn't, unmodified. |
+
+This is the same distinction the industry calls **contract / conformance testing** (the pattern behind things like Kubernetes's conformance suite or W3C's web-platform-tests): a black-box suite that any conforming implementation must pass, independent of what implements it.
+
+### What this means concretely, and what's already true today
+
+- `scripts/smoke-test.js` is, as of today, the closest thing this project has to that portable contract — but it was built and is still scoped as an **operational smoke test** (Phase 4e): ~35 checks, mostly happy-path plus a handful of negative-auth paths per endpoint. It is not yet an *exhaustive* acceptance contract — it doesn't (yet) assert every business rule and edge case a rewrite would need to reproduce, e.g. it has no check today for the username-casing behavior Phase 6 just fixed.
+- `test/e2e/` remains the right place for *this codebase's* real-database regression coverage (it already caught real, DB-visible behavior no mock could, per Phase 4b/5), but it is **not** the artifact to hand to a from-scratch rewrite, since it's written against TypeScript internals, not just the wire.
+- Nothing about this reprioritizes or devalues the unit/integration suite — 100% coverage there is still what makes *this* codebase safe to keep changing day to day (Phase 6 itself is proof: the coverage gate didn't catch the username bug, because coverage measures "was this line executed," not "was every valid input value tried" — a different, narrower guarantee than what a black-box acceptance suite provides). The two are complementary, not competing: fast/cheap implementation-specific regression safety vs. slow/thorough implementation-agnostic behavioral contract.
+
+### Still TODO (next phase, not started)
+
+1. Convert `scripts/smoke-test.js` from an ad-hoc console-log pass/fail script into a proper test-framework suite (e.g. Jest, `axios`/`supertest` pointed at a `BASE_URL` instead of an in-process `app`) so it produces structured, per-check pass/fail output usable by any CI system — not just an aggregate exit code.
+2. Expand its coverage from "smoke" to "exhaustive acceptance contract": every validation rule, every documented edge case (starting with the username-casing scenario from Phase 6 — create/update/delete a movement under a mixed-case username, over real HTTP), not just the happy path per endpoint.
+3. Decide where this suite should live/be named once its role changes from "operational tool run after a deploy" to "the executable specification" — likely warrants its own directory (e.g. `test/acceptance/` or similar) and its own `docs/` page describing it as such, separate from `test/e2e/`.
+4. Revisit `docs/SPECIFICATION.md` (Phase 4, item 1, still `TODO`) alongside this — the black-box suite is the *behavioral* half of an executable spec; the generative design-rules doc would be the *architectural* half (why the code is shaped this way), which a language-agnostic HTTP suite deliberately has no opinion on.
+
+---
+
 ## Progress log
 
 - **2026-07-14** — Phase 0 complete. Findings documented above. Starting Phase 1 (test-by-test triage) next.
@@ -437,4 +475,5 @@ Not yet deployed — this fix lives only in `module-api` (application code, not 
 - **2026-07-15** — Deployed both `animecream-data` and `finan-data` to **production** via `db-deploy-schema.bat`, at the user's explicit request. First time this pipeline has been driven end to end by an agent rather than a human at a keyboard — see the new Phase 5b section above for the full mechanics, the non-interactive-invocation quirks discovered along the way (bare-filename + redirection failing in `cmd`, the two harmless `TIMEOUT` errors), and the real success signal to trust. Both runs printed `[db-remote-restore-swap] OK`. `module-api`'s own commit (`c0b9332`) was not pushed to `origin` in this pass — only the two `*-data` repos' schema changes were deployed, since that's what was explicitly asked for.
 - **2026-07-15** — A follow-up docs commit (`f2f8885`, recording the Phase 5b deployment mechanics) was committed and the user asked to push `module-api` to `origin`. The push was blocked by Claude Code's auto-mode safety classifier: `module-api` is a confirmed-public GitHub repo, and that commit documents production infrastructure detail (FTP hostname, SSH/credential-file naming conventions, Google Drive sync paths) that's out of place on a public destination without the user explicitly acknowledging the exposure. Asked the user how to proceed (redact-then-push / push-as-is / push only the code commit) — question interrupted because the user reported a live bug instead (see Phase 6 below). **Still open**: the push decision is unresolved, revisit before actually pushing.
 - **2026-07-15** — Phase 6 done: fixed the finan update/delete "Movement not found" bug reported by the user (root cause, fix, and verification detailed in the Phase 6 section above). **1267/1267 tests, 100% coverage, 26/26 E2E.** Not yet committed — pending user review, and note the still-open push question from the entry above applies to whatever gets pushed next.
-- **2026-07-15** — User asked, reasonably, whether the same username-casing issue could break anything else. It could and did: audited every method in `finan.mysql.ts` and found `operateForLinkedMovement` had the identical bug, failing silently (no error at all, just a skipped update) rather than reporting "not found". Fixed at the root this time — centralized normalization inside the repository class itself (a `normalizeUsername()` helper applied in every method that touches a `movements_<username>` table or proc), instead of patching call sites one at a time. **1273/1273 tests, 100% coverage, 26/26 E2E**, all against the real database. Not yet committed.
+- **2026-07-15** — User asked, reasonably, whether the same username-casing issue could break anything else. It could and did: audited every method in `finan.mysql.ts` and found `operateForLinkedMovement` had the identical bug, failing silently (no error at all, just a skipped update) rather than reporting "not found". Fixed at the root this time — centralized normalization inside the repository class itself (a `normalizeUsername()` helper applied in every method that touches a `movements_<username>` table or proc), instead of patching call sites one at a time. **1273/1273 tests, 100% coverage, 26/26 E2E**, all against the real database. Committed as `module-api@9a37985`.
+- **2026-07-15** — User pushed back further, with the real point behind all of this: they want a specification robust enough that *rebuilding the system from scratch in a different language*, with different test tooling, could still be verified as 100% behaviorally equivalent — and asked whether a language-agnostic HTTP black-box test (their own idea) was the way to get there. Answered yes, and pointed out it already half-exists: `scripts/smoke-test.js` is the one layer of this project's pyramid with zero `src/` imports (pure HTTP-over-the-network), unlike `test/integration`/`test/e2e` which both build the Express app in-process from this codebase's TypeScript. User asked to start with reorganizing/documenting this (not yet converting the script itself). Done: added Phase 7 above, clarified the Goal section, and added a pointer comment to `scripts/smoke-test.js` itself. Expanding the suite into a genuinely exhaustive, framework-based acceptance contract is the explicitly-deferred next step. Not yet committed.

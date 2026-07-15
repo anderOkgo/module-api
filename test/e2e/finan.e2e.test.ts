@@ -129,4 +129,75 @@ describe('Finan E2E (real database)', () => {
     ]);
     expect(rows).toHaveLength(0);
   });
+
+  it('keeps each user in their own table (table-per-user design), fully isolated from one another', async () => {
+    // This is the actual invariant the per-user-table schema (and its
+    // recently-hardened stored procedures, see docs/specification-roadmap.md
+    // Phase 5) exists to guarantee: two different users must land in two
+    // different, auto-created tables, and never see each other's rows.
+    const otherUsername = `e2e${suffix}b`;
+    const otherTableName = `movements_${otherUsername}`;
+    const otherToken = signToken({ username: otherUsername });
+
+    try {
+      await rawQuery('MYDATABASEFINAN', 'CALL proc_create_movements_table(?)', [otherUsername]);
+
+      const insertA = await request(app)
+        .post('/api/finan/insert')
+        .set('Authorization', bearer(token))
+        .send({
+          movement_name: 'Isolation Check A',
+          movement_val: 111,
+          movement_date: '2026-02-01',
+          movement_type: 1,
+          movement_tag: 'e2e-isolation',
+          currency: 'COP',
+        });
+      expect(insertA.status).toBe(201);
+
+      const insertB = await request(app)
+        .post('/api/finan/insert')
+        .set('Authorization', bearer(otherToken))
+        .send({
+          movement_name: 'Isolation Check B',
+          movement_val: 222,
+          movement_date: '2026-02-02',
+          movement_type: 1,
+          movement_tag: 'e2e-isolation',
+          currency: 'COP',
+        });
+      expect(insertB.status).toBe(201);
+
+      const rowsA = await rawQuery<any[]>(
+        'MYDATABASEFINAN',
+        `SELECT name, user FROM \`${tableName}\` WHERE name = ?`,
+        ['Isolation Check A']
+      );
+      const rowsB = await rawQuery<any[]>(
+        'MYDATABASEFINAN',
+        `SELECT name, user FROM \`${otherTableName}\` WHERE name = ?`,
+        ['Isolation Check B']
+      );
+      expect(rowsA).toHaveLength(1);
+      expect(rowsB).toHaveLength(1);
+      expect(rowsA[0].user).toBe(testUsername);
+      expect(rowsB[0].user).toBe(otherUsername);
+
+      // Neither user's table contains the other user's row.
+      const crossA = await rawQuery<any[]>(
+        'MYDATABASEFINAN',
+        `SELECT * FROM \`${tableName}\` WHERE name = ?`,
+        ['Isolation Check B']
+      );
+      const crossB = await rawQuery<any[]>(
+        'MYDATABASEFINAN',
+        `SELECT * FROM \`${otherTableName}\` WHERE name = ?`,
+        ['Isolation Check A']
+      );
+      expect(crossA).toHaveLength(0);
+      expect(crossB).toHaveLength(0);
+    } finally {
+      await rawQuery('MYDATABASEFINAN', `DROP TABLE IF EXISTS \`${otherTableName}\``);
+    }
+  });
 });

@@ -20,7 +20,7 @@ export class GetInitialLoadUseCase {
       const currency = data.currency ?? 'USD';
       const date = data.date ?? data.start_date ?? this.getCurrentDate();
 
-      this.repository.createTableForUser(username);
+      await this.repository.createTableForUser(username);
 
       // 3. Get data in parallel for better performance
       const [

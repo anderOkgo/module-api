@@ -18,6 +18,10 @@ describe('Database', () => {
     mockConnection = {
       release: jest.fn(),
       ping: jest.fn(),
+      query: jest.fn(),
+      beginTransaction: jest.fn(),
+      commit: jest.fn(),
+      rollback: jest.fn(),
     };
 
     mockPool = {
@@ -160,6 +164,91 @@ describe('Database', () => {
       });
 
       await expect(database.testConnection()).rejects.toThrow(error);
+      expect(mockConnection.release).toHaveBeenCalled();
+    });
+  });
+
+  describe('runInTransaction', () => {
+    beforeEach(() => {
+      mockPool.getConnection.mockImplementation((callback: Function) => {
+        callback(null, mockConnection);
+      });
+      mockConnection.beginTransaction.mockImplementation((callback: Function) => callback(null));
+      mockConnection.commit.mockImplementation((callback: Function) => callback(null));
+      mockConnection.rollback.mockImplementation((callback: Function) => callback());
+    });
+
+    it('should run work on the connection, commit, and release on success', async () => {
+      mockConnection.query.mockImplementation((sql: string, params: any, callback: Function) => {
+        callback(null, [{ id: 1 }]);
+      });
+
+      const result = await database.runInTransaction(async (query) => {
+        // Called with no params to also cover the executor's default `[]`.
+        await query('SELECT 2');
+        const rows = await query('SELECT 1', []);
+        return rows;
+      });
+
+      expect(mockConnection.beginTransaction).toHaveBeenCalled();
+      expect(mockConnection.query).toHaveBeenCalledWith('SELECT 2', [], expect.any(Function));
+      expect(mockConnection.query).toHaveBeenCalledWith('SELECT 1', [], expect.any(Function));
+      expect(mockConnection.commit).toHaveBeenCalled();
+      expect(mockConnection.rollback).not.toHaveBeenCalled();
+      expect(mockConnection.release).toHaveBeenCalled();
+      expect(result).toEqual([{ id: 1 }]);
+    });
+
+    it('should roll back, release, and rethrow when a query inside work fails', async () => {
+      const queryError = new Error('Query failed');
+      mockConnection.query.mockImplementation((sql: string, params: any, callback: Function) => {
+        callback(queryError, null);
+      });
+
+      await expect(
+        database.runInTransaction(async (query) => {
+          await query('DELETE FROM x', []);
+        })
+      ).rejects.toThrow('Query failed');
+
+      expect(mockConnection.commit).not.toHaveBeenCalled();
+      expect(mockConnection.rollback).toHaveBeenCalled();
+      expect(mockConnection.release).toHaveBeenCalled();
+    });
+
+    it('should roll back, release, and rethrow when commit fails', async () => {
+      mockConnection.query.mockImplementation((sql: string, params: any, callback: Function) => {
+        callback(null, []);
+      });
+      const commitError = new Error('Commit failed');
+      mockConnection.commit.mockImplementation((callback: Function) => callback(commitError));
+
+      await expect(database.runInTransaction(async (query) => query('SELECT 1', []))).rejects.toThrow(
+        'Commit failed'
+      );
+
+      expect(mockConnection.rollback).toHaveBeenCalled();
+      expect(mockConnection.release).toHaveBeenCalled();
+    });
+
+    it('should reject when a pooled connection cannot be acquired', async () => {
+      const error = new Error('Connection failed');
+      mockPool.getConnection.mockImplementation((callback: Function) => callback(error));
+
+      await expect(database.runInTransaction(async (query) => query('SELECT 1', []))).rejects.toThrow(
+        'Connection failed'
+      );
+    });
+
+    it('should reject when beginTransaction fails', async () => {
+      const beginError = new Error('Begin failed');
+      mockConnection.beginTransaction.mockImplementation((callback: Function) => callback(beginError));
+
+      await expect(database.runInTransaction(async (query) => query('SELECT 1', []))).rejects.toThrow(
+        'Begin failed'
+      );
+
+      expect(mockConnection.rollback).toHaveBeenCalled();
       expect(mockConnection.release).toHaveBeenCalled();
     });
   });

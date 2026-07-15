@@ -21,4 +21,9 @@ export interface SeriesWriteRepository {
 
   // Maintenance
   updateRank(): Promise<void>;
+
+  // Transactions
+  // Runs `work` with a repository instance whose write methods share one
+  // atomic DB transaction (commits on success, rolls back on any failure).
+  runInTransaction<T>(work: (repo: SeriesWriteRepository) => Promise<T>): Promise<T>;
 }

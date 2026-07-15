@@ -1,12 +1,30 @@
-import { Database } from '../../../../infrastructure/my.database.helper';
+import { Database, QueryExecutor } from '../../../../infrastructure/my.database.helper';
 import { SeriesWriteRepository } from '../../application/ports/series-write.repository';
 import { SeriesCreateRequest, SeriesUpdateRequest } from '../../domain/entities/series.entity';
 
 export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
   private database: Database;
 
-  constructor() {
+  // When `exec` is provided, this instance is scoped to an already-open
+  // transaction (see runInTransaction below) and every write goes through it
+  // instead of opening its own pooled connection per statement.
+  constructor(private readonly exec?: QueryExecutor) {
     this.database = new Database('MYDATABASEANIME');
+  }
+
+  private async runQuery(query: string, params: any): Promise<any> {
+    if (this.exec) {
+      return this.exec(query, params);
+    }
+    const result = await this.database.executeSafeQuery(query, params);
+    if (result.errorSys) {
+      throw new Error(result.message);
+    }
+    return result;
+  }
+
+  async runInTransaction<T>(work: (repo: SeriesWriteRepository) => Promise<T>): Promise<T> {
+    return this.database.runInTransaction((txExec) => work(new SeriesWriteMysqlRepository(txExec)));
   }
 
   async create(series: SeriesCreateRequest): Promise<{ id: number; [key: string]: any }> {
@@ -27,11 +45,7 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
       series.visible,
     ];
 
-    const result = await this.database.executeSafeQuery(query, params);
-
-    if (result.errorSys) {
-      throw new Error(result.message);
-    }
+    const result = await this.runQuery(query, params);
 
     return { id: result.insertId };
   }
@@ -55,49 +69,41 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
     params.push(id);
     const query = `UPDATE productions SET ${updateFields.join(', ')} WHERE id = ?`;
 
-    const result = await this.database.executeSafeQuery(query, params);
-
-    if (result.errorSys) {
-      throw new Error(result.message);
-    }
+    await this.runQuery(query, params);
   }
 
   async delete(id: number): Promise<boolean> {
     const query = 'UPDATE productions SET visible = 0 WHERE id = ?';
-    const result = await this.database.executeSafeQuery(query, [id]);
-
-    if (result.errorSys) {
-      throw new Error(result.message);
-    }
+    const result = await this.runQuery(query, [id]);
 
     return result.affectedRows > 0;
   }
 
   async updateImage(id: number, imagePath: string): Promise<boolean> {
     const query = 'UPDATE productions SET image = ? WHERE id = ?';
-    const result = await this.database.executeSafeQuery(query, [imagePath, id]);
-
-    if (result.errorSys) {
-      throw new Error(result.message);
-    }
+    const result = await this.runQuery(query, [imagePath, id]);
 
     return result.affectedRows > 0;
   }
 
   async assignGenres(seriesId: number, genreIds: number[]): Promise<boolean> {
-    // Remove existing assignments
-    const deleteQuery = 'DELETE FROM productions_genres WHERE production_id = ?';
-    await this.database.executeSafeQuery(deleteQuery, [seriesId]);
+    const doWork = async (exec: QueryExecutor) => {
+      await exec('DELETE FROM productions_genres WHERE production_id = ?', [seriesId]);
 
-    // Insert new assignments
-    if (genreIds.length > 0) {
-      const values = genreIds.map((gid) => `(${seriesId}, ${gid})`).join(',');
-      const insertQuery = `INSERT INTO productions_genres (production_id, genre_id) VALUES ${values}`;
-      const result = await this.database.executeSafeQuery(insertQuery, []);
-
-      if (result.errorSys) {
-        throw new Error(result.message);
+      if (genreIds.length > 0) {
+        const values = genreIds.map((gid) => `(${seriesId}, ${gid})`).join(',');
+        await exec(`INSERT INTO productions_genres (production_id, genre_id) VALUES ${values}`, []);
       }
+    };
+
+    if (this.exec) {
+      // Already inside an outer transaction (e.g. called from
+      // runInTransaction) - don't open a nested one, just reuse it.
+      await doWork(this.exec);
+    } else {
+      // Standalone call: make the delete+insert atomic so a failed insert
+      // can never leave a series with zero genres.
+      await this.database.runInTransaction(doWork);
     }
 
     return true;
@@ -108,15 +114,11 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
 
     const placeholders = genreIds.map(() => '?').join(',');
     const query = `
-      DELETE FROM productions_genres 
+      DELETE FROM productions_genres
       WHERE production_id = ? AND genre_id IN (${placeholders})
     `;
 
-    const result = await this.database.executeSafeQuery(query, [seriesId, ...genreIds]);
-
-    if (result.errorSys) {
-      throw new Error(result.message);
-    }
+    await this.runQuery(query, [seriesId, ...genreIds]);
 
     return true;
   }
@@ -128,11 +130,7 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
     const params = titles.flatMap((t) => [seriesId, t]);
     const query = `INSERT INTO titles (production_id, name) VALUES ${placeholders}`;
 
-    const result = await this.database.executeSafeQuery(query, params);
-
-    if (result.errorSys) {
-      throw new Error(result.message);
-    }
+    await this.runQuery(query, params);
 
     return true;
   }
@@ -142,25 +140,17 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
 
     const placeholders = titleIds.map(() => '?').join(',');
     const query = `
-      DELETE FROM titles 
+      DELETE FROM titles
       WHERE production_id = ? AND id IN (${placeholders})
     `;
 
-    const result = await this.database.executeSafeQuery(query, [seriesId, ...titleIds]);
-
-    if (result.errorSys) {
-      throw new Error(result.message);
-    }
+    await this.runQuery(query, [seriesId, ...titleIds]);
 
     return true;
   }
 
   async updateRank(): Promise<void> {
     const query = 'CALL update_rank()';
-    const result = await this.database.executeSafeQuery(query, []);
-
-    if (result.errorSys) {
-      throw new Error(result.message);
-    }
+    await this.runQuery(query, []);
   }
 }

@@ -2,6 +2,8 @@ import mysql, { Pool, PoolConnection, MysqlError } from 'mysql';
 import dotenv from 'dotenv';
 import sendEmail from '../../../infrastructure/services/email';
 
+export type QueryExecutor = (query: string, params?: any) => Promise<any>;
+
 class Database {
   private pool: Pool;
 
@@ -43,6 +45,66 @@ class Database {
       sendEmail(emailAddress, 'System Error', `An error occurred executing a MySQL query: ${errorMessage}`);
       console.error('An error occurred executing the query:', error);
       return { errorSys: true, message: 'Intenal Server Error' };
+    }
+  }
+
+  /**
+   * Runs `work` on a single pooled connection wrapped in BEGIN/COMMIT, rolling
+   * back and rethrowing on any failure. Unlike executeSafeQuery, the query
+   * executor passed to `work` throws on error instead of swallowing it, so a
+   * failed statement naturally triggers the rollback below.
+   */
+  async runInTransaction<T>(work: (query: QueryExecutor) => Promise<T>): Promise<T> {
+    const connection = await new Promise<PoolConnection>((resolve, reject) => {
+      this.pool.getConnection((err: MysqlError | null, conn: PoolConnection) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(conn);
+        }
+      });
+    });
+
+    const query: QueryExecutor = (sql: string, params: any = []) =>
+      new Promise((resolve, reject) => {
+        connection.query(sql, params, (err: MysqlError | null, result: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+      });
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        connection.beginTransaction((err?: MysqlError) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      const result = await work(query);
+
+      await new Promise<void>((resolve, reject) => {
+        connection.commit((err?: MysqlError) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      return result;
+    } catch (error) {
+      await new Promise<void>((resolve) => connection.rollback(() => resolve()));
+      throw error;
+    } finally {
+      connection.release();
     }
   }
 

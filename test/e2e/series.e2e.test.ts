@@ -6,6 +6,7 @@ import { buildTestApp } from '../integration/helpers/build-test-app';
 import { signAdminToken, bearer } from '../integration/helpers/jwt';
 import { rawQuery } from './helpers/db';
 import { buildSeriesModule } from '../../src/modules/series/infrastructure/config/series.module';
+import { SeriesWriteMysqlRepository } from '../../src/modules/series/infrastructure/persistence/series-write.mysql';
 
 const app = buildTestApp([{ path: '/api/series', router: buildSeriesModule().router }]);
 
@@ -220,5 +221,48 @@ describe('Series E2E (real database)', () => {
     const res = await request(app).get('/api/series/999999999');
 
     expect(res.status).toBe(404);
+  });
+
+  it('rolls back assignGenres atomically on a real FK failure (does not leave the series with zero genres)', async () => {
+    // assignGenres does DELETE-then-INSERT as two statements. Before the
+    // runInTransaction fix, a failed INSERT after a successful DELETE left
+    // the series with no genres at all. This forces a real FK violation
+    // (productions_genres.genre_id references genres.id) on the INSERT half
+    // and verifies the DELETE was rolled back too, against the real database.
+    const writeRepo = new SeriesWriteMysqlRepository();
+    const created = await writeRepo.create({
+      name: `${testSeriesName}_atomicity`,
+      chapter_number: 1,
+      year: 2024,
+      description: '',
+      description_en: '',
+      qualification: 8,
+      demography_id: realDemographyId,
+      visible: true,
+    });
+    const atomicityId = created.id;
+
+    try {
+      await writeRepo.assignGenres(atomicityId, [realGenreIds[0]]);
+      let rows = await rawQuery<any[]>(
+        'MYDATABASEANIME',
+        'SELECT genre_id FROM productions_genres WHERE production_id = ?',
+        [atomicityId]
+      );
+      expect(rows.map((r) => r.genre_id)).toEqual([realGenreIds[0]]);
+
+      const nonExistentGenreId = 999999999;
+      await expect(writeRepo.assignGenres(atomicityId, [realGenreIds[0], nonExistentGenreId])).rejects.toThrow();
+
+      rows = await rawQuery<any[]>(
+        'MYDATABASEANIME',
+        'SELECT genre_id FROM productions_genres WHERE production_id = ?',
+        [atomicityId]
+      );
+      expect(rows.map((r) => r.genre_id)).toEqual([realGenreIds[0]]);
+    } finally {
+      await rawQuery('MYDATABASEANIME', 'DELETE FROM productions_genres WHERE production_id = ?', [atomicityId]);
+      await rawQuery('MYDATABASEANIME', 'DELETE FROM productions WHERE id = ?', [atomicityId]);
+    }
   });
 });

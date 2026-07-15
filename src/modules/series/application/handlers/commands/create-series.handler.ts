@@ -31,26 +31,34 @@ export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, 
     let seriesId: number;
 
     if (existingSeries) {
-      // 4a. Update existing series
+      // 4a. Update existing series + 6. update ranking, atomically
       seriesId = existingSeries.id;
-      await this.writeRepository.update(seriesId, {
-        id: seriesId,
-        name: normalizedData.name,
-        chapter_number: normalizedData.chapter_number,
-        year: normalizedData.year,
-        description: normalizedData.description,
-        description_en: normalizedData.description_en,
-        qualification: normalizedData.qualification,
-        demography_id: normalizedData.demography_id,
-        visible: normalizedData.visible,
+      await this.writeRepository.runInTransaction(async (tx) => {
+        await tx.update(seriesId, {
+          id: seriesId,
+          name: normalizedData.name,
+          chapter_number: normalizedData.chapter_number,
+          year: normalizedData.year,
+          description: normalizedData.description,
+          description_en: normalizedData.description_en,
+          qualification: normalizedData.qualification,
+          demography_id: normalizedData.demography_id,
+          visible: normalizedData.visible,
+        });
+        await tx.updateRank();
       });
     } else {
-      // 4b. Create new series
-      const newSeries = await this.writeRepository.create(normalizedData);
-      seriesId = newSeries.id;
+      // 4b. Create new series + 6. update ranking, atomically
+      seriesId = await this.writeRepository.runInTransaction(async (tx) => {
+        const newSeries = await tx.create(normalizedData);
+        await tx.updateRank();
+        return newSeries.id;
+      });
     }
 
-    // 5. Process image
+    // 5. Process image (best-effort, deliberately outside the transaction
+    // above: a failed image upload must not roll back the series itself,
+    // matching the pre-existing non-fatal handling below)
     let imagePath: string | undefined;
     if (command.imageBuffer) {
       try {
@@ -60,9 +68,6 @@ export class CreateSeriesHandler implements CommandHandler<CreateSeriesCommand, 
         console.warn(`Image processing failed for series ${seriesId}:`, error);
       }
     }
-
-    // 6. Update ranking
-    await this.writeRepository.updateRank();
 
     // 7. Get updated/created series to return complete response
     const series = await this.readRepository.findById(seriesId);

@@ -26,6 +26,7 @@ const mockWrite: jest.Mocked<SeriesWriteRepository> = {
   addTitles: jest.fn(),
   removeTitles: jest.fn(),
   updateRank: jest.fn(),
+  runInTransaction: jest.fn((work) => work(mockWrite)),
 };
 
 const mockRead: jest.Mocked<SeriesReadRepository> = {

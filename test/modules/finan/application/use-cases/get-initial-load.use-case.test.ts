@@ -113,6 +113,36 @@ describe('GetInitialLoadUseCase', () => {
       expect(result.remainingBudget).toBe(0);
     });
 
+    it('should await createTableForUser before running the parallel reads', async () => {
+      const request: InitialLoadRequest = {
+        username: 'testuser',
+        currency: 'USD',
+      };
+
+      const callOrder: string[] = [];
+      mockRepository.createTableForUser.mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        callOrder.push('createTableForUser');
+      });
+      mockRepository.getTotalExpenseDay.mockImplementation(async () => {
+        callOrder.push('getTotalExpenseDay');
+        return [];
+      });
+      mockRepository.getMovements.mockResolvedValue([]);
+      mockRepository.getMovementsByTag.mockResolvedValue([]);
+      mockRepository.getTotalBalance.mockResolvedValue([]);
+      mockRepository.getYearlyBalance.mockResolvedValue([]);
+      mockRepository.getMonthlyBalance.mockResolvedValue([]);
+      mockRepository.getBalanceUntilDate.mockResolvedValue([]);
+      mockRepository.getMonthlyExpensesUntilCurrentDay.mockResolvedValue([]);
+      mockRepository.getMonthlyBudget.mockResolvedValue(0);
+      mockRepository.getCurrentMonthExpenses.mockResolvedValue(0);
+
+      await getInitialLoadUseCase.execute(request);
+
+      expect(callOrder).toEqual(['createTableForUser', 'getTotalExpenseDay']);
+    });
+
     it('should use start_date when date is not provided', async () => {
       const request: InitialLoadRequest = {
         username: 'testuser',

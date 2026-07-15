@@ -37,93 +37,97 @@ export class CreateSeriesCompleteHandler
 
       // 3. Check for duplicate (name + year)
       const duplicateSeries = await this.readRepository.findByNameAndYear(normalized.name, normalized.year);
-      let seriesId: number;
-      let isUpdate = false;
+      let seriesId: number = duplicateSeries?.id ?? 0;
+      const isUpdate = !!duplicateSeries;
 
-      if (duplicateSeries) {
-        // 4a. Update existing series
-        seriesId = duplicateSeries.id;
-        isUpdate = true;
+      // 4-7. Create-or-update, relations, and ranking, all atomically: a
+      // failure partway through (e.g. the genre/title writes) rolls back the
+      // whole batch instead of leaving the series half-updated.
+      await this.writeRepository.runInTransaction(async (tx) => {
+        if (duplicateSeries) {
+          // 4a. Update existing series
+          const updateData: SeriesUpdateRequest = {
+            id: seriesId,
+            name: normalized.name,
+            chapter_number: normalized.chapter_number,
+            year: normalized.year,
+            description: normalized.description,
+            description_en: normalized.description_en,
+            qualification: normalized.qualification,
+            demography_id: normalized.demography_id,
+            visible: normalized.visible,
+          };
 
-        const updateData: SeriesUpdateRequest = {
-          id: seriesId,
-          name: normalized.name,
-          chapter_number: normalized.chapter_number,
-          year: normalized.year,
-          description: normalized.description,
-          description_en: normalized.description_en,
-          qualification: normalized.qualification,
-          demography_id: normalized.demography_id,
-          visible: normalized.visible,
-        };
+          await tx.update(seriesId, updateData);
 
-        await this.writeRepository.update(seriesId, updateData);
+          // Get existing series data for comparison
+          const existingSeries = await this.readRepository.findById(seriesId);
+          if (!existingSeries) {
+            throw new Error('Series not found after update');
+          }
 
-        // Get existing series data for comparison
-        const existingSeries = await this.readRepository.findById(seriesId);
-        if (!existingSeries) {
-          throw new Error('Series not found after update');
-        }
+          // Update genres if provided (even if empty array to remove all)
+          if (normalized.genres !== undefined) {
+            const existingGenreIds = existingSeries.genres?.map((g) => g.id).sort() ?? [];
+            const newGenreIds = [...normalized.genres].sort();
 
-        // Update genres if provided (even if empty array to remove all)
-        if (normalized.genres !== undefined) {
-          const existingGenreIds = existingSeries.genres?.map((g) => g.id).sort() ?? [];
-          const newGenreIds = [...normalized.genres].sort();
+            // Only update if genres are different
+            if (JSON.stringify(existingGenreIds) !== JSON.stringify(newGenreIds)) {
+              await tx.assignGenres(seriesId, normalized.genres);
+            }
+          }
 
-          // Only update if genres are different
-          if (JSON.stringify(existingGenreIds) !== JSON.stringify(newGenreIds)) {
-            await this.writeRepository.assignGenres(seriesId, normalized.genres);
+          // Update titles if provided (even if empty array to remove all)
+          if (normalized.titles !== undefined) {
+            const existingTitleNames = (
+              existingSeries.titles?.map((t) => t.name.toLowerCase().trim()) ?? []
+            ).sort();
+            const newTitleNames = normalized.titles.map((t) => t.toLowerCase().trim()).sort();
+
+            // Only update if titles are different
+            if (JSON.stringify(existingTitleNames) !== JSON.stringify(newTitleNames)) {
+              // Remove existing titles
+              if (existingSeries.titles && existingSeries.titles.length > 0) {
+                const existingTitleIds = existingSeries.titles.map((t) => t.id);
+                await tx.removeTitles(seriesId, existingTitleIds);
+              }
+
+              // Add new titles only if array is not empty
+              if (normalized.titles.length > 0) {
+                await tx.addTitles(seriesId, normalized.titles);
+              }
+            }
+          }
+        } else {
+          // 4b. Create new series
+          const basicSeriesData: SeriesCreateRequest = {
+            name: normalized.name,
+            chapter_number: normalized.chapter_number,
+            year: normalized.year,
+            description: normalized.description,
+            description_en: normalized.description_en,
+            qualification: normalized.qualification,
+            demography_id: normalized.demography_id,
+            visible: normalized.visible,
+          };
+
+          const newSeries = await tx.create(basicSeriesData);
+          seriesId = newSeries.id;
+
+          // 5. Assign genres if provided
+          if (normalized.genres !== undefined && normalized.genres.length > 0) {
+            await tx.assignGenres(seriesId, normalized.genres);
+          }
+
+          // 6. Add alternative titles if provided (only for new series, updates handled above)
+          if (normalized.titles !== undefined && normalized.titles.length > 0) {
+            await tx.addTitles(seriesId, normalized.titles);
           }
         }
 
-        // Update titles if provided (even if empty array to remove all)
-        if (normalized.titles !== undefined) {
-          const existingTitleNames = (existingSeries.titles?.map((t) => t.name.toLowerCase().trim()) ?? []).sort();
-          const newTitleNames = normalized.titles.map((t) => t.toLowerCase().trim()).sort();
-
-          // Only update if titles are different
-          if (JSON.stringify(existingTitleNames) !== JSON.stringify(newTitleNames)) {
-            // Remove existing titles
-            if (existingSeries.titles && existingSeries.titles.length > 0) {
-              const existingTitleIds = existingSeries.titles.map((t) => t.id);
-              await this.writeRepository.removeTitles(seriesId, existingTitleIds);
-            }
-
-            // Add new titles only if array is not empty
-            if (normalized.titles.length > 0) {
-              await this.writeRepository.addTitles(seriesId, normalized.titles);
-            }
-          }
-        }
-      } else {
-        // 4b. Create new series
-        const basicSeriesData: SeriesCreateRequest = {
-          name: normalized.name,
-          chapter_number: normalized.chapter_number,
-          year: normalized.year,
-          description: normalized.description,
-          description_en: normalized.description_en,
-          qualification: normalized.qualification,
-          demography_id: normalized.demography_id,
-          visible: normalized.visible,
-        };
-
-        const newSeries = await this.writeRepository.create(basicSeriesData);
-        seriesId = newSeries.id;
-
-        // 5. Assign genres if provided
-        if (normalized.genres !== undefined && normalized.genres.length > 0) {
-          await this.writeRepository.assignGenres(seriesId, normalized.genres);
-        }
-      }
-
-      // 6. Add alternative titles if provided (only for new series, updates handled above)
-      if (!isUpdate && normalized.titles !== undefined && normalized.titles.length > 0) {
-        await this.writeRepository.addTitles(seriesId, normalized.titles);
-      }
-
-      // 7. Update ranking
-      await this.writeRepository.updateRank();
+        // 7. Update ranking
+        await tx.updateRank();
+      });
 
       // 8. Verify that the series was created/updated correctly
       const completeSeries = await this.readRepository.findById(seriesId);

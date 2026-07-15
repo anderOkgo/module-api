@@ -32,11 +32,11 @@ export class UpdateSeriesHandler implements CommandHandler<UpdateSeriesCommand, 
     // 3. Normalize
     const normalizedData = this.normalize(command);
 
-    // 4. Update
-    await this.writeRepository.update(command.id, normalizedData);
-
-    // 5. Update ranking
-    await this.writeRepository.updateRank();
+    // 4. Update + 5. Update ranking, atomically
+    await this.writeRepository.runInTransaction(async (tx) => {
+      await tx.update(command.id, normalizedData);
+      await tx.updateRank();
+    });
 
     // 6. Get updated series
     const updatedSeries = await this.readRepository.findById(command.id);

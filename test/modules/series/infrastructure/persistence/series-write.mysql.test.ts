@@ -9,7 +9,7 @@ describe('SeriesWriteMysqlRepository', () => {
   let mockDatabase: jest.Mocked<Database>;
 
   beforeEach(() => {
-    mockDatabase = { executeSafeQuery: jest.fn() } as any;
+    mockDatabase = { executeSafeQuery: jest.fn(), runInTransaction: jest.fn() } as any;
     MockedDatabase.mockImplementation(() => mockDatabase);
     repository = new SeriesWriteMysqlRepository();
     jest.clearAllMocks();
@@ -137,18 +137,23 @@ describe('SeriesWriteMysqlRepository', () => {
   });
 
   describe('assignGenres', () => {
-    it('clears existing assignments and inserts the new ones', async () => {
-      mockDatabase.executeSafeQuery.mockResolvedValueOnce({ affectedRows: 2 }).mockResolvedValueOnce({});
+    let mockExec: jest.Mock;
+
+    beforeEach(() => {
+      mockExec = jest.fn();
+      mockDatabase.runInTransaction.mockImplementation((work: any) => work(mockExec));
+    });
+
+    it('clears existing assignments and inserts the new ones atomically, via runInTransaction', async () => {
+      mockExec.mockResolvedValue(undefined);
 
       const result = await repository.assignGenres(5, [1, 2]);
 
       expect(result).toBe(true);
-      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
-        1,
-        'DELETE FROM productions_genres WHERE production_id = ?',
-        [5]
-      );
-      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
+      expect(mockDatabase.runInTransaction).toHaveBeenCalledTimes(1);
+      expect(mockDatabase.executeSafeQuery).not.toHaveBeenCalled();
+      expect(mockExec).toHaveBeenNthCalledWith(1, 'DELETE FROM productions_genres WHERE production_id = ?', [5]);
+      expect(mockExec).toHaveBeenNthCalledWith(
         2,
         'INSERT INTO productions_genres (production_id, genre_id) VALUES (5, 1),(5, 2)',
         []
@@ -156,20 +161,36 @@ describe('SeriesWriteMysqlRepository', () => {
     });
 
     it('only clears assignments (no insert) when genreIds is empty', async () => {
-      mockDatabase.executeSafeQuery.mockResolvedValue({ affectedRows: 1 });
+      mockExec.mockResolvedValue(undefined);
 
       const result = await repository.assignGenres(5, []);
 
       expect(result).toBe(true);
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1);
+      expect(mockExec).toHaveBeenCalledTimes(1);
     });
 
-    it('throws when the insert reports an errorSys', async () => {
-      mockDatabase.executeSafeQuery
-        .mockResolvedValueOnce({ affectedRows: 1 })
-        .mockResolvedValueOnce({ errorSys: true, message: 'insert failed' });
+    it('rejects when the insert fails (the transaction wrapper is responsible for the rollback)', async () => {
+      mockExec.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('insert failed'));
 
       await expect(repository.assignGenres(5, [1])).rejects.toThrow('insert failed');
+    });
+
+    it('reuses the outer transaction instead of opening a nested one when already inside runInTransaction', async () => {
+      const txExec = jest.fn().mockResolvedValue(undefined);
+      mockDatabase.runInTransaction.mockImplementation((work: any) => work(txExec));
+
+      await repository.runInTransaction(async (tx) => {
+        await tx.assignGenres(5, [1]);
+      });
+
+      // Only the outer runInTransaction call should exist - assignGenres must not call it again.
+      expect(mockDatabase.runInTransaction).toHaveBeenCalledTimes(1);
+      expect(txExec).toHaveBeenNthCalledWith(1, 'DELETE FROM productions_genres WHERE production_id = ?', [5]);
+      expect(txExec).toHaveBeenNthCalledWith(
+        2,
+        'INSERT INTO productions_genres (production_id, genre_id) VALUES (5, 1)',
+        []
+      );
     });
   });
 
@@ -251,6 +272,31 @@ describe('SeriesWriteMysqlRepository', () => {
       mockDatabase.executeSafeQuery.mockResolvedValue({ errorSys: true, message: 'remove failed' });
 
       await expect(repository.removeTitles(5, [100])).rejects.toThrow('remove failed');
+    });
+  });
+
+  describe('runInTransaction', () => {
+    it('delegates to database.runInTransaction, exposing a repo scoped to the transaction executor', async () => {
+      const txExec = jest.fn().mockResolvedValue({ insertId: 99 });
+      mockDatabase.runInTransaction.mockImplementation((work: any) => work(txExec));
+
+      const result = await repository.runInTransaction(async (tx) => {
+        return tx.create({
+          name: 'X',
+          chapter_number: 1,
+          year: 2020,
+          description: '',
+          description_en: '',
+          qualification: 5,
+          demography_id: 1,
+          visible: true,
+        });
+      });
+
+      expect(mockDatabase.runInTransaction).toHaveBeenCalledTimes(1);
+      expect(txExec).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO productions'), expect.any(Array));
+      expect(mockDatabase.executeSafeQuery).not.toHaveBeenCalled();
+      expect(result).toEqual({ id: 99 });
     });
   });
 

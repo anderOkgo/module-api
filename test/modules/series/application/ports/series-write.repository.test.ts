@@ -18,6 +18,7 @@ describe('SeriesWriteRepository Interface', () => {
       addTitles: jest.fn(),
       removeTitles: jest.fn(),
       updateRank: jest.fn(),
+      runInTransaction: jest.fn(),
     };
   });
 
@@ -258,6 +259,22 @@ describe('SeriesWriteRepository Interface', () => {
       await mockRepository.updateRank();
 
       expect(mockRepository.updateRank).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('Transaction operations', () => {
+    it('should implement runInTransaction method', async () => {
+      mockRepository.runInTransaction.mockImplementation((work) => work(mockRepository));
+      mockRepository.updateRank.mockResolvedValue();
+
+      const result = await mockRepository.runInTransaction(async (tx) => {
+        await tx.updateRank();
+        return 'done';
+      });
+
+      expect(mockRepository.runInTransaction).toHaveBeenCalled();
+      expect(mockRepository.updateRank).toHaveBeenCalled();
+      expect(result).toBe('done');
     });
   });
 

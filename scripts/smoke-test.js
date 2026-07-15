@@ -295,6 +295,31 @@ async function main() {
       if (!movementId) throw new Error('no movement id returned');
     });
 
+    // Acceptance criterion #6: the real type_sources catalog has 9 rows
+    // (income/expense/saving/balance/tax return/GYG payment/interest/visa
+    // refund/cash exchange), but MovementType only defines 3 (1, 2, 8) and
+    // validation rejects everything else — so 6 real, historically-used
+    // categories (e.g. 13 = "cash exchange") can never be created via the
+    // API today. Assert that limitation is real, not assumed.
+    await check(
+      'POST /api/finan/insert rejects a movement_type outside {1, 2, 8} (real type-catalog gap)',
+      async () => {
+        const res = await client.post(
+          '/api/finan/insert',
+          {
+            movement_name: `SMOKE_TEST_BADTYPE_${suffix}`,
+            movement_val: 1,
+            movement_date: '2026-01-01',
+            movement_type: 13, // "cash exchange" in the real type_sources catalog — not in the app's enum
+            movement_tag: 'smoke-test',
+            currency: 'COP',
+          },
+          { headers: authHeader(userToken) }
+        );
+        assertStatus(res, 400, 'POST /api/finan/insert with movement_type: 13');
+      }
+    );
+
     if (movementId) {
       await check('POST /api/finan/initial-load reflects the created movement', async () => {
         const res = await client.post(
@@ -340,6 +365,132 @@ async function main() {
         assertStatus(res, 200, 'POST /api/finan/initial-load (post-delete)');
         const stillPresent = ((res.data.data && res.data.data.movements) || []).some((m) => m.id === movementId);
         if (stillPresent) throw new Error('movement still present in initial-load after delete');
+      });
+    }
+
+    // Acceptance criterion #11: re-submitting the same movement (same name +
+    // date) returns the *original*, untouched record instead of updating it
+    // — a materially different upsert semantic from series (criterion #5),
+    // which does update on a name+year collision.
+    const dupName = `SMOKE_TEST_DUP_${suffix}`;
+    let dupId;
+    await check(
+      'POST /api/finan/insert twice with the same name+date returns the original value, not the second call\'s',
+      async () => {
+        const first = await client.post(
+          '/api/finan/insert',
+          {
+            movement_name: dupName,
+            movement_val: 11,
+            movement_date: '2026-01-05',
+            movement_type: 1,
+            movement_tag: 'smoke-test-dup',
+            currency: 'COP',
+          },
+          { headers: authHeader(userToken) }
+        );
+        assertStatus(first, 201, 'POST /api/finan/insert (duplicate check, first call)');
+        dupId = first.data.data && first.data.data.id;
+        if (!dupId) throw new Error('no movement id returned');
+
+        const second = await client.post(
+          '/api/finan/insert',
+          {
+            movement_name: dupName,
+            movement_val: 999, // deliberately different — must be ignored
+            movement_date: '2026-01-05',
+            movement_type: 1,
+            movement_tag: 'smoke-test-dup',
+            currency: 'COP',
+          },
+          { headers: authHeader(userToken) }
+        );
+        assertStatus(second, 201, 'POST /api/finan/insert (duplicate check, second call)');
+        const secondId = second.data.data && second.data.data.id;
+        if (secondId !== dupId) {
+          throw new Error(`expected the same movement id (${dupId}) on the duplicate call, got ${secondId}`);
+        }
+        if (Number(second.data.data.value) !== 11) {
+          throw new Error(`expected the original value (11) to survive the duplicate call, got ${second.data.data.value}`);
+        }
+      }
+    );
+    if (dupId) {
+      await check('DELETE /api/finan/delete/:id removes the duplicate-check fixture', async () => {
+        const res = await client.delete(`/api/finan/delete/${dupId}`, { headers: authHeader(userToken) });
+        assertStatus(res, 200, 'DELETE /api/finan/delete/:id (duplicate-check cleanup)');
+      });
+    }
+
+    // Acceptance criterion #10: creating a movement with operate_for adjusts
+    // the VALUE of the referenced, earlier movement — add if the new
+    // movement is income, subtract if expense/balance — before the new
+    // movement is even inserted. One-way; the "log" column (not shown
+    // directly in the HTTP response, but implied by this behavior) is the
+    // linked movement's id, not an audit log.
+    const linkBaseName = `SMOKE_TEST_LINKBASE_${suffix}`;
+    const linkAdjustName = `SMOKE_TEST_LINKADJUST_${suffix}`;
+    let linkBaseId;
+    let linkAdjustId;
+    await check(
+      'creating a movement with operate_for adjusts the value of the movement it references',
+      async () => {
+        const baseRes = await client.post(
+          '/api/finan/insert',
+          {
+            movement_name: linkBaseName,
+            movement_val: 100,
+            movement_date: '2026-01-06',
+            movement_type: 8, // "balance" — the kind of movement operate_for typically adjusts
+            movement_tag: 'smoke-test-link',
+            currency: 'COP',
+          },
+          { headers: authHeader(userToken) }
+        );
+        assertStatus(baseRes, 201, 'POST /api/finan/insert (link base)');
+        linkBaseId = baseRes.data.data && baseRes.data.data.id;
+        if (!linkBaseId) throw new Error('no movement id returned for the link base');
+
+        const adjustRes = await client.post(
+          '/api/finan/insert',
+          {
+            movement_name: linkAdjustName,
+            movement_val: 30,
+            movement_date: '2026-01-07',
+            movement_type: 2, // expense — subtracts from the linked movement
+            movement_tag: 'smoke-test-link',
+            currency: 'COP',
+            operate_for: linkBaseId,
+          },
+          { headers: authHeader(userToken) }
+        );
+        assertStatus(adjustRes, 201, 'POST /api/finan/insert (linked adjustment)');
+        linkAdjustId = adjustRes.data.data && adjustRes.data.data.id;
+        if (!linkAdjustId) throw new Error('no movement id returned for the adjusting movement');
+
+        const loadRes = await client.post(
+          '/api/finan/initial-load',
+          { currency: 'COP' },
+          { headers: authHeader(userToken) }
+        );
+        assertStatus(loadRes, 200, 'POST /api/finan/initial-load (after linked adjustment)');
+        const baseAfter = ((loadRes.data.data && loadRes.data.data.movements) || []).find((m) => m.id === linkBaseId);
+        if (!baseAfter) throw new Error('link base movement not found after the adjustment');
+        if (Number(baseAfter.val) !== 70) {
+          throw new Error(`expected the link base's value to become 70 (100 - 30), got ${baseAfter.val}`);
+        }
+      }
+    );
+    if (linkAdjustId) {
+      await check('DELETE /api/finan/delete/:id removes the linked-adjustment fixture', async () => {
+        const res = await client.delete(`/api/finan/delete/${linkAdjustId}`, { headers: authHeader(userToken) });
+        assertStatus(res, 200, 'DELETE /api/finan/delete/:id (link-adjustment cleanup)');
+      });
+    }
+    if (linkBaseId) {
+      await check('DELETE /api/finan/delete/:id removes the link-base fixture', async () => {
+        const res = await client.delete(`/api/finan/delete/${linkBaseId}`, { headers: authHeader(userToken) });
+        assertStatus(res, 200, 'DELETE /api/finan/delete/:id (link-base cleanup)');
       });
     }
 

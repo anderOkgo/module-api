@@ -455,6 +455,34 @@ describe('SeriesController - Fixed Tests', () => {
       });
     });
 
+    it('should create a series with visible sent as a real JSON boolean true (regression: JSON clients, not just multipart form-data)', async () => {
+      // Arrange
+      const mockResult = { id: 1, name: 'Test Series' };
+      mockRequest.body = {
+        name: 'Test Series',
+        chapter_number: '1',
+        year: '2023',
+        description: 'Test description',
+        description_en: 'Test description in English',
+        qualification: '8.5',
+        demography_id: '1',
+        visible: true,
+      };
+
+      mockHandlers.createSeriesHandler.execute.mockResolvedValue(mockResult);
+
+      // Act
+      await controller.createSeries(mockRequest as Request, mockResponse as Response);
+
+      // Assert
+      expect(mockHandlers.createSeriesHandler.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          visible: true,
+        })
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+    });
+
     it('should handle createSeries errors', async () => {
       // Arrange
       const error = new Error('Validation failed');
@@ -524,6 +552,56 @@ describe('SeriesController - Fixed Tests', () => {
         message: 'Series updated successfully',
         data: mockResult,
       });
+    });
+
+    it('should update a series with visible sent as a real JSON boolean true (regression: JSON clients, not just multipart form-data)', async () => {
+      // Arrange
+      const mockResult = { id: 1, name: 'Updated Series' };
+      mockRequest.params = { id: '1' };
+      mockRequest.body = {
+        name: 'Updated Series',
+        visible: true,
+      };
+
+      mockHandlers.updateSeriesHandler.execute.mockResolvedValue(mockResult);
+
+      // Act
+      await controller.updateSeries(mockRequest as Request, mockResponse as Response);
+
+      // Assert
+      expect(mockHandlers.updateSeriesHandler.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 1,
+          name: 'Updated Series',
+          visible: true,
+        })
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+    });
+
+    it('should update a series with visible sent as a real JSON boolean false', async () => {
+      // Arrange
+      const mockResult = { id: 1, name: 'Updated Series' };
+      mockRequest.params = { id: '1' };
+      mockRequest.body = {
+        name: 'Updated Series',
+        visible: false,
+      };
+
+      mockHandlers.updateSeriesHandler.execute.mockResolvedValue(mockResult);
+
+      // Act
+      await controller.updateSeries(mockRequest as Request, mockResponse as Response);
+
+      // Assert
+      expect(mockHandlers.updateSeriesHandler.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 1,
+          name: 'Updated Series',
+          visible: false,
+        })
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
     });
   });
 

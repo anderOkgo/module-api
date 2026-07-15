@@ -41,7 +41,7 @@ describe('SeriesReadMysqlRepository', () => {
     qualification: 8,
     demography_id: 1,
     demographic_name: 'Shounen',
-    visible: 1,
+    visible: true,
     image: '/img/tarjeta/1.jpg',
     rank: 1,
   };

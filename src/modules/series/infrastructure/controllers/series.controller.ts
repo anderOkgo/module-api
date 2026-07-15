@@ -69,6 +69,17 @@ export class SeriesController {
   ) {}
 
   /**
+   * Parses the `visible` field from a request body. Clients send it in
+   * different shapes depending on the transport: multipart/form-data always
+   * stringifies it ('true'/'false'), a JSON body carries the real boolean,
+   * and a value round-tripped unmodified from GET /api/series/:id (itself
+   * a raw MySQL TINYINT) arrives as the number 1/0.
+   */
+  private parseVisible(value: unknown): boolean {
+    return value === true || value === 'true' || value === 1 || value === '1';
+  }
+
+  /**
    * Command: Create a new series
    * POST /api/series/create
    */
@@ -82,7 +93,7 @@ export class SeriesController {
         req.body.description_en,
         parseFloat(req.body.qualification),
         parseInt(req.body.demography_id),
-        req.body.visible === true || req.body.visible === 'true',
+        this.parseVisible(req.body.visible),
         req.file?.buffer
       );
 
@@ -117,7 +128,7 @@ export class SeriesController {
         req.body.description_en && req.body.description_en.trim() !== '' ? req.body.description_en : undefined,
         req.body.qualification && req.body.qualification !== '' ? parseFloat(req.body.qualification) : undefined,
         req.body.demography_id && req.body.demography_id !== '' ? parseInt(req.body.demography_id) : undefined,
-        req.body.visible !== undefined ? req.body.visible === true || req.body.visible === 'true' : undefined
+        req.body.visible !== undefined ? this.parseVisible(req.body.visible) : undefined
       );
 
       const result = await this.updateSeriesHandler.execute(command);

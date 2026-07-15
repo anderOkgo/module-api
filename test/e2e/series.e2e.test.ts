@@ -87,6 +87,59 @@ describe('Series E2E (real database)', () => {
     expect(Number(rows[0].qualification)).toBe(res.body.data.qualification);
   });
 
+  it('updates visible using a real JSON boolean, not the string "true" (regression)', async () => {
+    // The frontend sends visible as a genuine JS boolean over JSON (checkbox
+    // state, JSON.stringify'd), never the string 'true'. A prior regression
+    // (req.body.visible === 'true') silently turned every visible: true into
+    // false for JSON callers. Verify the real DB row, not just the response.
+    const hideRes = await request(app)
+      .put(`/api/series/${seriesId}`)
+      .set('Authorization', adminToken)
+      .send({ visible: false });
+
+    expect(hideRes.status).toBe(200);
+    expect(Number(hideRes.body.data.visible)).toBe(0);
+
+    let rows = await rawQuery<any[]>('MYDATABASEANIME', 'SELECT visible FROM productions WHERE id = ?', [seriesId]);
+    expect(Number(rows[0].visible)).toBe(0);
+
+    const showRes = await request(app)
+      .put(`/api/series/${seriesId}`)
+      .set('Authorization', adminToken)
+      .send({ visible: true });
+
+    expect(showRes.status).toBe(200);
+    expect(Number(showRes.body.data.visible)).toBe(1);
+
+    rows = await rawQuery<any[]>('MYDATABASEANIME', 'SELECT visible FROM productions WHERE id = ?', [seriesId]);
+    expect(Number(rows[0].visible)).toBe(1);
+  });
+
+  it('does not hide the series when the edit form round-trips the GET value unchanged (real prod incident)', async () => {
+    // This is the exact flow that broke production: the admin panel loads a
+    // series via GET, seeds its `visible` checkbox from the response, and if
+    // the user never touches that checkbox, submits that same value back on
+    // PUT. GET must therefore return a real boolean (not a raw MySQL 0/1) —
+    // otherwise the round-tripped number silently fails the boolean check on
+    // the way back in.
+    const getRes = await request(app).get(`/api/series/${seriesId}`);
+    expect(getRes.status).toBe(200);
+    expect(typeof getRes.body.data.visible).toBe('boolean');
+    expect(getRes.body.data.visible).toBe(true);
+
+    const putRes = await request(app)
+      .put(`/api/series/${seriesId}`)
+      .set('Authorization', adminToken)
+      .send({ name: testSeriesName, visible: getRes.body.data.visible });
+
+    expect(putRes.status).toBe(200);
+
+    const rows = await rawQuery<any[]>('MYDATABASEANIME', 'SELECT visible FROM productions WHERE id = ?', [
+      seriesId,
+    ]);
+    expect(Number(rows[0].visible)).toBe(1);
+  });
+
   it('rejects assigning a genre id that does not exist in the real catalog', async () => {
     const res = await request(app)
       .post(`/api/series/${seriesId}/genres`)

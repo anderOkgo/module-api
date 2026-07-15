@@ -290,7 +290,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
       qualification: row.qualification,
       demography_id: row.demography_id,
       demographic_name: row.demographic_name,
-      visible: row.visible,
+      visible: Boolean(row.visible),
       image: row.image,
       rank: row.rank,
     };

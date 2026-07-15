@@ -463,7 +463,7 @@ Added the Phase 6 regression as one more check inside the existing single-file s
 
 ## Acceptance Criteria Catalog
 
-**Status: IN PROGRESS** (methodology + first 5 entries recorded 2026-07-15; most of the system's business rules are not catalogued yet — see "How this grows" below)
+**Status: IN PROGRESS** (methodology + first 5 entries recorded 2026-07-15, and all 5 now actually verified by `scripts/smoke-test.js` as of the same day; most of the system's business rules are not catalogued yet — see "How this grows" below)
 
 This is the living answer to "how do we surface every acceptance criterion the system enforces, independent of the TypeScript that happens to implement it today." Kept in this file for now, per the user's explicit call — split into dedicated file(s) later if it grows large enough to justify it, but not fragmented prematurely.
 
@@ -494,7 +494,7 @@ The catalog is the human-readable statement of *what* must be true. `scripts/smo
 
 **Enforced in:** `animecream-data/sql/db-views-procs.sql` (`update_rank` procedure), invoked by `updateRank()` in `src/modules/series/infrastructure/persistence/series-write.mysql.ts`, called from `create-series.handler.ts`, `update-series.handler.ts`, and `create-series-complete.handler.ts` after every write.
 
-**Verified in `scripts/smoke-test.js`:** not yet. The script submits `qualification: 8` on create and `qualification: 7.5` on update but never re-fetches the series to assert what value actually comes back (it would almost never equal what was submitted). **TODO.**
+**Verified in `scripts/smoke-test.js`:** yes (2026-07-15) — the update check asserts the returned qualification falls in the 7.0–9.7 range (not the submitted `7.5`) and that a re-fetch agrees with the response.
 
 #### 2. `visible` must round-trip as a real JSON boolean, not a raw 0/1
 
@@ -502,7 +502,7 @@ The catalog is the human-readable statement of *what* must be true. `scripts/smo
 
 **Enforced in:** `mapToResponse()` in `src/modules/series/infrastructure/persistence/series-read.mysql.ts` (`visible: Boolean(row.visible)`), and `parseVisible()` in `src/modules/series/infrastructure/controllers/series.controller.ts` (accepts a real boolean, the string `'true'`/`'false'`, or `1`/`0`/`'1'`/`'0'`, since multipart form-data, JSON bodies, and the round-tripped `GET` value all arrive in different shapes).
 
-**Verified in `scripts/smoke-test.js`:** not yet — the script sends `visible: 'true'` on create but never asserts the type of what `GET` returns, and doesn't exercise the round-trip scenario at all. `test/e2e/series.e2e.test.ts` already covers this thoroughly (real regression tests, real incident), but that's the TypeScript-coupled layer, not the portable one. **TODO.**
+**Verified in `scripts/smoke-test.js`:** yes (2026-07-15) — asserts `typeof visible === 'boolean'` on `GET`, and reproduces the exact round-trip scenario (`GET` → submit that same value back on `PUT` → re-fetch → still visible).
 
 #### 3. Finan usernames are case-insensitive, everywhere
 
@@ -518,7 +518,7 @@ The catalog is the human-readable statement of *what* must be true. `scripts/smo
 
 **Enforced in:** `delete()` in `series-write.mysql.ts` (`UPDATE productions SET visible = 0`) vs. `delete()` in `finan.mysql.ts` (`DELETE FROM movements_<user> WHERE id = ?`).
 
-**Verified in `scripts/smoke-test.js`:** partially. Both delete checks assert a `200` status, but neither re-fetches afterward to *prove* the series row still exists (with `visible=0`) or that the finan row is really gone. `test/e2e/` does verify this via direct DB query for both. **TODO** to close the gap at the HTTP-only layer (for finan, that likely means asserting the movement is absent from a follow-up `/initial-load` call, same pattern already used in Phase 6's regression check).
+**Verified in `scripts/smoke-test.js`:** yes (2026-07-15) — both sides now have a follow-up confirmation, not just the `200` on `DELETE` itself: the series check re-fetches and asserts `visible === false`; the finan check re-calls `/initial-load` and asserts the movement is absent, same pattern as Phase 6's regression check.
 
 #### 5. Creating a series with a name+year that already exists updates it instead of creating a duplicate
 
@@ -526,7 +526,7 @@ The catalog is the human-readable statement of *what* must be true. `scripts/smo
 
 **Enforced in:** `findByNameAndYear()` calls at the top of `create-series.handler.ts` and `create-series-complete.handler.ts`, branching into the update path when a match is found.
 
-**Verified in `scripts/smoke-test.js`:** not yet — the script always creates with a fresh, timestamp-suffixed name, so the duplicate/upsert path never executes. **TODO** (would need to call create twice with the same name+year and assert the second call updates rather than duplicating — mindful of not leaving two real disposable fixtures behind if it does go wrong).
+**Verified in `scripts/smoke-test.js`:** yes (2026-07-15) — a dedicated fixture calls `create` twice with the same name+year, asserts the second call returns the *same* id and reflects the second call's `description`, then does a single cleanup delete. Confirmed against the real DB afterward: exactly one row exists, not two.
 
 ---
 
@@ -562,3 +562,4 @@ The catalog is the human-readable statement of *what* must be true. `scripts/smo
 - **2026-07-15** — User asked to continue Phase 7. Planned (via EnterPlanMode, three explicit decisions confirmed: keep assuming an already-running server rather than auto-spawning one, fully replace `scripts/smoke-test.js` rather than keep both, scope new coverage this round to just the username-casing regression) and implemented `test/acceptance/` (Jest, one file per module, `describe.skip`-gated on which real credentials are configured). Deleted `scripts/smoke-test.js`; `npm run smoke` now ran the new suite. Verified for real against the Docker MariaDB + a freshly rebuilt local server: **36 passed, 1 skipped** (parity + one new check; the skip is the mixed-case regression, correctly inert for the real all-lowercase `anderokgo` account), cleanup independently confirmed via direct DB query. Full gate: `tsc --noEmit` clean, **1273/1273 tests / 84/84 suites / 100% coverage** (unaffected), **26/26 E2E** (unaffected).
 - **2026-07-15** — User pushed back immediately on seeing it: confused about why a "solo un JS" idea turned into 6 TypeScript files plus Jest wiring, and said plainly it complicated things. Correct call — re-read what was actually asked for (one simple, portable script) versus what got built (a small test-framework project that, while it worked, re-coupled this deliberately-decoupled layer to this codebase's own tooling). **Reverted in full**: deleted `test/acceptance/`, restored `jest.config.js` and `package.json` to their pre-Phase-7 state (`git restore`), and instead added the username-casing regression check directly into the original single-file `scripts/smoke-test.js`. Re-verified: **35/35 checks passed** (same total as the original script — the new check ran and would pass for a mixed-case account, but correctly stayed a no-op/skip for the real all-lowercase `anderokgo` account configured locally). See Phase 7's "false start" note for the recorded lesson. Not yet committed.
 - **2026-07-15** — User asked how to actually surface every acceptance criterion the system enforces — is it "read all the unit tests"? Clarified: no, most unit tests are implementation-robustness tests, not business rules a rewrite would need to reproduce; the useful subset is the surprising/non-obvious ones. Added the **Acceptance Criteria Catalog** section above: the methodology (real-rule vs. robustness-test, the catalog/script/source three-way relationship, grow-incrementally guidance), plus the first 5 entries — all rules already discovered the hard way this session (qualification rescale, `visible` boolean round-tripping, finan username case-insensitivity, soft-delete-vs-hard-delete per module, create-is-really-upsert-by-name+year). Documentation only this pass, per the user's request — noted which of the 5 are/aren't yet actually verified by `scripts/smoke-test.js` (3 of 5 have gaps), closing those gaps is explicit future work, not done in this pass. Not yet committed.
+- **2026-07-15** — User asked to close the 4 remaining gaps (rules #1, #2, #4, #5) directly in `scripts/smoke-test.js` — kept as additions to the same single file, no new tooling. Added: a qualification re-fetch asserting the 7.0–9.7 rescaled range (not the submitted value); a `visible`-is-a-real-boolean check plus the actual GET→PUT round-trip scenario; follow-up confirmations after both delete checks (series re-fetch asserts `visible=false`, finan re-checks `/initial-load` for absence); and a new fixture that calls `create` twice with the same name+year, asserting the second call returns the same id and updated fields rather than a duplicate. Verified for real: **42/42 checks passed** (was 35 + the conditional username check); confirmed directly in the DB that the upsert fixture left exactly one row, not two. Updated all 5 catalog entries above to "verified." Not yet committed.

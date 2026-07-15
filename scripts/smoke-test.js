@@ -327,6 +327,20 @@ async function main() {
         const res = await client.delete(`/api/finan/delete/${movementId}`, { headers: authHeader(userToken) });
         assertStatus(res, 200, 'DELETE /api/finan/delete/:id');
       });
+
+      // Acceptance criterion #4: finan movements are hard-deleted (unlike
+      // series, which are soft-deleted — see the series-side check below).
+      // Confirm it via a follow-up read, not just the 200 on DELETE itself.
+      await check('confirms the finan movement is really gone (hard delete, via a follow-up initial-load)', async () => {
+        const res = await client.post(
+          '/api/finan/initial-load',
+          { currency: 'COP' },
+          { headers: authHeader(userToken) }
+        );
+        assertStatus(res, 200, 'POST /api/finan/initial-load (post-delete)');
+        const stillPresent = ((res.data.data && res.data.data.movements) || []).some((m) => m.id === movementId);
+        if (stillPresent) throw new Error('movement still present in initial-load after delete');
+      });
     }
 
     // Regression (see docs/specification-roadmap.md, Phase 6): registration
@@ -429,14 +443,71 @@ async function main() {
         if (res.data.data.name !== seriesName) throw new Error('name mismatch on retrieval');
       });
 
-      await check('PUT /api/series/:id updates the series (multipart)', async () => {
-        const form = new FormData();
-        form.append('qualification', '7.5');
-        const res = await client.put(`/api/series/${seriesId}`, form, {
-          headers: { ...form.getHeaders(), ...authHeader(adminToken) },
-        });
-        assertStatus(res, 200, 'PUT /api/series/:id');
+      // Acceptance criterion #2 (docs/specification-roadmap.md): visible must
+      // round-trip as a real JSON boolean, never the raw MySQL 0/1 — the
+      // admin panel reloads a series via GET and submits that exact value
+      // back on PUT if the user never touches the checkbox.
+      await check('GET /api/series/:id returns visible as a real JSON boolean, not a raw 0/1', async () => {
+        const res = await client.get(`/api/series/${seriesId}`);
+        assertStatus(res, 200, 'GET /api/series/:id (visible type check)');
+        if (typeof res.data.data.visible !== 'boolean') {
+          throw new Error(
+            `expected visible to be a boolean, got ${typeof res.data.data.visible} (${JSON.stringify(res.data.data.visible)})`
+          );
+        }
       });
+
+      await check(
+        'does not silently hide the series when the edit form round-trips the GET value unchanged (real prod incident)',
+        async () => {
+          // Mirrors the actual flow that broke production: GET seeds the
+          // checkbox, and if the user never touches it, that same value is
+          // submitted back on PUT as a real JSON body (not multipart).
+          const getRes = await client.get(`/api/series/${seriesId}`);
+          assertStatus(getRes, 200, 'GET /api/series/:id (round-trip)');
+          const roundTrippedVisible = getRes.data.data.visible;
+          if (roundTrippedVisible !== true) throw new Error('expected the series to still be visible at this point');
+
+          const putRes = await client.put(
+            `/api/series/${seriesId}`,
+            { name: seriesName, visible: roundTrippedVisible },
+            { headers: authHeader(adminToken) }
+          );
+          assertStatus(putRes, 200, 'PUT /api/series/:id (round-trip)');
+
+          const refetch = await client.get(`/api/series/${seriesId}`);
+          if (refetch.data.data.visible !== true) {
+            throw new Error('series was silently hidden after round-tripping an unchanged visible value');
+          }
+        }
+      );
+
+      // Acceptance criterion #1: qualification is never stored verbatim —
+      // update_rank() re-ranks and re-normalizes it (7.000-9.700) across the
+      // whole catalog after every write. Assert the *behavior* (result lands
+      // in the rescaled range and DB/response agree), not the submitted value.
+      await check(
+        'PUT /api/series/:id updates the series (multipart) — qualification is rescaled, not stored verbatim',
+        async () => {
+          const form = new FormData();
+          form.append('qualification', '7.5');
+          const res = await client.put(`/api/series/${seriesId}`, form, {
+            headers: { ...form.getHeaders(), ...authHeader(adminToken) },
+          });
+          assertStatus(res, 200, 'PUT /api/series/:id');
+
+          const returnedQualification = res.data.data && res.data.data.qualification;
+          if (returnedQualification === undefined) throw new Error('no qualification in the PUT response');
+          if (returnedQualification < 7 || returnedQualification > 9.7) {
+            throw new Error(`qualification ${returnedQualification} outside the expected 7.0-9.7 rescale range`);
+          }
+
+          const refetch = await client.get(`/api/series/${seriesId}`);
+          if (refetch.data.data.qualification !== returnedQualification) {
+            throw new Error('qualification in the DB does not match the PUT response');
+          }
+        }
+      );
 
       await check('PUT /api/series/:id/image uploads a new cover image', async () => {
         const form = new FormData();
@@ -510,6 +581,15 @@ async function main() {
         '    (DELETE is a soft delete — visible=0. The HTTP API has no hard-delete\n' +
           '     endpoint, so the disposable row stays in the table, just hidden.)'
       );
+
+      // Acceptance criterion #4: series are soft-deleted (unlike finan
+      // movements, which are hard-deleted). Confirm the row genuinely still
+      // exists and is just hidden, not just that DELETE returned 200.
+      await check('confirms the soft-deleted series still exists with visible=false (not a real delete)', async () => {
+        const res = await client.get(`/api/series/${seriesId}`);
+        assertStatus(res, 200, 'GET /api/series/:id (after soft-delete)');
+        if (res.data.data.visible !== false) throw new Error('expected visible=false after soft-delete');
+      });
     }
 
     console.log('\nSeries module (admin — create-complete, JSON body, cleans up after itself):');
@@ -539,6 +619,71 @@ async function main() {
       await check('DELETE /api/series/:id soft-deletes the create-complete series', async () => {
         const res = await client.delete(`/api/series/${completeSeriesId}`, { headers: authHeader(adminToken) });
         assertStatus(res, 200, 'DELETE /api/series/:id (create-complete cleanup)');
+      });
+    }
+
+    // Acceptance criterion #5: POST /api/series/create is really an
+    // upsert-by-(name, year) — a second create call with the same name+year
+    // must update the existing row instead of creating a duplicate. The
+    // endpoint name suggests create-only; the real behavior doesn't.
+    console.log('\nSeries module (admin — create is really upsert-by-name+year):');
+    const upsertSuffix = Date.now().toString().slice(-8);
+    const upsertName = `__SMOKE_TEST_UPSERT_${upsertSuffix}__`;
+    const upsertYear = 2025;
+    let upsertId;
+
+    await check('POST /api/series/create with a new name+year creates a series', async () => {
+      const form = new FormData();
+      form.append('name', upsertName);
+      form.append('chapter_number', '1');
+      form.append('year', String(upsertYear));
+      form.append('description', 'First version');
+      form.append('description_en', 'First version EN');
+      form.append('qualification', '8');
+      if (demographyId) form.append('demography_id', String(demographyId));
+      form.append('visible', 'true');
+
+      const res = await client.post('/api/series/create', form, {
+        headers: { ...form.getHeaders(), ...authHeader(adminToken) },
+      });
+      assertStatus(res, 201, 'POST /api/series/create (upsert, first call)');
+      upsertId = res.data.data && res.data.data.id;
+      if (!upsertId) throw new Error('no series id returned');
+    });
+
+    if (upsertId) {
+      await check(
+        'POST /api/series/create with the same name+year updates the existing series instead of duplicating it',
+        async () => {
+          const form = new FormData();
+          form.append('name', upsertName);
+          form.append('chapter_number', '1');
+          form.append('year', String(upsertYear));
+          form.append('description', 'Second version — should update, not duplicate');
+          form.append('description_en', 'Second version EN');
+          form.append('qualification', '9');
+          if (demographyId) form.append('demography_id', String(demographyId));
+          form.append('visible', 'true');
+
+          const res = await client.post('/api/series/create', form, {
+            headers: { ...form.getHeaders(), ...authHeader(adminToken) },
+          });
+          assertStatus(res, 201, 'POST /api/series/create (upsert, second call)');
+          const secondId = res.data.data && res.data.data.id;
+          if (secondId !== upsertId) {
+            throw new Error(
+              `expected the same series id (${upsertId}) on the second create, got ${secondId} — a duplicate row was created`
+            );
+          }
+          if (res.data.data.description !== 'Second version — should update, not duplicate') {
+            throw new Error('description was not updated by the second create call');
+          }
+        }
+      );
+
+      await check('DELETE /api/series/:id soft-deletes the upsert-test series', async () => {
+        const res = await client.delete(`/api/series/${upsertId}`, { headers: authHeader(adminToken) });
+        assertStatus(res, 200, 'DELETE /api/series/:id (upsert cleanup)');
       });
     }
   } else {

@@ -329,6 +329,53 @@ Full plan (file paths, exact diffs, chosen designs, and the verification checkli
 
 ---
 
+## Phase 5b — Production deployment mechanics (`db-deploy-schema.bat`), documented for real
+
+**Status: DONE** (2026-07-15) — both `animecream-data` and `finan-data` were deployed to production for the first time during this project's lifetime with an AI driving the script. Documenting the mechanics here so this never has to be re-discovered.
+
+### What `db-deploy-schema.bat` actually does (per repo, at the repo root)
+
+A single confirmation-gated pipeline, chaining 4 sub-scripts under `com\`:
+
+1. **`com\db-build-schema-update.bat`** — concatenates, in filename order, `sql\migrations\*.sql` + `sql\db-views-procs.sql` + `sql\db-trigger.sql` into `sql\db-swap.sql` (no data, just structure — views/procs/triggers are always re-run in full, migrations are incremental and idempotent).
+2. **`com\db-local-restore-swap.bat`** — applies `sql\db-swap.sql` to the **local** `animecream-mariadb` Docker container (`docker exec -i ... mysql ... < sql\db-swap.sql`). This is the "test it before you touch prod" step. Silent output = success (MySQL client prints nothing unless there's an error).
+3. **`com\db-sync-FTP-both.bat`** — uses `keys/WinSCP.com` to bidirectionally sync a **Google Drive Desktop** folder (`G:\My Drive\Documents\Variant\FTPSync\<repo-name>\sql`) with the production FTP server (`ftp.animecream.com`), uploading the freshly-built `db-swap.sql`. **Precondition: Google Drive Desktop must be running and mounted as `G:` on the machine that runs this** — there is no fallback if it isn't.
+4. **`com\db-remote-restore-swap.bat`** — SSHes into the production server (`ssh -i keys\backup_key ... %SSHConn.txt%`) and runs `mysql ... < <ftp-path>/db-swap.sql` **directly against the live production database**. This is the actual point of no return. Its own success signal is the literal string **`[db-remote-restore-swap] OK`**, gated by checking the SSH command's real exit code — that line is the one to look for, not the overall batch file's own exit code (see quirk below).
+
+All credentials (FTP user/pass, MySQL user/pass for local and remote, SSH connection string, Google Drive sync folder name) live in `keys/*.txt` (gitignored) and are loaded by `com\setter.bat`, which does `SET /p <filename.txt>=<keys\<filename.txt>` for every file in `keys/` — i.e. the environment variable name is literally the filename including `.txt` (e.g. `%Mysqlpss.txt%`). Unusual but consistent across both repos.
+
+`finan-data`'s version of this pipeline is byte-identical except for the confirmation banner's target-name string (`animecream.com` vs `animecre_finan`).
+
+### Running it non-interactively (from an agent/script, not a human at a keyboard)
+
+The script's only interactive part is `SET /P CONFIRM="Escribi PRODUCCION para continuar: "` at the very top. Two things had to be worked out empirically:
+
+- **Piping stdin through PowerShell into `cmd /c "<bare-filename>.bat < file"` fails** with `'db-deploy-schema.bat' is not recognized as an internal or external command` — even though `dir db-deploy-schema.bat` in the exact same `pushd <dir> && ...` chain finds the file fine, and even though running the same bare-filename invocation *without* input redirection works. The failure is specific to combining a **bare/relative** batch-file name with `<` file redirection inside a `&&`-chained `cmd /c "..."` string. **Fix: always invoke via the fully-quoted absolute path** to the `.bat`, not a bare filename, when redirection is involved:
+  ```powershell
+  $inputFile = "<path to a .txt file containing PRODUCCION on its own line>"
+  cmd /c "pushd <repo-dir> && `"<repo-dir>\db-deploy-schema.bat`" < `"$inputFile`""
+  ```
+  (Verified safe first with a throwaway input file containing `NOPE`, which correctly hit the script's own `Cancelado, no se escribio "PRODUCCION"` branch and exited without touching anything, before ever running it for real.)
+- **Two harmless `TIMEOUT /T 5` failures are expected and not a sign of failure.** Once stdin is redirected from a file for the whole `cmd.exe` session, every subsequent `TIMEOUT` command in the chain (one at the end of `com\db-sync-FTP-both.bat`, one at the very end of `db-deploy-schema.bat` itself) fails immediately with `ERROR: Input redirection is not supported, exiting the process immediately.` — this is a documented `TIMEOUT` quirk (it refuses to run when stdin isn't a real console), not a pipeline failure. It's purely a cosmetic pause being skipped. The overall batch file's own final exit code (`$LASTEXITCODE` / `%ERRORLEVEL%`) ends up reflecting that last failed `TIMEOUT`, **not** the real deployment outcome — so **do not** trust the top-level exit code. Trust the `[db-remote-restore-swap] OK` line instead.
+
+### What a healthy run looks like, end to end (this is exactly what both repos printed on 2026-07-15)
+
+```
+[db-build-schema-update] OK
+Connecting to ftp.animecream.com ...
+...
+<repo>\sql\db-swap.sql | ... | 100%
+ERROR: Input redirection is not supported, exiting the process immediately.   <- harmless (TIMEOUT in db-sync-FTP-both.bat)
+[db-remote-restore-swap] OK                                                   <- this is the real success signal
+ERROR: Input redirection is not supported, exiting the process immediately.   <- harmless (TIMEOUT in db-deploy-schema.bat)
+```
+
+### Confirmed for real, 2026-07-15
+
+Both `animecream-data` (the Phase 5 trigger removal + `update_rank` rewrite) and `finan-data` (the Phase 5 SQL-injection fix) were deployed through this exact pipeline and both printed `[db-remote-restore-swap] OK`. Not independently re-verified with a follow-up read-only query against the production database in this session (that would require constructing a second ad-hoc SSH command embedding the same production DB password, which was judged not worth the risk of accidentally leaking a credential fragment into tool output when the pipeline's own success gate — which is exactly what a human operator relies on when running this manually — already reported success). If stronger confirmation is ever wanted, the safe way is to `ssh` in manually (or ask the site to display something schema-dependent) rather than scripting a new credential-bearing command.
+
+---
+
 ## Progress log
 
 - **2026-07-14** — Phase 0 complete. Findings documented above. Starting Phase 1 (test-by-test triage) next.
@@ -352,3 +399,5 @@ Full plan (file paths, exact diffs, chosen designs, and the verification checkli
 - **2026-07-14** — User pushed back: the first cut only covered 16 read-only/negative-path checks, not every endpoint, and offered real credentials to close the gap. Rewrote the script to log in for real (`SMOKE_ADMIN_LOGIN`/`PASSWORD`, `SMOKE_USER_LOGIN`/`PASSWORD`, auto-loaded from a new gitignored `.env.smoke.local`) and exercise the full CRUD cycle on every mutating endpoint (series create/update/image-upload/genres/titles/create-complete/delete, finan insert/update/delete) using disposable fixtures cleaned up afterward, mirroring `test/e2e/`'s pattern. Ran it for real against the local DB with the project owner's own admin account: **35/35 checks passed** on the first attempt; cleanup independently confirmed via direct DB queries (finan fixture hard-deleted, series fixtures left only as `visible=0` rows — the HTTP API has no hard-delete for series). Added `form-data` as an explicit dependency for the real multipart image-upload checks. This closes out the CI-gate → E2E-suite → smoke-test plan in full, this time genuinely covering every endpoint. Not yet committed — pending user review.
 - **2026-07-15** — Started Phase 5, prompted by a direct request to review how `series`/`finan` writes work and the SQL in `animecream-data`/`finan-data`. Found the 6 items in the table above. User ruled out consolidating finan's per-user tables into one shared table (keeping `movements_<username>` by design) and, after investigation turned up no documented intent anywhere (not in commits, docs, or the frontend, which never displays `qualification` to end users), confirmed directly that `update_rank`'s qualification-rescale is intentional — it reserves decimal spacing so new series can always be inserted between existing ones later, not vestigial. User set a hard requirement: 100% backward compatibility, full test suite + smoke test must both stay green. Plan approved; starting implementation in item order (1 → 6).
 - **2026-07-15** — Phase 5 done, all 6 items implemented and verified for real (details and exact numbers in the Phase 5 section above, not repeated here). Along the way, the user asked directly where a "two users, two tables, isolation" acceptance check belongs — answered that it's the E2E suite, not the smoke test (which only drives one already-authenticated account against an already-deployed instance), and added it there as a real, disposable-fixture test against the live DB, alongside a second new E2E test proving `assignGenres`'s delete+insert is now genuinely atomic under a real FK failure. Verified end to end: `tsc --noEmit` clean, **1266/1266 tests / 84/84 suites / 100% coverage**, **25/25 E2E** (23 pre-existing + 2 new) against the real `animecream-mariadb` container, **35/35 smoke checks** against a real locally-built server. Not yet committed — pending user review.
+- **2026-07-15** — Reviewed the full diff across all 3 repos (nothing untracked, nothing unexplained) and committed: `finan-data@43e2744`, `animecream-data@60889a2`, `module-api@c0b9332`. Local only, not pushed.
+- **2026-07-15** — Deployed both `animecream-data` and `finan-data` to **production** via `db-deploy-schema.bat`, at the user's explicit request. First time this pipeline has been driven end to end by an agent rather than a human at a keyboard — see the new Phase 5b section above for the full mechanics, the non-interactive-invocation quirks discovered along the way (bare-filename + redirection failing in `cmd`, the two harmless `TIMEOUT` errors), and the real success signal to trust. Both runs printed `[db-remote-restore-swap] OK`. `module-api`'s own commit (`c0b9332`) was not pushed to `origin` in this pass — only the two `*-data` repos' schema changes were deployed, since that's what was explicitly asked for.

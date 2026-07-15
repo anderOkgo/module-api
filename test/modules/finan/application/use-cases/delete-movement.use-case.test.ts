@@ -54,7 +54,7 @@ describe('DeleteMovementUseCase', () => {
       expect(mockRepository.delete).toHaveBeenCalledWith(1, 'testuser');
     });
 
-    it('should handle case-insensitive username comparison', async () => {
+    it('normalizes a mixed-case username to lowercase before hitting the repository (matches the movements_<user> table create/initial-load already write to)', async () => {
       mockRepository.findById.mockResolvedValue(existingMovement);
       mockRepository.delete.mockResolvedValue(true);
 
@@ -62,8 +62,8 @@ describe('DeleteMovementUseCase', () => {
 
       expect(result.success).toBe(true);
       expect(result.message).toBe('Movement deleted successfully');
-      expect(mockRepository.findById).toHaveBeenCalledWith(1, 'TESTUSER');
-      expect(mockRepository.delete).toHaveBeenCalledWith(1, 'TESTUSER');
+      expect(mockRepository.findById).toHaveBeenCalledWith(1, 'testuser');
+      expect(mockRepository.delete).toHaveBeenCalledWith(1, 'testuser');
     });
 
     it('should return error when movement is not found', async () => {

@@ -99,6 +99,17 @@ describe('UpdateMovementUseCase', () => {
       );
     });
 
+    it('normalizes a mixed-case username to lowercase before hitting the repository (regression: registration allows uppercase usernames, but create()/initial-load already lowercase before touching movements_<user> - update must match or it looks in a different, nonexistent table and reports "Movement not found")', async () => {
+      mockRepository.findById.mockResolvedValue(existingMovement);
+      mockRepository.update.mockResolvedValue({ ...existingMovement, ...validRequest, log: 0 });
+
+      const result = await updateMovementUseCase.execute(1, validRequest, 'TestUser');
+
+      expect(result.success).toBe(true);
+      expect(mockRepository.findById).toHaveBeenCalledWith(1, 'testuser');
+      expect(mockRepository.update).toHaveBeenCalledWith(1, expect.any(Object), 'testuser');
+    });
+
     it('should handle linked movement when operate_for is provided', async () => {
       const requestWithLinked: UpdateMovementRequest = {
         ...validRequest,

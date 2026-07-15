@@ -200,4 +200,66 @@ describe('Finan E2E (real database)', () => {
       await rawQuery('MYDATABASEFINAN', `DROP TABLE IF EXISTS \`${otherTableName}\``);
     }
   });
+
+  it('updates and deletes a movement for a user whose username has uppercase letters (regression)', async () => {
+    // Registration allows uppercase in usernames (see register.use-case.ts's
+    // /^[a-zA-Z0-9_]{3,20}$/) and the JWT carries whatever casing was used at
+    // registration, unmodified. create()/initial-load already lowercase
+    // before touching the DB; update/delete didn't, so they looked up
+    // movements_<MixedCase> - a different (nonexistent) table on a
+    // case-sensitive MariaDB - and always reported "Movement not found".
+    const mixedCaseUsername = `E2E${suffix}Mixed`;
+    const mixedCaseToken = signToken({ username: mixedCaseUsername });
+    const mixedCaseTableName = `movements_${mixedCaseUsername.toLowerCase()}`;
+
+    try {
+      // /insert (unlike /initial-load) never calls createTableForUser itself
+      // - create it directly first, same as the isolation test above.
+      await rawQuery('MYDATABASEFINAN', 'CALL proc_create_movements_table(?)', [
+        mixedCaseUsername.toLowerCase(),
+      ]);
+
+      const createRes = await request(app)
+        .post('/api/finan/insert')
+        .set('Authorization', bearer(mixedCaseToken))
+        .send({
+          movement_name: 'Mixed Case Regression',
+          movement_val: 50,
+          movement_date: '2026-03-01',
+          movement_type: 1,
+          movement_tag: 'e2e-mixed-case',
+          currency: 'COP',
+        });
+      expect(createRes.status).toBe(201);
+      const mixedCaseId = createRes.body.data.id;
+
+      const updateRes = await request(app)
+        .put(`/api/finan/update/${mixedCaseId}`)
+        .set('Authorization', bearer(mixedCaseToken))
+        .send({
+          movement_name: 'Mixed Case Regression Updated',
+          movement_val: 75,
+          movement_date: '2026-03-02',
+          movement_type: 1,
+          movement_tag: 'e2e-mixed-case',
+          currency: 'COP',
+        });
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.data.name).toBe('Mixed Case Regression Updated');
+
+      const deleteRes = await request(app)
+        .delete(`/api/finan/delete/${mixedCaseId}`)
+        .set('Authorization', bearer(mixedCaseToken));
+      expect(deleteRes.status).toBe(200);
+
+      const rows = await rawQuery<any[]>(
+        'MYDATABASEFINAN',
+        `SELECT * FROM \`${mixedCaseTableName}\` WHERE id = ?`,
+        [mixedCaseId]
+      );
+      expect(rows).toHaveLength(0);
+    } finally {
+      await rawQuery('MYDATABASEFINAN', `DROP TABLE IF EXISTS \`${mixedCaseTableName}\``);
+    }
+  });
 });

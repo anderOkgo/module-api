@@ -12,8 +12,13 @@ export class DeleteMovementUseCase {
       // 1. Validate input
       this.validateInput(id, username);
 
+      // 1b. Normalize username the same way create/initial-load do, so this
+      // hits the same movements_<username> table regardless of the exact
+      // casing stored in the JWT (usernames may contain uppercase letters).
+      const normalizedUsername = username.toLowerCase().trim();
+
       // 2. Verify that the movement exists
-      const existing = await this.repository.findById(id, username);
+      const existing = await this.repository.findById(id, normalizedUsername);
       if (!existing) {
         return {
           success: false,
@@ -22,7 +27,7 @@ export class DeleteMovementUseCase {
       }
 
       // 3. Verify that it belongs to the user
-      if (existing.user.toLowerCase() !== username.toLowerCase()) {
+      if (existing.user.toLowerCase() !== normalizedUsername) {
         return {
           success: false,
           message: 'Unauthorized: Movement does not belong to this user',
@@ -30,7 +35,7 @@ export class DeleteMovementUseCase {
       }
 
       // 4. Delete
-      const deleted = await this.repository.delete(id, username);
+      const deleted = await this.repository.delete(id, normalizedUsername);
 
       if (deleted) {
         return {

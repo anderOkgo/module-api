@@ -17,14 +17,33 @@ export class FinanMysqlRepository implements FinanRepository {
     this.Limit = 10000;
   }
 
+  /**
+   * Every method below resolves a per-user table as movements_<username>,
+   * and MariaDB table names are case-sensitive on the default Linux config -
+   * so movements_JuanPerez and movements_juanperez are different tables.
+   * Registration allows uppercase usernames and the JWT preserves whatever
+   * casing was used at registration, so normalizing here - once, at the
+   * repository boundary - guarantees every method below always resolves the
+   * same table for a given user, regardless of whether a caller remembered
+   * to lowercase (this used to be scattered across call sites; two of them
+   * didn't, causing update/delete and linked-movement operations to silently
+   * miss the real table).
+   */
+  private normalizeUsername(username: string): string {
+    return username.toLowerCase().trim();
+  }
+
   // ==================== CRUD METHODS ====================
 
   async createTableForUser(username: string): Promise<void> {
-    await this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [username.toLowerCase()]);
+    await this.Database.executeSafeQuery(`CALL proc_create_movements_table(?)`, [
+      this.normalizeUsername(username),
+    ]);
   }
 
   async create(movement: Movement): Promise<Movement> {
-    const tableName = `movements_${movement.user}`;
+    const user = this.normalizeUsername(movement.user);
+    const tableName = `movements_${user}`;
     const query = `
       INSERT INTO ${tableName}
       (name, value, date_movement, type_source_id, tag, currency, user, log)
@@ -37,30 +56,31 @@ export class FinanMysqlRepository implements FinanRepository {
       movement.type_source_id,
       movement.tag,
       movement.currency,
-      movement.user,
+      user,
       movement.log || 0,
     ];
 
     const result = await this.Database.executeSafeQuery(query, values);
-    return { ...movement, id: result.insertId };
+    return { ...movement, user, id: result.insertId };
   }
 
   async findById(id: number, username: string): Promise<Movement | null> {
-    const tableName = `movements_${username}`;
+    const tableName = `movements_${this.normalizeUsername(username)}`;
     const query = `SELECT * FROM ${tableName} WHERE id = ?`;
     const result = await this.Database.executeSafeQuery(query, [id]);
     return result.length > 0 ? result[0] : null;
   }
 
   async findByNameAndDate(name: string, date: string, username: string): Promise<Movement | null> {
-    const tableName = `movements_${username}`;
+    const tableName = `movements_${this.normalizeUsername(username)}`;
     const query = `SELECT * FROM ${tableName} WHERE name = ? AND date_movement = ? LIMIT 1`;
     const result = await this.Database.executeSafeQuery(query, [name, date]);
     return result.length > 0 ? result[0] : null;
   }
 
   async update(id: number, movement: Partial<Movement>, username: string): Promise<Movement> {
-    const tableName = `movements_${username}`;
+    const normalizedUsername = this.normalizeUsername(username);
+    const tableName = `movements_${normalizedUsername}`;
     const query = `
       UPDATE ${tableName}
       SET name = ?, value = ?, date_movement = ?, type_source_id = ?, tag = ?, currency = ?, log = ?
@@ -78,13 +98,13 @@ export class FinanMysqlRepository implements FinanRepository {
     ];
 
     await this.Database.executeSafeQuery(query, values);
-    const updated = await this.findById(id, username);
+    const updated = await this.findById(id, normalizedUsername);
     if (!updated) throw new Error('Movement not found after update');
     return updated;
   }
 
   async delete(id: number, username: string): Promise<boolean> {
-    const tableName = `movements_${username}`;
+    const tableName = `movements_${this.normalizeUsername(username)}`;
     const query = `DELETE FROM ${tableName} WHERE id = ?`;
     const result = await this.Database.executeSafeQuery(query, [id]);
     return result.affectedRows > 0;
@@ -94,32 +114,46 @@ export class FinanMysqlRepository implements FinanRepository {
 
   async getTotalExpenseDay(username: string, currency: string, date: string): Promise<any[]> {
     const full_query = `CALL proc_view_total_expense_day(?, ?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, date, this.Limit]);
+    const resp = await this.Database.executeSafeQuery(full_query, [
+      this.normalizeUsername(username),
+      currency,
+      date,
+      this.Limit,
+    ]);
     return resp[0];
   }
 
   async getMovements(username: string, currency: string): Promise<any[]> {
     const full_query = `CALL proc_view_movements(?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, this.Limit]);
+    const resp = await this.Database.executeSafeQuery(full_query, [
+      this.normalizeUsername(username),
+      currency,
+      this.Limit,
+    ]);
     return resp[0];
   }
 
   async getMovementsByTag(username: string, currency: string): Promise<any[]> {
     const full_query = `CALL proc_view_monthly_movements_order_by_tag(?, ?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, 'DESC', this.Limit]);
+    const resp = await this.Database.executeSafeQuery(full_query, [
+      this.normalizeUsername(username),
+      currency,
+      'DESC',
+      this.Limit,
+    ]);
     return resp[0];
   }
 
   async getTotalBalance(username: string, currency: string): Promise<any[]> {
     const full_query = `CALL proc_view_total_balance(?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [username, currency]);
+    const resp = await this.Database.executeSafeQuery(full_query, [this.normalizeUsername(username), currency]);
     return resp[0];
   }
 
   async getYearlyBalance(username: string, currency: string): Promise<any[]> {
     const full_query = `CALL proc_view_yearly_expenses_incomes(?, ?, ?, ?, ?)`;
     const resp = await this.Database.executeSafeQuery(full_query, [
-      username,
+      this.normalizeUsername(username),
       currency,
       'year_number',
       'DESC',
@@ -130,15 +164,21 @@ export class FinanMysqlRepository implements FinanRepository {
 
   async getMonthlyBalance(username: string, currency: string): Promise<any[]> {
     const full_query = `CALL proc_view_monthly_expenses_incomes_order_row(?, ?, ?, ?)`;
-    const resp = await this.Database.executeSafeQuery(full_query, [username, currency, 'DESC', this.Limit]);
+    const resp = await this.Database.executeSafeQuery(full_query, [
+      this.normalizeUsername(username),
+      currency,
+      'DESC',
+      this.Limit,
+    ]);
     return resp[0];
   }
 
   async getBalanceUntilDate(username: string, currency: string): Promise<any[]> {
+    const normalizedUsername = this.normalizeUsername(username);
     try {
       const full_query = `CALL proc_view_balance_until_date(?, ?, ?, ?, ?)`;
       const resp = await this.Database.executeSafeQuery(full_query, [
-        username,
+        normalizedUsername,
         currency,
         'date_movement',
         'DESC',
@@ -147,7 +187,7 @@ export class FinanMysqlRepository implements FinanRepository {
       return resp[0];
     } catch (error) {
       console.log('Stored procedure not found, using direct query');
-      const tableName = `movements_${username}`;
+      const tableName = `movements_${normalizedUsername}`;
       const query = `
         SELECT DATE_FORMAT(date_movement, '%Y-%m-%d') as date_movement,
                SUM(value) as total_balance
@@ -162,13 +202,19 @@ export class FinanMysqlRepository implements FinanRepository {
   }
 
   async getMonthlyExpensesUntilCurrentDay(username: string, currency: string): Promise<any[]> {
+    const normalizedUsername = this.normalizeUsername(username);
     try {
       const full_query = `CALL proc_monthly_expenses_until_day(?, ?, ?, ?)`;
-      const resp = await this.Database.executeSafeQuery(full_query, [username, currency, 'ASC', this.Limit]);
+      const resp = await this.Database.executeSafeQuery(full_query, [
+        normalizedUsername,
+        currency,
+        'ASC',
+        this.Limit,
+      ]);
       return resp[0];
     } catch (error) {
       console.log('Stored procedure not found, using direct query');
-      const tableName = `movements_${username}`;
+      const tableName = `movements_${normalizedUsername}`;
       const query = `
         SELECT DATE_FORMAT(date_movement, '%Y-%m') as month_year,
                SUM(value) as total_expenses
@@ -216,7 +262,7 @@ export class FinanMysqlRepository implements FinanRepository {
     const expectedPayroll = constantsMap['EXPECTED_PAYROLL'] || 0;
 
     // 2. Consulta de movimientos (tu lógica original)
-    const tableName = `movements_${username}`;
+    const tableName = `movements_${this.normalizeUsername(username)}`;
     const query = `
       SELECT type_source_id, LOWER(TRIM(tag)) as tag, DATE_FORMAT(date_movement, '%Y-%m') as month_key, SUM(value) as total
       FROM ${tableName}
@@ -297,7 +343,7 @@ export class FinanMysqlRepository implements FinanRepository {
    * Sum of all expenses (type_source_id=2) for the current month up to today.
    */
   async getCurrentMonthExpenses(username: string, currency: string): Promise<number> {
-    const tableName = `movements_${username}`;
+    const tableName = `movements_${this.normalizeUsername(username)}`;
     const query = `
       SELECT COALESCE(SUM(value), 0) as total
       FROM ${tableName}
@@ -328,7 +374,7 @@ export class FinanMysqlRepository implements FinanRepository {
     movementType: number,
     username: string
   ): Promise<void> {
-    const tableName = `movements_${username}`;
+    const tableName = `movements_${this.normalizeUsername(username)}`;
     const selectQuery = `SELECT * FROM ${tableName} WHERE id = ?`;
     const prevReg = await this.Database.executeSafeQuery(selectQuery, [id]);
 

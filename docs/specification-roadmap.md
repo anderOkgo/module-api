@@ -376,6 +376,40 @@ Both `animecream-data` (the Phase 5 trigger removal + `update_rank` rewrite) and
 
 ---
 
+## Phase 6 — Bug report: finan update/delete failing with "Movement not found"
+
+**Status: DONE** (2026-07-15)
+
+Reported directly by the user right after Phase 5's production deploy: a real finan user could create movements fine, but editing or deleting any of them always returned `{"error":true,"message":"Movement not found"}`. Pre-existing bug, unrelated to Phase 5's changes (confirmed: none of the touched files in Phase 5 are involved).
+
+### Root cause
+
+Usernames are allowed to contain uppercase letters at registration (`register.use-case.ts`'s `isValidUsername` regex is `/^[a-zA-Z0-9_]{3,20}$/`, no case restriction) and are stored/JWT-encoded exactly as typed — never normalized. Every finan operation resolves its per-user table as `movements_${username}`, and MariaDB table names are case-sensitive on the default Linux config (`lower_case_table_names=0`), so `movements_JuanPerez` and `movements_juanperez` are two distinct tables.
+
+- `PutMovementUseCase` (create) and `GetInitialLoadUseCase` both explicitly do `username.toLowerCase()` before touching the repository — so creation and the dashboard load always resolve to the lowercase table.
+- `UpdateMovementUseCase` and `DeleteMovementUseCase` did **not** — they passed the raw, JWT-cased `username` straight into `repository.findById/update/delete`, which built the table name with whatever casing the user registered with.
+- For any user whose username has at least one uppercase letter, update/delete looked in a table that was never created (only the lowercase one is, via `createTableForUser`) → the query effectively finds nothing → `findById` returns `null` → the use case reports `"Movement not found"`, even though the row exists and belongs to them.
+
+### Fix, round 1 (use-case layer)
+
+Normalized `username` to `.toLowerCase().trim()` at the top of `execute()` in both `update-movement.use-case.ts` and `delete-movement.use-case.ts`, before it's used for any repository call — matching the pattern already established in `put-movement.use-case.ts`/`get-initial-load.use-case.ts`.
+
+One existing unit test (`delete-movement.use-case.test.ts`, "should handle case-insensitive username comparison") had actually locked in the *buggy* behavior as an assertion (it asserted the repository was called with the raw `'TESTUSER'`, unnormalized) — corrected to assert the repository now receives `'testuser'`. Added an equivalent new unit test to `update-movement.use-case.test.ts` (which previously had no mixed-case coverage at all), and a new real-database E2E test (`test/e2e/finan.e2e.test.ts`) that creates a movement under a mixed-case username, then updates and deletes it — reproducing the exact reported bug and confirming the fix end to end.
+
+### Fix, round 2 (repository layer — user asked "could this break other things too?")
+
+Good question, and yes: auditing every method in `finan.mysql.ts` that builds `movements_${username}` found a **third** broken spot the use-case-layer patch didn't cover — `operateForLinkedMovement` (used when creating a movement with `operate_for` set, to adjust the value of a previously-linked movement) also used the raw, un-normalized username. Worse, it fails **silently**: `executeSafeQuery` catches the resulting "table doesn't exist" error and returns `{errorSys: true, ...}`; the calling code's `!prevReg || prevReg.length === 0` check doesn't recognize that shape as "not found" (an object has no `.length`), so it falls through to `isNumber(prevReg[0].value)` (`undefined`), which is false, and the linked-movement update just quietly does nothing — no error surfaced at all.
+
+Given that literally every method in this repository class shared the same "trust the caller normalized" assumption, and two callers already hadn't, patching call sites one at a time doesn't close the door on a *fourth* one (existing or future). Fixed it at the root instead: added a private `normalizeUsername()` helper to `FinanMysqlRepository` and applied it inside **every** method that resolves a `movements_<username>` table or passes `username` to a stored procedure — `create`, `findById`, `findByNameAndDate`, `update`, `delete`, `createTableForUser`, all 8 `getX(username, ...)` query methods, and `operateForLinkedMovement`. Now the guarantee holds regardless of what any current or future caller passes in. The round-1 use-case-layer fixes were left in place too (harmless — normalizing an already-normalized string is a no-op — and they still document intent at the business-logic layer).
+
+`create()`'s return value also now reflects the normalized `user` (previously it echoed back whatever casing was submitted, which no longer matched the row actually written) — one existing test asserting the raw casing round-tripped through `create()` was corrected. Added a dedicated "username normalization (regression)" test block to `finan.mysql.test.ts` covering all the fixed methods directly against the mocked repository, on top of the existing use-case-level and E2E coverage.
+
+**Verification:** `tsc --noEmit` clean, **1273/1273 tests, 84/84 suites, 100% coverage**, **26/26 E2E** against the real `animecream-mariadb` container.
+
+Not yet deployed — this fix lives only in `module-api` (application code, not SQL), so it ships via a normal `git push` + whatever deploys `module-api` to its runtime, not through `db-deploy-schema.bat`.
+
+---
+
 ## Progress log
 
 - **2026-07-14** — Phase 0 complete. Findings documented above. Starting Phase 1 (test-by-test triage) next.
@@ -401,3 +435,6 @@ Both `animecream-data` (the Phase 5 trigger removal + `update_rank` rewrite) and
 - **2026-07-15** — Phase 5 done, all 6 items implemented and verified for real (details and exact numbers in the Phase 5 section above, not repeated here). Along the way, the user asked directly where a "two users, two tables, isolation" acceptance check belongs — answered that it's the E2E suite, not the smoke test (which only drives one already-authenticated account against an already-deployed instance), and added it there as a real, disposable-fixture test against the live DB, alongside a second new E2E test proving `assignGenres`'s delete+insert is now genuinely atomic under a real FK failure. Verified end to end: `tsc --noEmit` clean, **1266/1266 tests / 84/84 suites / 100% coverage**, **25/25 E2E** (23 pre-existing + 2 new) against the real `animecream-mariadb` container, **35/35 smoke checks** against a real locally-built server. Not yet committed — pending user review.
 - **2026-07-15** — Reviewed the full diff across all 3 repos (nothing untracked, nothing unexplained) and committed: `finan-data@43e2744`, `animecream-data@60889a2`, `module-api@c0b9332`. Local only, not pushed.
 - **2026-07-15** — Deployed both `animecream-data` and `finan-data` to **production** via `db-deploy-schema.bat`, at the user's explicit request. First time this pipeline has been driven end to end by an agent rather than a human at a keyboard — see the new Phase 5b section above for the full mechanics, the non-interactive-invocation quirks discovered along the way (bare-filename + redirection failing in `cmd`, the two harmless `TIMEOUT` errors), and the real success signal to trust. Both runs printed `[db-remote-restore-swap] OK`. `module-api`'s own commit (`c0b9332`) was not pushed to `origin` in this pass — only the two `*-data` repos' schema changes were deployed, since that's what was explicitly asked for.
+- **2026-07-15** — A follow-up docs commit (`f2f8885`, recording the Phase 5b deployment mechanics) was committed and the user asked to push `module-api` to `origin`. The push was blocked by Claude Code's auto-mode safety classifier: `module-api` is a confirmed-public GitHub repo, and that commit documents production infrastructure detail (FTP hostname, SSH/credential-file naming conventions, Google Drive sync paths) that's out of place on a public destination without the user explicitly acknowledging the exposure. Asked the user how to proceed (redact-then-push / push-as-is / push only the code commit) — question interrupted because the user reported a live bug instead (see Phase 6 below). **Still open**: the push decision is unresolved, revisit before actually pushing.
+- **2026-07-15** — Phase 6 done: fixed the finan update/delete "Movement not found" bug reported by the user (root cause, fix, and verification detailed in the Phase 6 section above). **1267/1267 tests, 100% coverage, 26/26 E2E.** Not yet committed — pending user review, and note the still-open push question from the entry above applies to whatever gets pushed next.
+- **2026-07-15** — User asked, reasonably, whether the same username-casing issue could break anything else. It could and did: audited every method in `finan.mysql.ts` and found `operateForLinkedMovement` had the identical bug, failing silently (no error at all, just a skipped update) rather than reporting "not found". Fixed at the root this time — centralized normalization inside the repository class itself (a `normalizeUsername()` helper applied in every method that touches a `movements_<username>` table or proc), instead of patching call sites one at a time. **1273/1273 tests, 100% coverage, 26/26 E2E**, all against the real database. Not yet committed.

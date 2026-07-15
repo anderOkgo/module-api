@@ -17,8 +17,13 @@ export class UpdateMovementUseCase {
       // 1. Validate input
       this.validateInput(id, request, username);
 
+      // 1b. Normalize username the same way create/initial-load do, so this
+      // hits the same movements_<username> table regardless of the exact
+      // casing stored in the JWT (usernames may contain uppercase letters).
+      const normalizedUsername = username.toLowerCase().trim();
+
       // 2. Verify that the movement exists
-      const existing = await this.repository.findById(id, username);
+      const existing = await this.repository.findById(id, normalizedUsername);
       if (!existing) {
         return {
           success: false,
@@ -38,7 +43,7 @@ export class UpdateMovementUseCase {
       };
 
       // 4. Update in database
-      const updated = await this.repository.update(id, movementUpdate, username);
+      const updated = await this.repository.update(id, movementUpdate, normalizedUsername);
 
       // 5. Map to response
       const response: MovementResponse = {

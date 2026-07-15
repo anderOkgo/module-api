@@ -577,6 +577,102 @@ describe('FinanMysqlRepository', () => {
     });
   });
 
+  describe('username normalization (regression)', () => {
+    // Table names are case-sensitive on the default Linux MariaDB config, and
+    // registration allows uppercase usernames - so every method that resolves
+    // movements_<username> must normalize, or it silently resolves a
+    // different (nonexistent) table than create()/initial-load use.
+    it('normalizes a mixed-case username in findById', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue([{ id: 1 }]);
+
+      await repository.findById(1, 'MixedCase');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        'SELECT * FROM movements_mixedcase WHERE id = ?',
+        [1]
+      );
+    });
+
+    it('normalizes a mixed-case username in update (including the internal findById re-read)', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce({ affectedRows: 1 }).mockResolvedValueOnce([{ id: 1 }]);
+
+      await repository.update(1, { name: 'x' }, 'MixedCase');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining('UPDATE movements_mixedcase'),
+        expect.any(Array)
+      );
+      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
+        2,
+        'SELECT * FROM movements_mixedcase WHERE id = ?',
+        [1]
+      );
+    });
+
+    it('normalizes a mixed-case username in delete', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue({ affectedRows: 1 });
+
+      await repository.delete(1, 'MixedCase');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('DELETE FROM movements_mixedcase WHERE id = ?', [
+        1,
+      ]);
+    });
+
+    it('normalizes a mixed-case username in operateForLinkedMovement', async () => {
+      mockDatabase.executeSafeQuery
+        .mockResolvedValueOnce([{ value: 100 }])
+        .mockResolvedValueOnce({ affectedRows: 1 });
+
+      await repository.operateForLinkedMovement(1, 50, 1, 'MixedCase');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
+        1,
+        'SELECT * FROM movements_mixedcase WHERE id = ?',
+        [1]
+      );
+      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
+        2,
+        'UPDATE movements_mixedcase SET value = ? WHERE id = ?',
+        [150, 1]
+      );
+    });
+
+    it('normalizes a mixed-case movement.user in create, and returns the normalized value', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue({ insertId: 1 });
+
+      const result = await repository.create({
+        name: 'x',
+        value: 1,
+        date_movement: '2023-01-01',
+        type_source_id: 1,
+        tag: '',
+        currency: 'USD',
+        user: 'MixedCase',
+        log: 0,
+      });
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO movements_mixedcase'),
+        expect.arrayContaining(['mixedcase'])
+      );
+      expect(result.user).toBe('mixedcase');
+    });
+
+    it('normalizes a mixed-case username when calling stored procedures (e.g. getMovements)', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue([[]]);
+
+      await repository.getMovements('MixedCase', 'USD');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('CALL proc_view_movements(?, ?, ?)', [
+        'mixedcase',
+        'USD',
+        10000,
+      ]);
+    });
+  });
+
   describe('findByNameAndDate', () => {
     it('should find movement by name and date', async () => {
       const mockMovement = { id: 1, name: 'Rent', date_movement: '2023-01-01' };
@@ -876,6 +972,7 @@ describe('FinanMysqlRepository', () => {
 
       expect(result).toEqual({
         ...validMovement,
+        user: longString.toLowerCase(),
         id: 129,
       });
     });

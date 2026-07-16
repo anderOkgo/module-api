@@ -90,7 +90,7 @@ export class LoginUserUseCase {
       const loginResponse: LoginResponse = {
         user: userResponse,
         token,
-        expiresIn: 86400, // 24 hours in seconds
+        expiresIn: this.tokenGenerator.getExpiresInSeconds(),
       };
 
       return {

@@ -22,4 +22,11 @@ export interface TokenGeneratorPort {
    * @returns Decoded payload or null if invalid
    */
   verify(token: string): TokenPayload | null;
+
+  /**
+   * The real lifetime of tokens issued by generate(), in seconds - callers
+   * (e.g. the login response's `expiresIn` field) must read this instead of
+   * hardcoding a duration, so the two can never drift apart.
+   */
+  getExpiresInSeconds(): number;
 }

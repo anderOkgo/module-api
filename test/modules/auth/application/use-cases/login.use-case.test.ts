@@ -33,6 +33,7 @@ const mockPasswordHasher: jest.Mocked<PasswordHasherPort> = {
 const mockTokenGenerator: jest.Mocked<TokenGeneratorPort> = {
   generate: jest.fn(),
   verify: jest.fn(),
+  getExpiresInSeconds: jest.fn(),
 };
 
 describe('LoginUserUseCase', () => {
@@ -71,6 +72,7 @@ describe('LoginUserUseCase', () => {
       mockUserRepository.resetLoginAttempts.mockResolvedValue();
       mockUserRepository.updateLastLogin.mockResolvedValue();
       mockTokenGenerator.generate.mockReturnValue('jwt-token');
+      mockTokenGenerator.getExpiresInSeconds.mockReturnValue(2592000);
 
       const result = await loginUserUseCase.execute(loginData);
 
@@ -79,7 +81,11 @@ describe('LoginUserUseCase', () => {
       expect(result.data).toBeDefined();
       expect(result.data?.user.username).toBe('testuser');
       expect(result.data?.token).toBe('jwt-token');
-      expect(result.data?.expiresIn).toBe(86400);
+      // expiresIn must come from the token generator itself (30 days, in
+      // seconds), not a hardcoded value that can drift from the JWT's real
+      // lifetime - see the Acceptance Criteria Catalog entry for why.
+      expect(result.data?.expiresIn).toBe(2592000);
+      expect(mockTokenGenerator.getExpiresInSeconds).toHaveBeenCalled();
       expect(mockUserRepository.findByEmailOrUsername).toHaveBeenCalledWith('', 'testuser');
       expect(mockPasswordHasher.compare).toHaveBeenCalledWith('password123', 'hashedpassword');
       expect(mockUserRepository.resetLoginAttempts).toHaveBeenCalledWith(1);

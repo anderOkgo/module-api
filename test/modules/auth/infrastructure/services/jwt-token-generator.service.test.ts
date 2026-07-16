@@ -63,4 +63,19 @@ describe('JwtTokenGeneratorService', () => {
       expect(service.verify(foreignToken)).toBeNull();
     });
   });
+
+  describe('getExpiresInSeconds', () => {
+    it('returns 30 days in seconds, matching the real lifetime generate() signs tokens with', () => {
+      const service = new JwtTokenGeneratorService('explicit-secret');
+
+      expect(service.getExpiresInSeconds()).toBe(30 * 24 * 60 * 60);
+
+      // Cross-check against the actual token, not just the constant: decode
+      // the real exp/iat claims and confirm they're 30 days apart - this is
+      // what would have caught the expiresIn/EXPIRES_IN drift bug for real.
+      const token = service.generate({ userId: 1, username: 'testuser', role: 2 });
+      const decoded = jwt.verify(token, 'explicit-secret') as any;
+      expect(decoded.exp - decoded.iat).toBe(service.getExpiresInSeconds());
+    });
+  });
 });

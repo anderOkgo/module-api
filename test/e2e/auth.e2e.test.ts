@@ -3,6 +3,7 @@ dotenv.config();
 
 import request from 'supertest';
 import { buildTestApp } from '../integration/helpers/build-test-app';
+import { signAdminToken, bearer } from '../integration/helpers/jwt';
 import { rawQuery } from './helpers/db';
 
 // Real DB, real bcrypt, real JWT — only the SMTP send is mocked, since actually
@@ -109,5 +110,36 @@ describe('Auth E2E (real database)', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.message).toBe('Invalid credentials');
+  });
+
+  it('admin resets the real user\'s password, and only the new password works afterward', async () => {
+    const newPassword = 'NewSecurePass456';
+
+    const resetRes = await request(app)
+      .put('/api/users/admin/reset-password')
+      .set('Authorization', bearer(signAdminToken()))
+      .send({ identifier: testUsername, newPassword });
+
+    expect(resetRes.status).toBe(200);
+    expect(resetRes.body.message).toBe('Password reset successfully');
+
+    const oldPasswordRes = await request(app)
+      .post('/api/users/login')
+      .send({ username: testUsername, password: testPassword });
+    expect(oldPasswordRes.status).toBe(400);
+
+    const newPasswordRes = await request(app)
+      .post('/api/users/login')
+      .send({ username: testUsername, password: newPassword });
+    expect(newPasswordRes.status).toBe(200);
+    expect(newPasswordRes.body.data.user.username).toBe(testUsername);
+  });
+
+  it('rejects the admin reset-password endpoint without an admin token', async () => {
+    const res = await request(app)
+      .put('/api/users/admin/reset-password')
+      .send({ identifier: testUsername, newPassword: 'irrelevant123' });
+
+    expect(res.status).toBe(401);
   });
 });

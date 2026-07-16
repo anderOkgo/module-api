@@ -7,7 +7,12 @@ import { TokenGeneratorPort, TokenPayload } from '../../domain/ports/token-gener
  */
 export class JwtTokenGeneratorService implements TokenGeneratorPort {
   private readonly SECRET_KEY: string;
-  private readonly EXPIRES_IN = '30d';
+  // Single source of truth for token lifetime - both the string jwt.sign()
+  // needs and the seconds getExpiresInSeconds() reports derive from this one
+  // number, so they can't drift apart the way EXPIRES_IN ('30d') and the
+  // login response's hardcoded expiresIn (86400 = 24h) previously did.
+  private static readonly EXPIRES_IN_DAYS = 30;
+  private readonly EXPIRES_IN = `${JwtTokenGeneratorService.EXPIRES_IN_DAYS}d`;
 
   constructor(secretKey?: string) {
     this.SECRET_KEY = secretKey ?? process.env.SECRET_KEY ?? 'enterkey';
@@ -36,5 +41,9 @@ export class JwtTokenGeneratorService implements TokenGeneratorPort {
     } catch (error) {
       return null;
     }
+  }
+
+  getExpiresInSeconds(): number {
+    return JwtTokenGeneratorService.EXPIRES_IN_DAYS * 24 * 60 * 60;
   }
 }

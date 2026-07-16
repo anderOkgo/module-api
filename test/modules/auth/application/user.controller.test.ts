@@ -12,13 +12,17 @@ const mockLoginUserUseCase = {
   execute: jest.fn(),
 } as any;
 
+const mockAdminResetPasswordUseCase = {
+  execute: jest.fn(),
+} as any;
+
 describe('UserController', () => {
   let userController: UserController;
   let req: Partial<Request>;
   let res: Partial<Response>;
 
   beforeEach(() => {
-    userController = new UserController(mockRegisterUserUseCase, mockLoginUserUseCase);
+    userController = new UserController(mockRegisterUserUseCase, mockLoginUserUseCase, mockAdminResetPasswordUseCase);
     req = {
       body: {},
     };
@@ -174,6 +178,46 @@ describe('UserController', () => {
     req.body = loginData;
 
     await userController.loginUser(req as Request, res as Response);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      error: true,
+      message: 'Internal server error',
+    });
+  });
+
+  it('should reset a password successfully', async () => {
+    const requestBody = { identifier: 'testuser', newPassword: 'newSecurePassword123' };
+    const expectedResponse = { error: false, message: 'Password reset successfully' };
+
+    mockAdminResetPasswordUseCase.execute.mockResolvedValue(expectedResponse);
+    req.body = requestBody;
+
+    await userController.adminResetPassword(req as Request, res as Response);
+
+    expect(mockAdminResetPasswordUseCase.execute).toHaveBeenCalledWith('testuser', 'newSecurePassword123');
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(expectedResponse);
+  });
+
+  it('should return error when password reset fails', async () => {
+    const requestBody = { identifier: 'nosuchuser', newPassword: 'newSecurePassword123' };
+    const errorResponse = { error: true, message: 'User not found' };
+
+    mockAdminResetPasswordUseCase.execute.mockResolvedValue(errorResponse);
+    req.body = requestBody;
+
+    await userController.adminResetPassword(req as Request, res as Response);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(errorResponse);
+  });
+
+  it('should handle internal server error during password reset', async () => {
+    req.body = { identifier: 'testuser', newPassword: 'newSecurePassword123' };
+    mockAdminResetPasswordUseCase.execute.mockRejectedValue(new Error('Database error'));
+
+    await userController.adminResetPassword(req as Request, res as Response);
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({

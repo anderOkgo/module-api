@@ -1,7 +1,7 @@
 import request from 'supertest';
 import bcrypt from 'bcryptjs';
 import { buildTestApp } from './helpers/build-test-app';
-import { TEST_SECRET_KEY } from './helpers/jwt';
+import { TEST_SECRET_KEY, signAdminToken, signToken, bearer } from './helpers/jwt';
 import { UserRepository } from '../../src/modules/auth/application/ports/user.repository';
 import { UserRole } from '../../src/modules/auth/domain/entities/user.entity';
 
@@ -206,6 +206,72 @@ describe('Auth module — integration', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.message).toBe('Account is inactive');
+    });
+  });
+
+  describe('PUT /admin/reset-password', () => {
+    it('requires a token', async () => {
+      const res = await request(app)
+        .put('/api/users/admin/reset-password')
+        .send({ identifier: 'testuser', newPassword: 'newSecurePassword123' });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('requires an admin token — a regular user token is rejected', async () => {
+      const res = await request(app)
+        .put('/api/users/admin/reset-password')
+        .set('Authorization', bearer(signToken({ role: 2 })))
+        .send({ identifier: 'testuser', newPassword: 'newSecurePassword123' });
+
+      expect(res.status).toBe(403);
+      expect(mockRepo.updatePassword).not.toHaveBeenCalled();
+    });
+
+    it('resets the target user\'s password with a valid admin token', async () => {
+      mockRepo.findByEmailOrUsername.mockResolvedValue({
+        id: 5,
+        username: 'targetuser',
+        email: 'target@example.com',
+        role: UserRole.USER,
+        password: 'oldhash',
+        active: true,
+      } as any);
+      mockRepo.updatePassword.mockResolvedValue(undefined);
+      mockRepo.resetLoginAttempts.mockResolvedValue(undefined);
+
+      const res = await request(app)
+        .put('/api/users/admin/reset-password')
+        .set('Authorization', bearer(signAdminToken()))
+        .send({ identifier: 'targetuser', newPassword: 'newSecurePassword123' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Password reset successfully');
+      expect(mockRepo.findByEmailOrUsername).toHaveBeenCalledWith('targetuser', 'targetuser');
+      expect(mockRepo.updatePassword).toHaveBeenCalledWith(5, expect.any(String));
+      expect(mockRepo.resetLoginAttempts).toHaveBeenCalledWith(5);
+    });
+
+    it('returns 400 when the target user does not exist', async () => {
+      mockRepo.findByEmailOrUsername.mockResolvedValue(null);
+
+      const res = await request(app)
+        .put('/api/users/admin/reset-password')
+        .set('Authorization', bearer(signAdminToken()))
+        .send({ identifier: 'ghost', newPassword: 'newSecurePassword123' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('User not found');
+    });
+
+    it('returns 400 for a new password shorter than 6 characters', async () => {
+      const res = await request(app)
+        .put('/api/users/admin/reset-password')
+        .set('Authorization', bearer(signAdminToken()))
+        .send({ identifier: 'targetuser', newPassword: '123' });
+
+      expect(res.status).toBe(400);
+      expect(mockRepo.findByEmailOrUsername).not.toHaveBeenCalled();
     });
   });
 });

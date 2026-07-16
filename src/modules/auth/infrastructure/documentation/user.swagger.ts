@@ -131,4 +131,103 @@ export const userSwaggerDocumentation = {
       },
     },
   },
+
+  adminResetPassword: {
+    '/api/users/admin/reset-password': {
+      put: {
+        summary: "Admin resets another user's password (no current password required)",
+        tags: ['Authentication'],
+        security: [
+          {
+            bearerAuth: [],
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['identifier', 'newPassword'],
+                properties: {
+                  identifier: {
+                    type: 'string',
+                    description: 'Username or email of the target user',
+                    example: 'someuser',
+                  },
+                  newPassword: {
+                    type: 'string',
+                    description: 'New password (minimum 6 characters)',
+                    example: 'newSecurePassword123',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Password reset successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    error: {
+                      type: 'boolean',
+                      example: false,
+                    },
+                    message: {
+                      type: 'string',
+                      example: 'Password reset successfully',
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error or user not found',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Error',
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Missing or invalid token',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Error',
+                },
+              },
+            },
+          },
+          403: {
+            description: 'Forbidden - admin role required',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Error',
+                },
+              },
+            },
+          },
+          500: {
+            description: 'Internal server error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/Error',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 };

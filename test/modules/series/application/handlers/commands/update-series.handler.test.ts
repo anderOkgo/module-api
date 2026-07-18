@@ -27,6 +27,11 @@ const mockRead: jest.Mocked<SeriesReadRepository> = {
   getProductionYears: jest.fn(),
 };
 
+const mockImageService = {
+  processAndSaveImage: jest.fn(),
+  deleteImage: jest.fn(),
+} as any;
+
 const existingSeries = { id: 1, name: 'Existing', visible: true } as any;
 const updatedSeries = { id: 1, name: 'Updated', visible: true } as any;
 
@@ -34,7 +39,7 @@ describe('UpdateSeriesHandler', () => {
   let handler: UpdateSeriesHandler;
 
   beforeEach(() => {
-    handler = new UpdateSeriesHandler(mockWrite, mockRead);
+    handler = new UpdateSeriesHandler(mockWrite, mockRead, mockImageService);
     jest.clearAllMocks();
     mockRead.findById.mockResolvedValue(existingSeries);
     mockWrite.update.mockResolvedValue();
@@ -172,5 +177,59 @@ describe('UpdateSeriesHandler', () => {
     await expect(handler.execute(new UpdateSeriesCommand(1, 'Name'))).rejects.toThrow(
       'Series not found after update'
     );
+  });
+
+  it('processes and saves the image when an imageBuffer is provided', async () => {
+    mockRead.findById.mockResolvedValueOnce(existingSeries).mockResolvedValueOnce(updatedSeries);
+    mockImageService.processAndSaveImage.mockResolvedValue('/img/tarjeta/1_123.jpg');
+    mockWrite.updateImage.mockResolvedValue(true);
+
+    const result = await handler.execute(
+      new UpdateSeriesCommand(1, 'Name', undefined, undefined, undefined, undefined, undefined, undefined, undefined, Buffer.from('img'))
+    );
+
+    expect(mockImageService.processAndSaveImage).toHaveBeenCalledWith(Buffer.from('img'), 1);
+    expect(mockWrite.updateImage).toHaveBeenCalledWith(1, '/img/tarjeta/1_123.jpg');
+    expect(result).toBe(updatedSeries);
+  });
+
+  it('does not touch the image when no imageBuffer is provided', async () => {
+    mockRead.findById.mockResolvedValueOnce(existingSeries).mockResolvedValueOnce(updatedSeries);
+
+    await handler.execute(new UpdateSeriesCommand(1, 'Name'));
+
+    expect(mockImageService.processAndSaveImage).not.toHaveBeenCalled();
+    expect(mockWrite.updateImage).not.toHaveBeenCalled();
+  });
+
+  it('does not fail the update when image processing rejects with an Error (non-fatal)', async () => {
+    mockRead.findById.mockResolvedValueOnce(existingSeries).mockResolvedValueOnce(updatedSeries);
+    mockImageService.processAndSaveImage.mockRejectedValue(new Error('processing failed'));
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    const result = await handler.execute(
+      new UpdateSeriesCommand(1, 'Name', undefined, undefined, undefined, undefined, undefined, undefined, undefined, Buffer.from('img'))
+    );
+
+    expect(result).toBe(updatedSeries);
+    expect(mockWrite.updateImage).not.toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith('Image processing failed for series 1:', expect.any(Error));
+
+    consoleSpy.mockRestore();
+  });
+
+  it('does not fail the update when image processing rejects with a non-Error value (non-fatal)', async () => {
+    mockRead.findById.mockResolvedValueOnce(existingSeries).mockResolvedValueOnce(updatedSeries);
+    mockImageService.processAndSaveImage.mockRejectedValue('boom');
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    const result = await handler.execute(
+      new UpdateSeriesCommand(1, 'Name', undefined, undefined, undefined, undefined, undefined, undefined, undefined, Buffer.from('img'))
+    );
+
+    expect(result).toBe(updatedSeries);
+    expect(consoleSpy).toHaveBeenCalledWith('Image processing failed for series 1:', 'boom');
+
+    consoleSpy.mockRestore();
   });
 });

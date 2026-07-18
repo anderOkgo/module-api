@@ -114,6 +114,17 @@ describe('SeriesReadMysqlRepository', () => {
 
       await expect(repository.findByNameAndYear('X', 2023)).rejects.toThrow('query failed');
     });
+
+    it('excludes soft-deleted (invisible) series from the duplicate check', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue([]);
+
+      await repository.findByNameAndYear('Test Series', 2023);
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        expect.stringContaining('visible = 1'),
+        ['Test Series', 2023]
+      );
+    });
   });
 
   describe('findAll', () => {

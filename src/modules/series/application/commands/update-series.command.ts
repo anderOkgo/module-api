@@ -13,7 +13,8 @@ export class UpdateSeriesCommand implements Command<SeriesResponse> {
     public readonly description_en?: string,
     public readonly qualification?: number,
     public readonly demography_id?: number,
-    public readonly visible?: boolean
+    public readonly visible?: boolean,
+    public readonly imageBuffer?: Buffer
   ) {
     this.timestamp = new Date();
   }

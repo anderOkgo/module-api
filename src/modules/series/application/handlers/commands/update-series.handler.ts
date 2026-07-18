@@ -3,11 +3,13 @@ import { UpdateSeriesCommand } from '../../commands/update-series.command';
 import { SeriesResponse } from '../../../domain/entities/series.entity';
 import { SeriesWriteRepository } from '../../../application/ports/series-write.repository';
 import { SeriesReadRepository } from '../../../application/ports/series-read.repository';
+import { ImageService } from '../../services/image.service';
 
 export class UpdateSeriesHandler implements CommandHandler<UpdateSeriesCommand, SeriesResponse> {
   constructor(
     private readonly writeRepository: SeriesWriteRepository,
-    private readonly readRepository: SeriesReadRepository
+    private readonly readRepository: SeriesReadRepository,
+    private readonly imageService: ImageService
   ) {}
 
   async execute(command: UpdateSeriesCommand): Promise<SeriesResponse> {
@@ -37,6 +39,17 @@ export class UpdateSeriesHandler implements CommandHandler<UpdateSeriesCommand, 
       await tx.update(command.id, normalizedData);
       await tx.updateRank();
     });
+
+    // 4b. Process image (best-effort, deliberately outside the transaction
+    // above, same non-fatal handling as create-series.handler.ts)
+    if (command.imageBuffer) {
+      try {
+        const imagePath = await this.imageService.processAndSaveImage(command.imageBuffer, command.id);
+        await this.writeRepository.updateImage(command.id, imagePath);
+      } catch (error) {
+        console.warn(`Image processing failed for series ${command.id}:`, error);
+      }
+    }
 
     // 6. Get updated series
     const updatedSeries = await this.readRepository.findById(command.id);

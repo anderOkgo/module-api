@@ -1408,6 +1408,52 @@ describe('SeriesController - Fixed Tests', () => {
       });
     });
 
+    it('should update chapter_number/qualification to a real 0 sent as a JSON number (regression: truthy-check used to silently drop 0)', async () => {
+      // Arrange
+      const mockResult = { id: 1, name: 'Updated Series' };
+      mockRequest.params = { id: '1' };
+      mockRequest.body = {
+        chapter_number: 0,
+        qualification: 0,
+      };
+
+      mockHandlers.updateSeriesHandler.execute.mockResolvedValue(mockResult);
+
+      // Act
+      await controller.updateSeries(mockRequest as Request, mockResponse as Response);
+
+      // Assert
+      expect(mockHandlers.updateSeriesHandler.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 1,
+          chapter_number: 0,
+          qualification: 0,
+        })
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+    });
+
+    it('should pass req.file as imageBuffer to UpdateSeriesCommand when an image is attached to the update', async () => {
+      // Arrange
+      const mockResult = { id: 1, name: 'Updated Series' };
+      mockRequest.params = { id: '1' };
+      mockRequest.body = { name: 'Updated Series' };
+      mockRequest.file = { buffer: Buffer.from('img-data') } as Express.Multer.File;
+
+      mockHandlers.updateSeriesHandler.execute.mockResolvedValue(mockResult);
+
+      // Act
+      await controller.updateSeries(mockRequest as Request, mockResponse as Response);
+
+      // Assert
+      expect(mockHandlers.updateSeriesHandler.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 1,
+          imageBuffer: Buffer.from('img-data'),
+        })
+      );
+    });
+
     it('should handle updateSeries errors', async () => {
       // Arrange
       const error = new Error('Update failed');

@@ -205,6 +205,34 @@ describe('Series E2E (real database)', () => {
     expect(rows.map((r) => r.genre_id)).toEqual([realGenreIds[1]]);
   });
 
+  it('updates the real image when a file is attached to a metadata update (PUT /:id, regression: image used to be silently discarded)', async () => {
+    // A minimal but genuinely valid 1x1 PNG — the real (unmocked) sharp-based
+    // image pipeline runs in this E2E test, so it needs real image bytes.
+    const tinyPng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64'
+    );
+
+    const beforeRows = await rawQuery<any[]>('MYDATABASEANIME', 'SELECT image FROM productions WHERE id = ?', [
+      seriesId,
+    ]);
+    const imageBefore = beforeRows[0].image;
+
+    const res = await request(app)
+      .put(`/api/series/${seriesId}`)
+      .set('Authorization', adminToken)
+      .field('description', 'updated alongside an image')
+      .attach('image', tinyPng, { filename: 'cover.png', contentType: 'image/png' });
+
+    expect(res.status).toBe(200);
+
+    const afterRows = await rawQuery<any[]>('MYDATABASEANIME', 'SELECT image FROM productions WHERE id = ?', [
+      seriesId,
+    ]);
+    expect(afterRows[0].image).not.toBe(imageBefore);
+    expect(afterRows[0].image).toMatch(/^\/img\/tarjeta\/.+\.jpg$/);
+  });
+
   it('soft-deletes the series (sets visible = 0, row stays)', async () => {
     const res = await request(app).delete(`/api/series/${seriesId}`).set('Authorization', adminToken);
 
@@ -215,6 +243,65 @@ describe('Series E2E (real database)', () => {
     ]);
     expect(rows).toHaveLength(1);
     expect(Number(rows[0].visible)).toBe(0);
+  });
+
+  it('creates a fresh row instead of reviving a soft-deleted one with the same name+year (regression)', async () => {
+    // Before the fix, findByNameAndYear ignored `visible`, so re-creating
+    // with the same name+year "revived" the soft-deleted row (and defaulted
+    // visible back to true) instead of ever making a new one.
+    const res = await request(app)
+      .post('/api/series/create')
+      .set('Authorization', adminToken)
+      .field('name', testSeriesName)
+      .field('chapter_number', '1')
+      .field('year', '2024')
+      .field('description', 'revived-check')
+      .field('description_en', 'revived-check')
+      .field('qualification', '8')
+      .field('demography_id', String(realDemographyId))
+      .field('visible', 'true');
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.id).not.toBe(seriesId);
+
+    const originalRows = await rawQuery<any[]>('MYDATABASEANIME', 'SELECT visible FROM productions WHERE id = ?', [
+      seriesId,
+    ]);
+    expect(Number(originalRows[0].visible)).toBe(0);
+
+    await rawQuery('MYDATABASEANIME', 'DELETE FROM productions WHERE id = ?', [res.body.data.id]);
+  });
+
+  it('excludes a genre-less series from the boot endpoint (POST /), even though it is fully visible via GET /:id (real INNER JOIN behavior in view_all_info_produtions)', async () => {
+    const genrelessName = `${testSeriesName}_genreless`;
+    const created = await new SeriesWriteMysqlRepository().create({
+      name: genrelessName,
+      chapter_number: 1,
+      year: 2024,
+      description: '',
+      description_en: '',
+      qualification: 8,
+      demography_id: realDemographyId,
+      visible: true,
+    });
+    const genrelessId = created.id;
+
+    try {
+      const getRes = await request(app).get(`/api/series/${genrelessId}`);
+      expect(getRes.status).toBe(200);
+
+      const bootResBefore = await request(app).post('/api/series/').send({ production_name: genrelessName });
+      expect(bootResBefore.body).toHaveLength(0);
+
+      await new SeriesWriteMysqlRepository().assignGenres(genrelessId, [realGenreIds[0]]);
+
+      const bootResAfter = await request(app).post('/api/series/').send({ production_name: genrelessName });
+      expect(bootResAfter.body).toHaveLength(1);
+      expect(bootResAfter.body[0].id).toBe(genrelessId);
+    } finally {
+      await rawQuery('MYDATABASEANIME', 'DELETE FROM productions_genres WHERE production_id = ?', [genrelessId]);
+      await rawQuery('MYDATABASEANIME', 'DELETE FROM productions WHERE id = ?', [genrelessId]);
+    }
   });
 
   it('rejects operating on a series id that does not exist', async () => {

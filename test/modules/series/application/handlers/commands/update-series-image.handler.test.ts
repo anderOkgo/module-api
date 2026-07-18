@@ -108,9 +108,9 @@ describe('UpdateSeriesImageHandler', () => {
   });
 
   it('wraps an image-too-large error', async () => {
-    const hugeFile = { buffer: Buffer.alloc(10 * 1024 * 1024 + 1) } as Express.Multer.File;
+    const hugeFile = { buffer: Buffer.alloc(5 * 1024 * 1024 + 1) } as Express.Multer.File;
     await expect(handler.execute(new UpdateSeriesImageCommand(1, hugeFile))).rejects.toThrow(
-      /Image size must not exceed 10 MB/
+      /Image size must not exceed 5 MB/
     );
   });
 

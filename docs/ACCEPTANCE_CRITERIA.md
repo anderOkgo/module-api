@@ -1,6 +1,6 @@
 # Acceptance Criteria Catalog
 
-**Status: living document** — grows whenever a bug hunt or investigation surfaces a new non-obvious business rule. Last entry added 2026-07-18 (#18). Split out of `docs/specification-roadmap.md` on 2026-07-18 so this evergreen reference doesn't keep growing inside that file's day-by-day project log — see that file's Progress log for the history of *how* each entry below was discovered, and Phase 7 for the full reasoning behind why this catalog exists as a separate, language-agnostic layer.
+**Status: living document** — grows whenever a bug hunt or investigation surfaces a new non-obvious business rule. Last entries added 2026-07-18 (#19-28, from the `series` module recovery sweep — see `docs/specification-roadmap.md` Phase 8). Split out of `docs/specification-roadmap.md` on 2026-07-18 so this evergreen reference doesn't keep growing inside that file's day-by-day project log — see that file's Progress log for the history of *how* each entry below was discovered, and Phase 7 for the full reasoning behind why this catalog exists as a separate, language-agnostic layer.
 
 ## What this is
 
@@ -172,6 +172,94 @@ Added directly motivated by entry #16: a way to actually reset a real account's 
 **Enforced in:** `assertRequiredEnvVars()` in `src/infrastructure/config/env.ts`, called from `src/server.ts`; the now-fallback-free reads in `validate-token.ts`, `validate-admin.ts`, and `jwt-token-generator.service.ts`.
 
 **Verified in `scripts/smoke-test.js`:** not applicable — this is a startup-time/process-level guarantee, not an HTTP-observable behavior distinguishable from "server not running at all" from outside.
+
+#### 19. `PUT /api/series/:id` now saves an attached image — it used to be silently discarded
+
+**Rule (now enforced, previously violated):** `PUT /api/series/:id` accepts `multipart/form-data` (it runs the same `uploadImageMiddleware` as `create`), so a client can attach an `image` file alongside metadata fields. Before this fix, `UpdateSeriesCommand`/`UpdateSeriesHandler` never read `req.file` at all — the image was parsed by multer and thrown away with no error, no warning, nothing. Only the dedicated `PUT /api/series/:id/image` endpoint actually updated the image. A caller relying on the (reasonable) assumption that "update, with an image attached, updates the image" silently lost that image on every call.
+
+**Fixed:** `UpdateSeriesCommand` gained an `imageBuffer?: Buffer` field; the controller now passes `req.file?.buffer`; `UpdateSeriesHandler` processes and saves it the same non-fatal, best-effort way `create-series.handler.ts` already does (outside the write transaction — a failed image upload must not roll back the metadata update).
+
+**Enforced in:** `update-series.command.ts`, `update-series.handler.ts`, `series.controller.ts`'s `updateSeries`.
+
+**Verified in `scripts/smoke-test.js`:** yes — attaches a real image to a metadata-only `PUT`, asserts the stored `image` path actually changed.
+
+#### 20. `chapter_number`/`qualification` could never be updated to a real `0` via a JSON body — fixed
+
+**Rule (now enforced, previously violated):** `updateSeries`'s controller decided whether an optional numeric field was "provided" using a plain truthy check (`req.body.chapter_number && ...`). That works for multipart form-data (where every value arrives as a non-empty string, and `'0'` is truthy) but breaks for a JSON body, where a legitimate `chapter_number: 0` or `qualification: 0` arrives as the JS number `0` — which is falsy, so the whole field was silently treated as "not provided" and dropped from the update. The same bug shape as the Phase 1 `visible`/`Boolean('false')` regression: a falsy-but-valid value being mistaken for "absent."
+
+**Fixed:** the four numeric optional-field checks (`chapter_number`, `year`, `qualification`, `demography_id`) now compare explicitly against `undefined`/`''` instead of relying on truthiness.
+
+**Enforced in:** `series.controller.ts`'s `updateSeries`.
+
+**Verified in `scripts/smoke-test.js`:** not automated as its own HTTP check (the existing multipart-based update checks always send truthy values); covered directly at the unit level (`series.controller.test.ts`) with a regression test sending `chapter_number: 0, qualification: 0` as real JSON numbers.
+
+#### 21. Creating a series with the same name+year as a soft-deleted one no longer "revives" it — fixed
+
+**Rule (now enforced, previously violated):** entry #5 documents that `POST /api/series/create` is an upsert-by-(name, year). The duplicate-detection query (`findByNameAndYear`) never filtered on `visible`, so if a series had been soft-deleted (entry #4) and someone later created a new series with the exact same name+year, the "duplicate" check matched the invisible row and **updated it instead of creating a fresh one** — and since a create request that doesn't explicitly set `visible` defaults to `true` (see `create-series.handler.ts`'s `normalize()`), this silently un-hid a deliberately-hidden series as a side effect of an unrelated create call.
+
+**Fixed:** `findByNameAndYear()`'s query now includes `AND visible = 1`, so a soft-deleted series is invisible to the duplicate check — re-using its name+year now creates a genuinely new row, leaving the old (hidden) one untouched.
+
+**Enforced in:** `findByNameAndYear()` in `series-read.mysql.ts`.
+
+**Verified in `scripts/smoke-test.js`:** not automated as a dedicated check (would need a 3-step fixture: create, soft-delete, re-create, clean up two rows — judged not worth the extra script complexity given it's already covered end-to-end). **Verified for real against the live Docker database** via `test/e2e/series.e2e.test.ts` ("creates a fresh row instead of reviving a soft-deleted one with the same name+year").
+
+#### 22. `PUT /api/series/:id/image`'s own size check was dead code — the real limit was always 5MB, not 10MB
+
+**Rule (now enforced, previously violated):** `uploadMiddleware`'s multer config (`src/infrastructure/services/upload.ts`) rejects any file over 5MB before a request ever reaches a handler. `update-series-image.handler.ts` separately validated against a hardcoded 10MB — a check that could never actually fire, since multer had already rejected anything between 5MB and 10MB with a different error shape (`{ error: 'File is too large. Maximum 5MB.' }` from the middleware, not the handler's own `Error` message) before the handler's code ever ran. The 10MB number was pure fiction from the caller's point of view.
+
+**Fixed:** the handler's own `MAX_SIZE` now matches multer's real 5MB limit, so the handler's check (which does still matter for any non-HTTP/direct caller of the handler, e.g. a future internal job) no longer claims a limit that HTTP callers could never actually reach.
+
+**Enforced in:** `update-series-image.handler.ts` (`MAX_SIZE`), `src/infrastructure/services/upload.ts` (`fileSize` — the real, first-enforced limit).
+
+**Verified in `scripts/smoke-test.js`:** not automated (would mean uploading a multi-megabyte payload on every run just to hit a boundary already fully covered at the unit level). Unit-covered: `update-series-image.handler.test.ts`.
+
+#### 23. A series with zero genres assigned is invisible on the "boot" listing endpoint — even though it's fully visible everywhere else
+
+**Rule:** `POST /api/series/` (the "boot" endpoint that `getProductions`/`GetProductionsHandler` serve, likely what populates the site's main listing) reads from `view_all_info_produtions`, which `INNER JOIN`s `productions_genres`/`genres`. A series with **zero genres assigned has no matching row in that join and is completely absent from this endpoint's results** — while still being fully retrievable via `GET /api/series/:id`, `GET /api/series/list`, and `POST /api/series/search` (none of which join through genres at all). Concretely: create a series via `POST /api/series/create` without ever calling `POST /:id/genres`, and it will look fully created (200 on `GET /:id`) yet never appear in the endpoint the main catalog listing actually uses — a confusing, easy-to-hit trap for anyone driving the API directly (the admin UI presumably always assigns at least one genre, which is why this has likely never been reported as a bug).
+
+**Enforced in:** `view_all_info_produtions` (`animecream-data/sql/db-views-procs.sql`, `INNER JOIN productions_genres pg ... INNER JOIN genres g ...`), read by `getProductions()` in `series-read.mysql.ts`. Contrast with `titles`, which is a `LEFT JOIN` in the same view — a title-less series is *not* hidden this way, only a genre-less one.
+
+**Verified:** yes, for real, against the live Docker database — created a genre-less series, confirmed it was retrievable via `GET /:id` but returned 0 results from `POST /api/series/` filtered by its exact name, then assigned a genre and confirmed it appeared. Locked in as a permanent regression in `test/e2e/series.e2e.test.ts`.
+
+#### 24. List/search endpoints can never surface an invisible (soft-deleted) series — not even for admins
+
+**Rule:** `search()`, `findAll()`, and `getProductions()` in `series-read.mysql.ts` all hardcode `visible = 1` in their `WHERE`/`JOIN` clause with no parameter or code path to override it — including for `validateAdmin`-gated calls. The only way to ever retrieve a soft-deleted series is knowing its exact numeric id and calling `GET /api/series/:id` directly (which applies no visibility filter at all). `search()`'s own source comment claims "admin can override if needed" — that capability does not exist anywhere in the code; the comment describes an aspiration, not a real code path. A rewrite implementing an actual "show hidden items to admins" toggle for any list/search endpoint would be adding a new feature, not fixing a bug — worth knowing before assuming it already works.
+
+**Enforced in:** the hardcoded `WHERE p.visible = 1` / `JOIN ... WHERE p.visible = 1` clauses in `search()`, `findAll()`, and `getProductions()` in `series-read.mysql.ts`.
+
+**Verified in `scripts/smoke-test.js`:** not automated as its own check — implied by the existing soft-delete check (entry #4), which already confirms the deleted fixture is absent from a listing by virtue of never being re-added to any collection assertion.
+
+#### 25. Series cover images are forced to an exact, hardcoded size/format — not just "optimized"
+
+**Rule:** every uploaded series cover image, regardless of its original format (JPEG/PNG/WebP are all accepted per `fileFilter`) or dimensions, is resized to **exactly 190×285 pixels**, always re-encoded as **JPEG** (never PNG/WebP, even if that's what was uploaded), and iteratively quality-reduced until it's under **20KB** — a `.jpg` filename is written regardless of the upload's original extension. These are product-specific constants (the "card" aspect ratio used across the site), not generic "make the file smaller" behavior — a rewrite that merely "optimized" images without matching these exact numbers would produce visibly wrong-shaped cards.
+
+**Enforced in:** `DEFAULT_CONFIG`/`optimizeImage()` in `src/infrastructure/services/image.ts` (`width: 190, height: 285, maxSizeKB: 20`), `SeriesImageProcessorService.processAndSaveImage()` (hardcodes the `.jpg` extension).
+
+**Verified in `scripts/smoke-test.js`:** not automated — would require adding an image-decoding dependency (e.g. `sharp`) to a script deliberately kept dependency-light; the existing upload checks confirm the endpoint *accepts and stores* an image, not its exact pixel dimensions. Fully covered at the unit level (`test/infrastructure/services/image.test.ts`).
+
+#### 26. Three listing/search endpoints, three different, undocumented pagination ceilings
+
+**Rule:** `GET /api/series/list` and `POST /api/series/search` (the newer, view-based endpoints) both default to a limit of **50** and cap at **100**. `POST /api/series/` (the legacy "boot" endpoint, `getProductions`) defaults to **500** and caps at **10,000**. The Swagger doc only documents the 50/100 pair (on `/list`); the other two regimes exist only in source. A client (or a rewrite) assuming one pagination convention applies uniformly across "similar" series-listing endpoints will get it wrong for at least one of the three.
+
+**Enforced in:** `normalizeFilters()` in `search-series.handler.ts` and `validateAndNormalizeLimit()` in `get-all-series.handler.ts` (50/100); `validateFilters()` in `get-productions.handler.ts` (500 default) and `validateProduction()` in `series.validation.ts` (10,000 default/max — used when `getProductions` is called directly with `limit` already present in the body, bypassing the handler's own 500 default).
+
+**Verified in `scripts/smoke-test.js`:** not automated — the existing checks against these endpoints don't send an explicit `limit`, so the differing defaults are exercised implicitly but not asserted on; adding boundary-value assertions here was judged lower priority than the functional gaps above (documented here as the authoritative reference instead).
+
+#### 27. Removing a genre/title id that was never assigned (or doesn't exist at all) is a silent no-op — unlike assigning one
+
+**Rule:** `POST /:id/genres` (assign) validates every submitted genre id against the real catalog and rejects with a 400 listing the invalid ones (see the existing "rejects an unknown genre id" smoke check). `DELETE /:id/genres` and `DELETE /:id/titles` (remove) do **no such validation** — they issue a `DELETE ... WHERE production_id = ? AND genre_id/id IN (...)` that simply matches zero rows if the id was never assigned or never existed, and return `200 success: true` regardless. Same asymmetry on the add side: `POST /:id/titles` only dedupes titles *within the same request* (`array.indexOf`); it never checks the series' already-existing titles, so calling it twice with the same title string creates a genuine duplicate row — unlike genres, which `assignGenres` makes idempotent by deleting-then-reinserting the full set every time.
+
+**Enforced in:** `remove-genres.handler.ts`/`remove-titles.handler.ts` (no existence check, contrast with `assign-genres.handler.ts`'s `existingGenreIds` check), `add-titles.handler.ts`'s `normalizeTitles()` (dedupes only within the request).
+
+**Verified in `scripts/smoke-test.js`:** not automated — low real-world impact (a silent no-op on a bad remove id, or an avoidable duplicate title on a misbehaving caller, neither corrupts existing data) relative to the script-complexity cost of asserting on it; documented here as the authoritative reference.
+
+#### 28. `assignGenres`'s SQL is safe today only because every caller validates first — worth hardening
+
+**Rule (not currently exploitable, flagged for awareness):** `SeriesWriteMysqlRepository.assignGenres()` builds its `INSERT` values via raw string interpolation (`` `(${seriesId}, ${gid})` ``) rather than bound parameters — the same shape as the real SQL-injection issue fixed in `finan-data` (see entry in `docs/specification-roadmap.md` Phase 5, item 2). It is not exploitable through today's API because every call site (`AssignGenresHandler`, `CreateSeriesCompleteHandler`) validates that every id is a positive integer *before* calling it. The repository method itself, though, trusts its caller completely — any future caller that skips that validation (or a direct/internal call) would reopen the same class of vulnerability finan had. Flagged as a hardening item, not an active bug.
+
+**Enforced in:** `assignGenres()` in `series-write.mysql.ts`.
+
+**Verified in `scripts/smoke-test.js`:** not applicable — not an HTTP-observable behavior difference under any currently-reachable input.
 
 ---
 

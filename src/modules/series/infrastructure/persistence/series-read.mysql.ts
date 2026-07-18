@@ -61,7 +61,7 @@ export class SeriesReadMysqlRepository implements SeriesReadRepository {
     const query = `
       SELECT id, name, year
       FROM productions
-      WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND year = ?
+      WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND year = ? AND visible = 1
       LIMIT 1
     `;
     const result = await this.database.executeSafeQuery(query, [name, year]);

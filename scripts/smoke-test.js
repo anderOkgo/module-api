@@ -682,6 +682,50 @@ async function main() {
         assertStatus(res, 200, 'PUT /api/series/:id/image');
       });
 
+      // Acceptance criterion #19: an image attached to a metadata PUT (not
+      // just the dedicated PUT /:id/image endpoint) must actually be saved,
+      // not silently parsed and discarded.
+      await check(
+        'PUT /api/series/:id saves an attached image on a metadata update, not just via /:id/image (regression)',
+        async () => {
+          const before = await client.get(`/api/series/${seriesId}`);
+          const imageBefore = before.data.data.image;
+
+          const form = new FormData();
+          form.append('description', 'updated alongside an image');
+          form.append('image', TINY_PNG, { filename: 'cover3.png', contentType: 'image/png' });
+          const res = await client.put(`/api/series/${seriesId}`, form, {
+            headers: { ...form.getHeaders(), ...authHeader(adminToken) },
+          });
+          assertStatus(res, 200, 'PUT /api/series/:id (with image attached)');
+
+          const after = await client.get(`/api/series/${seriesId}`);
+          if (after.data.data.image === imageBefore) {
+            throw new Error('image was not updated — PUT /:id silently discarded the attached file');
+          }
+        }
+      );
+
+      // Acceptance criterion #23: a series with zero genres assigned is
+      // invisible on the "boot" endpoint (view_all_info_produtions INNER
+      // JOINs genres), even though it's fully retrievable by id. Check this
+      // *before* genres are assigned below, then again after.
+      await check(
+        'POST /api/series/ (boot endpoint) excludes a genre-less series, even though GET /:id finds it',
+        async () => {
+          const getRes = await client.get(`/api/series/${seriesId}`);
+          assertStatus(getRes, 200, 'GET /api/series/:id (genre-less check)');
+
+          const bootRes = await client.post('/api/series/', { production_name: seriesName });
+          assertStatus(bootRes, 200, 'POST /api/series/ (genre-less check)');
+          if (!Array.isArray(bootRes.data) || bootRes.data.length !== 0) {
+            throw new Error(
+              `expected the genre-less series to be absent from the boot endpoint, got ${JSON.stringify(bootRes.data)}`
+            );
+          }
+        }
+      );
+
       if (genreIds.length > 0) {
         await check('POST /api/series/:id/genres rejects an unknown genre id', async () => {
           const res = await client.post(
@@ -700,6 +744,19 @@ async function main() {
           );
           assertStatus(res, 200, 'POST /api/series/:id/genres');
         });
+
+        await check(
+          'POST /api/series/ (boot endpoint) now includes the series once it has a genre assigned',
+          async () => {
+            const bootRes = await client.post('/api/series/', { production_name: seriesName });
+            assertStatus(bootRes, 200, 'POST /api/series/ (post-genre-assignment check)');
+            if (!Array.isArray(bootRes.data) || bootRes.data.length !== 1) {
+              throw new Error(
+                `expected exactly 1 result from the boot endpoint after assigning a genre, got ${JSON.stringify(bootRes.data)}`
+              );
+            }
+          }
+        );
 
         await check('DELETE /api/series/:id/genres removes one genre', async () => {
           const res = await client.delete(`/api/series/${seriesId}/genres`, {

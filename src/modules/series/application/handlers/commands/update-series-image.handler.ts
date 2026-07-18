@@ -66,8 +66,12 @@ export class UpdateSeriesImageHandler
       throw new Error('Image file is required');
     }
 
-    // Validate maximum size (e.g. 10 MB)
-    const MAX_SIZE = 10 * 1024 * 1024;
+    // Validate maximum size. Matches uploadMiddleware's multer limit (see
+    // src/infrastructure/services/upload.ts) - that limit is enforced first,
+    // before a request ever reaches this handler, so this check exists only
+    // to fail with a clear message on non-HTTP/direct callers; it must stay
+    // in sync with multer's fileSize or it becomes unreachable dead code.
+    const MAX_SIZE = 5 * 1024 * 1024;
     if (imageFile.buffer.length > MAX_SIZE) {
       throw new Error(`Image size must not exceed ${MAX_SIZE / 1024 / 1024} MB`);
     }

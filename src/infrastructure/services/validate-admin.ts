@@ -23,7 +23,7 @@ const validateAdmin = (req: Request, res: Response, next: NextFunction) => {
   const bearerToken = headerToken.slice(7); // Remove 'Bearer ' prefix
 
   try {
-    jwt.verify(bearerToken, process.env.SECRET_KEY || 'qwertgfdsa', (err, decoded) => {
+    jwt.verify(bearerToken, process.env.SECRET_KEY!, (err, decoded) => {
       if (err) {
         console.error('JWT verification failed:', err);
         return res.status(401).json({

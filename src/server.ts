@@ -6,6 +6,8 @@ import { Database } from './infrastructure/my.database.helper';
 
 // Load environment variables
 dotenv.config();
+import { assertRequiredEnvVars } from './infrastructure/config/env';
+assertRequiredEnvVars();
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './infrastructure/services/swagger';
 import { buildSeriesModule } from './modules/series/infrastructure/config/series.module';

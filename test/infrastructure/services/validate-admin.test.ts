@@ -110,14 +110,19 @@ describe('validateAdmin middleware', () => {
     validateAdmin(req as Request, res as Response, next);
   });
 
-  it('falls back to the default secret when SECRET_KEY is unset', (done) => {
+  it('rejects with 401 when SECRET_KEY is unset, rather than falling back to a guessable default', (done) => {
+    const token = jwt.sign({ userId: 1, username: 'admin1', role: 1 }, SECRET);
     delete process.env.SECRET_KEY;
-    const token = jwt.sign({ userId: 1, username: 'admin1', role: 1 }, 'qwertgfdsa');
     req.headers = { authorization: `Bearer ${token}` };
-    (next as jest.Mock) = jest.fn(() => {
-      expect(req.body.username).toBe('admin1');
-      process.env.SECRET_KEY = SECRET;
+    (res.json as jest.Mock).mockImplementation((body) => {
+      // jwt.verify(token, undefined, cb) never throws synchronously - it
+      // reports "secret or public key must be provided" via the callback's
+      // err argument, same path as any other invalid-signature token.
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(body).toEqual({ error: 'Unauthorized: Invalid token' });
+      expect(next).not.toHaveBeenCalled();
       done();
+      return res;
     });
 
     validateAdmin(req as Request, res as Response, next);

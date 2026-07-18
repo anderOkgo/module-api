@@ -54,6 +54,7 @@ describe('validateToken Middleware', () => {
   });
 
   it('should call next() and set username when token is valid', () => {
+    process.env.SECRET_KEY = 'validate-token-test-secret';
     req.headers = { authorization: 'Bearer valid.token' };
 
     (jwt.verify as jest.Mock).mockImplementation((token, secret, callback) => {
@@ -62,11 +63,7 @@ describe('validateToken Middleware', () => {
 
     validateToken(req as Request, res as Response, next);
 
-    expect(jwt.verify).toHaveBeenCalledWith(
-      'valid.token',
-      process.env.SECRET_KEY || 'qwertgfdsa',
-      expect.any(Function)
-    );
+    expect(jwt.verify).toHaveBeenCalledWith('valid.token', 'validate-token-test-secret', expect.any(Function));
     expect(req.body.username).toBe('testuser');
     expect(next).toHaveBeenCalled();
   });

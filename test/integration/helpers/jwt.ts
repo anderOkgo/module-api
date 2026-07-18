@@ -1,9 +1,10 @@
 import jwt from 'jsonwebtoken';
 
 /**
- * Must match the fallback used by validate-token.ts / validate-admin.ts
- * (process.env.SECRET_KEY || 'qwertgfdsa'). Tests set process.env.SECRET_KEY
- * explicitly so token generation/verification never depends on a real .env file.
+ * validate-token.ts / validate-admin.ts read process.env.SECRET_KEY directly,
+ * with no fallback (see docs/specification-roadmap.md Acceptance Criteria
+ * Catalog #18). Tests set process.env.SECRET_KEY explicitly to this value so
+ * token generation/verification never depends on a real .env file.
  */
 export const TEST_SECRET_KEY = 'integration-test-secret';
 

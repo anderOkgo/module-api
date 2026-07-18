@@ -15,7 +15,7 @@ export class JwtTokenGeneratorService implements TokenGeneratorPort {
   private readonly EXPIRES_IN = `${JwtTokenGeneratorService.EXPIRES_IN_DAYS}d`;
 
   constructor(secretKey?: string) {
-    this.SECRET_KEY = secretKey ?? process.env.SECRET_KEY ?? 'enterkey';
+    this.SECRET_KEY = secretKey ?? process.env.SECRET_KEY!;
   }
 
   generate(payload: TokenPayload): string {

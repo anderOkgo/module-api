@@ -29,14 +29,13 @@ describe('JwtTokenGeneratorService', () => {
       expect(decoded.username).toBe('envuser');
     });
 
-    it('falls back to the default secret when neither an explicit key nor SECRET_KEY is set', () => {
+    it('throws when neither an explicit key nor SECRET_KEY is set, rather than falling back to a guessable default', () => {
       delete process.env.SECRET_KEY;
       const service = new JwtTokenGeneratorService();
 
-      const token = service.generate({ userId: 3, username: 'defaultuser', role: 2 });
-
-      const decoded = jwt.verify(token, 'enterkey') as any;
-      expect(decoded.username).toBe('defaultuser');
+      expect(() => service.generate({ userId: 3, username: 'defaultuser', role: 2 })).toThrow(
+        'secretOrPrivateKey must have a value'
+      );
     });
   });
 

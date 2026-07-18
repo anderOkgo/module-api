@@ -3,6 +3,7 @@ module.exports = {
   // docs/specification-roadmap.md) and is opt-in via `npm run test:e2e`,
   // not part of the default suite CI gates on.
   testPathIgnorePatterns: ['/node_modules/', '<rootDir>/test/e2e/'],
+  setupFiles: ['<rootDir>/jest.setup.js'],
   coverageThreshold: {
     global: {
       statements: 100,

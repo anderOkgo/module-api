@@ -4,6 +4,7 @@
 
 - [General Architecture](architecture.md)
 - [Design Specification](SPECIFICATION.md) — generative rules for how new code should be shaped, not what already exists
+- [Architecture Decision Records](adr/README.md) — why the big structural choices were made, with real alternatives and consequences
 - [Project Setup](setup.md)
 - [Docker (local MariaDB)](../docker/README.md)
 - [Databases](databases.md)

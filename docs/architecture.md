@@ -2,7 +2,7 @@
 
 Module-API implements **Clean Architecture**, **Hexagonal Architecture (Ports & Adapters)**, and **CQRS** (in the `series` module only) to keep business logic independent of frameworks, databases, and HTTP.
 
-For per-module structure, endpoints, and business rules, see `docs/modules/auth.md`, `docs/modules/finan.md`, `docs/modules/series.md`. For the exhaustive, continuously-verified list of non-obvious business rules and the methodology behind them, see **`docs/ACCEPTANCE_CRITERIA.md`** — that document is the authoritative, actively-maintained record of this system's behavior; this file covers the durable architectural shape around it. `docs/specification-roadmap.md` is the day-by-day project log — how and why things changed, not what's true today.
+For per-module structure, endpoints, and business rules, see `docs/modules/auth.md`, `docs/modules/finan.md`, `docs/modules/series.md`. For the exhaustive, continuously-verified list of non-obvious business rules and the methodology behind them, see **`docs/ACCEPTANCE_CRITERIA.md`** — that document is the authoritative, actively-maintained record of this system's behavior; this file covers the durable architectural shape around it. For the *generative* rules — how new code must be shaped to belong here, including the places where the three modules deliberately (or not-so-deliberately) disagree with each other — see **`docs/SPECIFICATION.md`**. `docs/specification-roadmap.md` is the day-by-day project log — how and why things changed, not what's true today.
 
 ## Architectural principles
 

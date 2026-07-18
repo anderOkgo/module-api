@@ -1,5 +1,4 @@
 import Movement, { CreateMovementRequest, UpdateMovementRequest } from '../../domain/entities/movement.entity';
-import { DataParams } from '../../infrastructure/models/dataparams';
 
 /**
  * Repository port for Movement entity

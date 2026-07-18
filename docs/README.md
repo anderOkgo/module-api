@@ -3,6 +3,7 @@
 ## Index
 
 - [General Architecture](architecture.md)
+- [Design Specification](SPECIFICATION.md) — generative rules for how new code should be shaped, not what already exists
 - [Project Setup](setup.md)
 - [Docker (local MariaDB)](../docker/README.md)
 - [Databases](databases.md)
@@ -15,7 +16,7 @@
 
 ## What this is
 
-A Node.js/TypeScript/Express backend for an anime-tracking site (`animecream.com`), covering three independent domains — `auth`, `finan` (personal finance tracking), `series` (anime catalog) — built with Clean/Hexagonal Architecture (`series` also uses CQRS). See `architecture.md` for the real shape, and the Acceptance Criteria Catalog for the non-obvious business rules a rewrite would need to reproduce.
+A Node.js/TypeScript/Express backend for an anime-tracking site (`animecream.com`), covering three independent domains — `auth`, `finan` (personal finance tracking), `series` (anime catalog) — built with Clean/Hexagonal Architecture (`series` also uses CQRS). See `architecture.md` for the real shape, `SPECIFICATION.md` for the conventions new code must follow, and the Acceptance Criteria Catalog for the non-obvious business rules a rewrite would need to reproduce.
 
 ## Getting started
 

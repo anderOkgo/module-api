@@ -1,295 +1,70 @@
-# Docker Setup para Module-API - MariaDB
+# Docker setup — local MariaDB
 
-Este directorio contiene la configuración Docker para ejecutar MariaDB 10.3.39 localmente, alojando todas las bases de datos de los módulos del proyecto module-api (auth, finan, series, main).
+Runs a single MariaDB 10.3.39 container (`animecream-mariadb`) hosting all three module databases locally. For the rest of the project's setup (Node, `.env`, npm scripts), see `docs/setup.md` — this file only covers the database container.
 
-## 📋 Requisitos del Sistema
+## Prerequisite: sibling schema repos
 
-### Tecnologías Utilizadas
+The actual table/view/procedure definitions for all three databases live **outside this repo**, in three sibling directories at the same level as `module-api/`:
 
-- **Node.js**: 12.22.9 (usando nvm)
-- **Docker**: Docker Desktop para Windows
-- **MariaDB**: 10.3.39 (contenedor Docker)
-- **Sistema Operativo**: Windows 10/11
-
-### Prerrequisitos
-
-- Docker Desktop instalado y ejecutándose
-- Node.js 12.22.9 (usar `nvm use 12.22.9`)
-- Cliente MySQL (opcional, para administración)
-
-## 🚀 Inicio Rápido
-
-### Configuración del Entorno
-
-```bash
-# 1. Configurar Node.js (si usas nvm)
-nvm use 12.22.9
-
-# 2. Verificar que Docker Desktop esté ejecutándose
-docker --version
-docker ps
-
-# 3. Navegar al directorio docker
-cd D:\Proyectos\module-api\docker
+```
+Proyectos/
+├── module-api/       (this repo)
+├── animecream-data/   → schema for animecre_cake514 (series)
+├── auth-data/         → schema for animecre_auth
+└── finan-data/        → schema for animecre_finan
 ```
 
-### Ejecutar Contenedor
+Clone all three next to `module-api` before running `docker-compose up` — `docker-compose.yml` mounts `../animecream-data/sql`, `../auth-data/sql`, and `../finan-data/sql`. Without them, the container starts but the databases stay empty.
+
+## Quick start
 
 ```bash
-# Construir y ejecutar
+cd docker
 docker-compose up -d --build
-
-# Ver logs
 docker-compose logs -f mariadb
-
-# Verificar que esté funcionando
 docker ps
 ```
 
-## 📊 Acceso a las Bases de Datos
+## What actually initializes the schema
 
-### MariaDB Unificado (Todas las bases de datos)
+MariaDB's own entrypoint only processes **top-level** `.sql`/`.sh` files in `/docker-entrypoint-initdb.d/` — it does **not** recurse into subdirectories. Since the three sibling repos are mounted as subdirectories (`/docker-entrypoint-initdb.d/animecream`, `/auth`, `/finan`), MariaDB would silently ignore all of them on its own. `docker/sql/00-run-nested-init-scripts.sh` is the fix: a top-level script (which the entrypoint *does* run) that manually applies each sibling repo's `db-structure.sql` → `db-views-procs.sql` → `db-trigger.sql`, in that order, for all three databases. The `.gitkeep` files under `docker/sql/{animecream,auth,finan}/` exist only so those mount points pre-exist (Docker Desktop on Windows refuses to bind-mount onto a path that doesn't already exist inside the parent mounted directory).
 
-- **Host**: localhost
-- **Puerto**: 3306
-- **Usuario root**: root / **Contraseña**: root
-- **Usuario**: animecream / **Contraseña**: animecream123
+This means a **fresh container** (new volume, no prior state) gets a fully-structured, empty-of-real-data schema automatically. `db-data.sql` (real seed data) is deliberately **not** run automatically — don't auto-load real data into a disposable dev/CI database.
 
-#### Bases de Datos Disponibles (según docker-compose.yml):
+## Connecting
 
-- **animecre_auth**: Módulo de autenticación (@auth/)
-  - Tablas: users, email_verification
-  - Scripts: db-structure.sql, migration-add-security-fields.sql
-- **animecre_cake514**: Base de datos principal de animecream
-  - Tablas: productions, demographics, genres, productions_genres
-  - Scripts: db-structure.sql, db-data.sql
-- **animecre_finan**: Módulo financiero (@finan/)
-  - Tablas: movements, categories
-  - Scripts: db-financial-procedures.sql
-- **animecre_series**: Módulo de series (@series/)
-  - Tablas: productions, demographics, genres, productions_genres
-  - Scripts: setup-series-module.sql
-
-### Acceso a Base de Datos
-
-- **Cliente MySQL**: Usar cualquier cliente MySQL (MySQL Workbench, DBeaver, etc.)
-- **Línea de comandos (root)**: `mysql -h localhost -P 3306 -u root -p`
-- **Línea de comandos (usuario)**: `mysql -h localhost -P 3306 -u animecream -p`
-
-## 🛠️ Comandos Útiles
-
-### Construir imagen
-
-```bash
-docker-compose build
-```
-
-### Ejecutar en segundo plano
-
-```bash
-docker-compose up -d
-```
-
-### Ver logs
-
-```bash
-docker-compose logs -f mariadb
-```
-
-### Detener servicios
-
-```bash
-docker-compose down
-```
-
-### Eliminar volúmenes (CUIDADO: Borra todos los datos)
-
-```bash
-docker-compose down -v
-```
-
-### Acceder al contenedor
+- Host: `localhost`, Port: `3306` (override via `MARIADB_PORT`)
+- Root: `root` / `${MYSQL_ROOT_PASSWORD:-root}`
+- App user: `${MYSQL_USER:-animecream}` / `${MYSQL_PASSWORD:-animecream123}`
 
 ```bash
 docker exec -it animecream-mariadb mysql -u root -p
 ```
 
-## 📁 Estructura de Archivos
+## Databases created (real, verified against the sibling repos' `db-structure.sql`)
 
-```
-docker/
-├── Dockerfile                 # Imagen personalizada de MariaDB
-├── docker-compose.yml        # Configuración unificada
-├── README.md                 # Este archivo
-├── scripts/                  # Scripts de utilidad
-│   ├── check-env.sh          # Verificar variables de entorno
-│   └── verify-modules.sh     # Verificar módulos
-└── sql/                      # Scripts SQL de inicialización
-    ├── 00-create-module-databases.sql
-    ├── 01-setup-auth-module.sql
-    ├── 02-setup-main-database.sql
-    ├── 03-setup-finan-module.sql
-    ├── 04-setup-series-module.sql
-    └── 99-verify-databases.sql
-```
+| Database | Tables | Key views/procedures |
+|---|---|---|
+| `animecre_cake514` (series) | `productions`, `demographics`, `genres`, `titles`, `productions_genres` | `update_rank()`, `view_all_info_produtions`, `view_all_years_productions` + several `v_*` ranking/stats views |
+| `animecre_auth` | `users`, `email_verification` | — |
+| `animecre_finan` | `type_sources`, `constants`, plus one `movements_<username>` table **created dynamically per user** via `proc_create_movements_table` (not a single shared `movements` table) | 9 `proc_view_*`/`proc_monthly_*` procedures, `view_general_info`/`view_final_trip_info` (hardcoded to one specific account — see `docs/ACCEPTANCE_CRITERIA.md` #8) |
 
-## 🔧 Configuración del Proyecto
+There is no fourth `animecre_series` database — `series` and the "main" catalog are the same database (`animecre_cake514`). Full column-level detail: read the sibling repos' `sql/db-structure.sql` directly, or see `docs/databases.md`.
 
-### Configuración de Conexión
-
-**Configuración por defecto del contenedor:**
-
-- **Host**: localhost
-- **Puerto**: 3306
-- **Usuario root**: root
-- **Contraseña root**: root
-- **Usuario**: animecream
-- **Contraseña**: animecream123
-
-**Bases de datos disponibles:**
-
-- `animecre_auth` - Módulo de autenticación
-- `animecre_cake514` - Base de datos principal
-- `animecre_finan` - Módulo financiero
-- `animecre_series` - Módulo de series
-
-### Configuración para Module-API
-
-**Variables de entorno recomendadas para el backend:**
-
-```env
-# Configuración de base de datos
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=animecream
-DB_PASSWORD=animecream123
-
-# Nombres de las bases de datos por módulo
-DB_AUTH_NAME=animecre_auth
-DB_MAIN_NAME=animecre_cake514
-DB_FINAN_NAME=animecre_finan
-DB_SERIES_NAME=animecre_series
-```
-
-### Conexión desde el Backend
-
-```typescript
-// Configuración base para todas las conexiones
-const baseConfig = {
-  host: 'localhost',
-  port: 3306,
-  user: 'animecream',
-  password: 'animecream123',
-};
-
-// Configuraciones específicas por módulo
-const dbConfigs = {
-  auth: { ...baseConfig, database: 'animecre_auth' },
-  main: { ...baseConfig, database: 'animecre_cake514' },
-  finan: { ...baseConfig, database: 'animecre_finan' },
-  series: { ...baseConfig, database: 'animecre_series' },
-};
-```
-
-## 🐛 Troubleshooting
-
-### Docker Desktop no está ejecutándose
+## Common commands
 
 ```bash
-# Verificar estado de Docker
-docker --version
-docker ps
-
-# Si no funciona, iniciar Docker Desktop desde el menú de inicio
-# Esperar a que aparezca el ícono de Docker en la bandeja del sistema
-```
-
-### Puerto ya en uso
-
-```bash
-# Cambiar puerto en docker-compose.yml
-ports:
-  - "3307:3306"  # Cambiar 3307 por otro puerto disponible
-```
-
-### Problemas de permisos
-
-```bash
-# En Windows, ejecutar como administrador
-# En Linux/Mac, usar sudo si es necesario
-sudo docker-compose up -d
-```
-
-### Node.js no está en la versión correcta
-
-```bash
-# Verificar versión actual
-node --version
-
-# Cambiar a Node.js 12.22.9 (si usas nvm)
-nvm use 12.22.9
-
-# Verificar que el cambio fue exitoso
-node --version
-```
-
-### Reiniciar desde cero
-
-```bash
-# Detener y eliminar todo
-docker-compose down -v
-
-# Reconstruir y ejecutar
-docker-compose up -d --build
-```
-
-### Verificar que las bases de datos se crearon correctamente
-
-```bash
-# Ejecutar script de verificación
-./scripts/verify-modules.sh
-
-# O verificar manualmente
+docker-compose down              # stop
+docker-compose down -v           # stop AND delete all data
+docker-compose logs -f mariadb   # follow logs
 docker exec -it animecream-mariadb mysql -u root -p -e "SHOW DATABASES;"
 ```
 
-## 📝 Notas
+## Troubleshooting
 
-### Características del Setup
+- **Port 3306 already in use**: set `MARIADB_PORT` in your shell/`.env` before running `docker-compose up`, rather than editing the compose file.
+- **A sibling repo's tables don't show up**: confirm it's actually cloned next to `module-api` and re-run `docker-compose up -d --build` — the init script only runs on a genuinely fresh volume; it won't re-apply to an already-initialized one (that's what `db-deploy-schema.bat`'s local-restore step is for, see `docs/specification-roadmap.md` Phase 5b).
 
-- Los datos se persisten en volúmenes Docker
-- Los scripts SQL se ejecutan automáticamente al crear el contenedor
-- Se crean automáticamente todas las bases de datos de los módulos
-- La configuración permite múltiples bases de datos sin limitaciones
-- Usa valores por defecto del Dockerfile y docker-compose.yml
+---
 
-### Tecnologías y Versiones
-
-- **Node.js**: 12.22.9 (usar `nvm use 12.22.9`)
-- **Docker**: Docker Desktop para Windows
-- **MariaDB**: 10.3.39 (contenedor)
-- **Sistema**: Windows 10/11
-
-### Estructura de Volúmenes
-
-```
-docker/
-├── mariadb_data/          # Datos persistentes de MariaDB
-├── logs/                  # Logs del contenedor
-└── sql/                   # Scripts de inicialización
-```
-
-### Comandos de Desarrollo
-
-```bash
-# Iniciar entorno completo
-nvm use 12.22.9
-cd D:\Proyectos\module-api\docker
-docker-compose up -d --build
-
-# Ver logs en tiempo real
-docker-compose logs -f mariadb
-
-# Acceder a la base de datos
-docker exec -it animecream-mariadb mysql -u root -p
-```
+**Last verified against source**: 2026-07-18

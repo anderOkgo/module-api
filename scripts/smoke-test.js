@@ -607,7 +607,7 @@ async function main() {
         if (res.data.data.name !== seriesName) throw new Error('name mismatch on retrieval');
       });
 
-      // Acceptance criterion #2 (docs/specification-roadmap.md): visible must
+      // Acceptance criterion #2 (docs/ACCEPTANCE_CRITERIA.md): visible must
       // round-trip as a real JSON boolean, never the raw MySQL 0/1 — the
       // admin panel reloads a series via GET and submits that exact value
       // back on PUT if the user never touches the checkbox.

@@ -16,15 +16,18 @@ Modular API built with **Hexagonal Architecture**, **Clean Architecture** and **
 ```
 src/
 ├── infrastructure/          # Global infrastructure layer
-│   ├── lib/                # Core implementations
-│   ├── data/               # Database connections
-│   └── routes/             # Global routes
+│   ├── config/             # env.ts - startup env-var guard
+│   ├── data/mysql/          # Database class, pooling, transactions
+│   ├── services/            # validate-token, validate-admin, email, image, upload, swagger, cyfer
+│   └── validation/
 ├── modules/                 # Specialized modules
-│   ├── auth/               # Authentication module
-│   ├── finan/              # Finance module
-│   └── series/             # Series module
-└── docs/                   # Complete documentation
+│   ├── auth/                # Authentication module
+│   ├── finan/                # Finance module
+│   └── series/                # Series module (CQRS)
+└── server.ts / index.ts     # Entry point
 ```
+
+(`docs/` lives at the repo root, not under `src/`.)
 
 ## 🚀 Technologies
 
@@ -41,11 +44,10 @@ src/
 ### Database
 
 - **MariaDB**: Latest version (Docker)
-- **Multiple databases**:
+- **One database per module** (see `docs/databases.md`):
   - `animecre_auth`: Authentication
-  - `animecre_cake514`: Main database
+  - `animecre_cake514`: Series/anime catalog (also referred to as "the main database" — there is no separate `animecre_series`)
   - `animecre_finan`: Finance
-  - `animecre_series`: Series
 
 ## 📦 Modules
 
@@ -138,7 +140,7 @@ node dist/index.js
 - **`docs/README.md`**: General index
 - **`docs/architecture.md`**: Detailed architecture
 - **`docs/setup.md`**: Project configuration
-- **`docs/docker-setup.md`**: Docker configuration
+- **`docker/README.md`**: Docker/MariaDB configuration
 - **`docs/modules/`**: Module documentation
 
 ### Documented Modules
@@ -151,12 +153,7 @@ node dist/index.js
 
 ### Environment Variables
 
-The project uses default values from `docker-compose.yml`:
-
-- **MYSQL_ROOT_PASSWORD**: root
-- **MYSQL_USER**: animecream
-- **MYSQL_PASSWORD**: animecream123
-- **MARIADB_PORT**: 3306
+Docker's own MariaDB credentials default from `docker-compose.yml` (`MYSQL_ROOT_PASSWORD`/`MYSQL_USER`/`MYSQL_PASSWORD`/`MARIADB_PORT` — all `root`/`animecream`/`animecream123`/`3306` unless overridden). The app itself needs its own `.env` — see `docs/setup.md` for every real variable, including `SECRET_KEY`, which is **required with no fallback**: the server refuses to start without it.
 
 ### Compatibility
 

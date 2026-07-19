@@ -7,7 +7,7 @@ Production runs on cPanel hosting (`animecream.com`), not Docker/Kubernetes/a cl
 1. **`module-api`'s own application code** (this repo).
 2. **The database schema** (`animecream-data`, `auth-data`, `finan-data` — three separate sibling repos, see `docs/specification-roadmap.md`'s multi-repo note).
 
-They ship through similar-looking but separate pipelines, both under a `com/` folder of batch scripts + a gitignored `keys/` folder of credential files, synced to production via a Google Drive Desktop–mounted FTP folder.
+They ship through similar-looking but separate pipelines, both under a `com/` folder of batch scripts + a gitignored `.env.deploy` file of deploy credentials (`keys/*.txt` symlinks, until 2026-07-19 — see auth-data's archived `docs/credential-migration-runbook.md`), synced to production via a Google Drive Desktop–mounted FTP folder.
 
 ## Deploying `module-api`'s code
 

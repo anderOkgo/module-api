@@ -104,9 +104,14 @@ dist
 # TernJS port file
 .tern-port
 
-# settings and release folders
-keys
+# settings and release folders (no keys/ folder anymore -- WinSCP.com/.exe
+# are root-level now, provisioned by 0.symbolics.bat; .env.deploy is the
+# deploy-script credential file, separate from the app's own .env above)
+WinSCP.com
+WinSCP.exe
+WinSCP.ini
 0.symbolics.bat
+.env.deploy
 
 # Uploaded/processed images (runtime data; also written by integration tests
 # that exercise the real image-processing pipeline)

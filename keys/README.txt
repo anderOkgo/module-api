@@ -1,1 +1,0 @@
-Remember to run 0.symbolics.bat to get all the keys.

@@ -2,19 +2,21 @@
 
 Runs a single MariaDB 10.3.39 container (`animecream-mariadb`) hosting all three module databases locally. For the rest of the project's setup (Node, `.env`, npm scripts), see `docs/setup.md` — this file only covers the database container.
 
-## Prerequisite: sibling schema repos
+## Prerequisite: sibling schema repo
 
-The actual table/view/procedure definitions for all three databases live **outside this repo**, in three sibling directories at the same level as `module-api/`:
+The actual table/view/procedure definitions for all three databases live **outside this repo**, in the merged `module-data` repo (formerly three separate sibling repos — `animecream-data`, `auth-data`, `finan-data` — archived 2026-07-19), at the same level as `module-api/`:
 
 ```
 Proyectos/
 ├── module-api/       (this repo)
-├── animecream-data/   → schema for animecre_cake514 (series)
-├── auth-data/         → schema for animecre_auth
-└── finan-data/        → schema for animecre_finan
+└── module-data/
+    └── schemas/
+        ├── animecream-data/sql/   → schema for animecre_cake514 (series)
+        ├── auth-data/sql/         → schema for animecre_auth
+        └── finan-data/sql/        → schema for animecre_finan
 ```
 
-Clone all three next to `module-api` before running `docker-compose up` — `docker-compose.yml` mounts `../animecream-data/sql`, `../auth-data/sql`, and `../finan-data/sql`. Without them, the container starts but the databases stay empty.
+Clone `module-data` next to `module-api` before running `docker-compose up` — `docker-compose.yml` mounts `../../module-data/schemas/animecream-data/sql`, `../../module-data/schemas/auth-data/sql`, and `../../module-data/schemas/finan-data/sql`. Without it, the container starts but the databases stay empty.
 
 ## Quick start
 
@@ -27,7 +29,7 @@ docker ps
 
 ## What actually initializes the schema
 
-MariaDB's own entrypoint only processes **top-level** `.sql`/`.sh` files in `/docker-entrypoint-initdb.d/` — it does **not** recurse into subdirectories. Since the three sibling repos are mounted as subdirectories (`/docker-entrypoint-initdb.d/animecream`, `/auth`, `/finan`), MariaDB would silently ignore all of them on its own. `docker/sql/00-run-nested-init-scripts.sh` is the fix: a top-level script (which the entrypoint *does* run) that manually applies each sibling repo's `db-structure.sql` → `db-views-procs.sql` → `db-trigger.sql`, in that order, for all three databases. The `.gitkeep` files under `docker/sql/{animecream,auth,finan}/` exist only so those mount points pre-exist (Docker Desktop on Windows refuses to bind-mount onto a path that doesn't already exist inside the parent mounted directory).
+MariaDB's own entrypoint only processes **top-level** `.sql`/`.sh` files in `/docker-entrypoint-initdb.d/` — it does **not** recurse into subdirectories. Since the three schemas are mounted as subdirectories (`/docker-entrypoint-initdb.d/animecream`, `/auth`, `/finan`), MariaDB would silently ignore all of them on its own. `docker/sql/00-run-nested-init-scripts.sh` is the fix: a top-level script (which the entrypoint *does* run) that manually applies each schema's `db-structure.sql` → `db-views-procs.sql` → `db-trigger.sql`, in that order, for all three databases. The `.gitkeep` files under `docker/sql/{animecream,auth,finan}/` exist only so those mount points pre-exist (Docker Desktop on Windows refuses to bind-mount onto a path that doesn't already exist inside the parent mounted directory).
 
 This means a **fresh container** (new volume, no prior state) gets a fully-structured, empty-of-real-data schema automatically. `db-data.sql` (real seed data) is deliberately **not** run automatically — don't auto-load real data into a disposable dev/CI database.
 
@@ -41,7 +43,7 @@ This means a **fresh container** (new volume, no prior state) gets a fully-struc
 docker exec -it animecream-mariadb mysql -u root -p
 ```
 
-## Databases created (real, verified against the sibling repos' `db-structure.sql`)
+## Databases created (real, verified against each schema's `db-structure.sql` in `module-data`)
 
 | Database | Tables | Key views/procedures |
 |---|---|---|
@@ -49,7 +51,7 @@ docker exec -it animecream-mariadb mysql -u root -p
 | `animecre_auth` | `users`, `email_verification` | — |
 | `animecre_finan` | `type_sources`, `constants`, plus one `movements_<username>` table **created dynamically per user** via `proc_create_movements_table` (not a single shared `movements` table) | 9 `proc_view_*`/`proc_monthly_*` procedures, `view_general_info`/`view_final_trip_info` (hardcoded to one specific account — see `docs/ACCEPTANCE_CRITERIA.md` #8) |
 
-There is no fourth `animecre_series` database — `series` and the "main" catalog are the same database (`animecre_cake514`). Full column-level detail: read the sibling repos' `sql/db-structure.sql` directly, or see `docs/databases.md`.
+There is no fourth `animecre_series` database — `series` and the "main" catalog are the same database (`animecre_cake514`). Full column-level detail: read `module-data`'s `schemas/<name>/sql/db-structure.sql` directly, or see `docs/databases.md`.
 
 ## Common commands
 
@@ -63,8 +65,8 @@ docker exec -it animecream-mariadb mysql -u root -p -e "SHOW DATABASES;"
 ## Troubleshooting
 
 - **Port 3306 already in use**: set `MARIADB_PORT` in your shell/`.env` before running `docker-compose up`, rather than editing the compose file.
-- **A sibling repo's tables don't show up**: confirm it's actually cloned next to `module-api` and re-run `docker-compose up -d --build` — the init script only runs on a genuinely fresh volume; it won't re-apply to an already-initialized one (that's what `db-deploy-schema.bat`'s local-restore step is for, see `docs/specification-roadmap.md` Phase 5b).
+- **A schema's tables don't show up**: confirm `module-data` is actually cloned next to `module-api` and re-run `docker-compose up -d --build` — the init script only runs on a genuinely fresh volume; it won't re-apply to an already-initialized one (that's what `db-deploy-schema.bat`'s local-restore step is for, see `docs/specification-roadmap.md` Phase 5b).
 
 ---
 
-**Last verified against source**: 2026-07-18
+**Last verified against source**: 2026-07-19

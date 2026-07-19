@@ -2,14 +2,14 @@
 # MariaDB's own docker-entrypoint.sh only processes TOP-LEVEL files in
 # /docker-entrypoint-initdb.d/ — it explicitly ignores subdirectories (logs
 # "ignoring /docker-entrypoint-initdb.d/<name>" and moves on). This project's
-# schema lives in three separate sibling repositories, each mounted as a
-# nested subdirectory by docker-compose.yml (animecream-data/sql, auth-data/sql,
-# finan-data/sql), so none of it was ever actually being applied by the
-# built-in mechanism. This script is itself a top-level file, so the
-# entrypoint runs it directly.
+# schema lives in the module-data repo's schemas/ folder, each mounted as a
+# nested subdirectory by docker-compose.yml (schemas/animecream-data/sql,
+# schemas/auth-data/sql, schemas/finan-data/sql), so none of it was ever
+# actually being applied by the built-in mechanism. This script is itself
+# a top-level file, so the entrypoint runs it directly.
 #
 # Only applies structure + views/procs + triggers (the "bootstrap a new,
-# empty environment" set per each repo's README) — deliberately skips
+# empty environment" set per each schema's README) — deliberately skips
 # db-data.sql (real data, not appropriate to auto-load into a fresh
 # CI/dev database) and db-swap.sql (a generated artifact for the
 # migration-deploy pipeline, not a general-purpose init script).

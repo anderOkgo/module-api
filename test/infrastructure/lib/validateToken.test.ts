@@ -65,6 +65,36 @@ describe('validateToken Middleware', () => {
 
     expect(jwt.verify).toHaveBeenCalledWith('valid.token', 'validate-token-test-secret', expect.any(Function));
     expect(req.body.username).toBe('testuser');
+    expect(req.body.userId).toBeUndefined();
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('should also set userId when the token carries a numeric userId', () => {
+    process.env.SECRET_KEY = 'validate-token-test-secret';
+    req.headers = { authorization: 'Bearer valid.token' };
+
+    (jwt.verify as jest.Mock).mockImplementation((token, secret, callback) => {
+      callback(null, { userId: 42, username: 'TestUser', role: 'user' });
+    });
+
+    validateToken(req as Request, res as Response, next);
+
+    expect(req.body.userId).toBe(42);
+    expect(req.body.username).toBe('TestUser');
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('should not set userId when the token userId is not a number', () => {
+    process.env.SECRET_KEY = 'validate-token-test-secret';
+    req.headers = { authorization: 'Bearer valid.token' };
+
+    (jwt.verify as jest.Mock).mockImplementation((token, secret, callback) => {
+      callback(null, { userId: '42', username: 'testuser' });
+    });
+
+    validateToken(req as Request, res as Response, next);
+
+    expect(req.body.userId).toBeUndefined();
     expect(next).toHaveBeenCalled();
   });
 

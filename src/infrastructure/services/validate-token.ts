@@ -28,6 +28,11 @@ const validateToken = (req: Request, res: Response, next: NextFunction) => {
 
       if (decoded && typeof decoded === 'object' && 'username' in decoded) {
         req.body.username = decoded.username;
+        // Additive (Bitácora SPEC D1): expose the immutable numeric user id when the token
+        // carries it. Modules that key data by user id must use this, never the username.
+        if (typeof (decoded as { userId?: unknown }).userId === 'number') {
+          req.body.userId = (decoded as { userId: number }).userId;
+        }
       } else {
         console.error('Invalid token payload:', decoded);
         return res.status(401).json({

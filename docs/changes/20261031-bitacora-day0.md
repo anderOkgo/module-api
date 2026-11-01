@@ -1,14 +1,15 @@
 # Bitácora Day 0 — API side
 
 **Date:** 2026-10-31 · **Branch:** step 1 via PR #1 (merged → `main` `8173776`); steps 2–3 on `feature/20261031-bitacora-day0-t3` · **Released in:** —
-**Implements:** `module-docs/apps/bitacora/SPEC.md` v1.0 — D1, §3 (C2–C13), §4 (reads/writes)
+**Implements:** `module-docs/apps/bitacora/SPEC.md` v1.0.1 — D1, §3 (C2–C13), §4 (reads/writes), §6 API rows
 **Change ID:** `20261031-bitacora-day0` (also `module-data` PR #1 and `bitacora-react`)
 
 ## Summary
 Step 1 done and merged (PR #1, `8173776`, CI green): the shared token middleware now also exposes the numeric `userId` from the JWT.
 Step 2 (hardening of step 1) and step 3 (the `bitacora` module, T3) done on
 `feature/20261031-bitacora-day0-t3`, unit + integration tests green at 100% coverage.
-Next: the contract E2E against a real database (T4).
+Step 4 (T4): contract E2E 106/106 against the local database, negative controls A3/S2/S4 done.
+Next: PR to `main`, production env var, deploy.
 
 ## Context
 Bitácora reuses the `auth` module (SPEC D8; playbook E.1): same users, same login, same 30-day
@@ -51,7 +52,7 @@ Details and rules: `docs/modules/bitacora.md`. Summary:
     global parser in `server.ts` (only that path is affected).
 - `MYDATABASEBITACORA` env var; docker mount + init map for `animecre_bitacora`.
 
-### Interpretations of the spec (to confirm in module-docs)
+### Interpretations of the spec (confirmed by the owner 2026-11-01 → SPEC v1.0.1)
 1. **PUT with a numeric `baseVersion` when the date has no entry** (it was deleted on another
    device): the spec's rule "stored version ≠ baseVersion → 409" has no stored entry to return.
    Implemented as **create (201)** — the text being typed is kept; the deleted one stays in the
@@ -86,7 +87,23 @@ Details and rules: `docs/modules/bitacora.md`. Summary:
     routes, no token and bad token), body `userId` ignored, S4 route ordering, envelope, 500
     without entry text in logs (N2).
   - `test/server.test.ts` — 100k-char `ñ` body parsed under `/api/bitacora` only.
-- **Not yet run against a real database** — that is T4.
+- **Step 4 (T4) — contract E2E against the local database:**
+  `scripts/20261031-e2e-bitacora.js` → **106/106 against local (Docker MariaDB 10.3.39, API
+  built from this branch on :3001) on 2026-11-01**, run twice in a row. One section per §6 API
+  row: A1–A9, H1–H4, M1–M2, T1–T5, S1–S5, L1–L3. Includes byte-level `HEX(body)` check for A7,
+  a direct-SQL old trash row for T5, an orphan check at the end, and S5: neither the run's output
+  nor the server's captured log (18,571 bytes) contains the fixture marker. The only server log
+  lines are the 18 expected `JWT verification failed` from S1.
+- **Negative controls (§6.9)**, against `dist/` patched one protection at a time (source never
+  touched; `dist/` rebuilt clean afterwards):
+  | Build | Result |
+  |---|---|
+  | A3 — version check removed (`if (false)`) | 98 passed, **7 failed** (A3, A4, and A's entry overwritten in S1/S2) |
+  | S2 — isolation removed (every caller = user A) | 94 passed, **11 failed** (all S2/S3 checks) |
+  | S4 — `/entries/:date` registered first | 105 passed, 0 failed — Express 4 matches whole segments, so `/entries/:date` cannot shadow `/entries`, `/entries/import` (POST) or `/entries/:date/nearby`; ordering is not a real risk here |
+  | S4 — dedicated routes missing (import, month, nearby) | 85 passed, **20 failed** |
+- Local test users (playbook D.1): `e2e_bitacora_a` (id 36) and `E2E_Bitacora_B` (id 37, uppercase
+  for S3) in the local `animecre_auth` only; credentials in the gitignored `.env.e2e.local`.
 
 ## Files created / modified
 | File | Change |
@@ -100,16 +117,20 @@ Details and rules: `docs/modules/bitacora.md`. Summary:
 | `docker/docker-compose.yml`, `docker/sql/00-run-nested-init-scripts.sh` | Mount and init `animecre_bitacora` |
 | `docs/modules/bitacora.md` | New |
 | `docs/databases.md`, `docs/architecture.md`, `docs/setup.md`, `README.md` | `animecre_bitacora` / `MYDATABASEBITACORA` |
+| `scripts/_e2e-helpers.js` | New: playbook C.3 helpers adapted (mysql, `/api/users/login`, body/preview redacted in failure output) |
+| `scripts/20261031-e2e-bitacora.js` | New: contract E2E (T4) |
+| `.gitignore` | `.env.e2e.local` |
 | `docs/changes/20261031-bitacora-day0.md` | This doc |
 
 ## Pending (same branch, same change ID)
-- [ ] `.env` (local) and production env: add `MYDATABASEBITACORA=animecre_bitacora` — done by the
-      owner (env files are not edited by the assistant).
-- [ ] Local DB: recreate the Docker volume (or run `bitacora-data/sql/db-structure.sql`) so
-      `animecre_bitacora` exists.
-- [ ] T4 `scripts/20261031-e2e-bitacora.js` from SPEC §6 (API rows), 2 local test users; negative
-      controls A3, S2, S4 (§6.9).
-- [ ] module-docs: confirm interpretations 1–6 above in the spec (patch version + change-log row).
+- [x] Local `.env`: `MYDATABASEBITACORA='animecre_bitacora'` added (2026-11-01, with the owner's OK).
+- [ ] **Production env**: add `MYDATABASEBITACORA` on cPanel before deploying this branch.
+- [x] Local DB: `animecre_bitacora` created from `bitacora-data/sql/db-structure.sql` (2026-11-01).
+- [x] T4 E2E 106/106 + negative controls (above).
+- [x] Interpretations 1–6 confirmed by the owner (2026-11-01) → SPEC v1.0.1.
+- [ ] PR to `main` (CI), then deploy; production checks are read-only smoke only (D.1).
+- [ ] At close: API rows of SPEC §6 → `docs/ACCEPTANCE_CRITERIA.md`; promote read-only checks
+      (401 gate, month/home shape) into `scripts/smoke-test.js`.
 
 ## Version history
 | Date | Version | Change |
@@ -118,3 +139,4 @@ Details and rules: `docs/modules/bitacora.md`. Summary:
 | 2026-10-31 | v1.1 | PR #1 CI green (type-check + tests), squash-merged to main (8173776) at the owner's request |
 | 2026-11-01 | v1.2 | Step 2: client-sent `userId` dropped by the middleware (`3348143`) |
 | 2026-11-01 | v1.3 | Step 3 (T3): `bitacora` module, tests at 100%, docs, docker; 6 spec interpretations recorded |
+| 2026-11-01 | v1.4 | Step 4 (T4): E2E 106/106 on local, negative controls A3/S2/S4; interpretations confirmed (SPEC v1.0.1) |

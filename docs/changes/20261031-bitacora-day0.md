@@ -1,6 +1,6 @@
 # Bitácora Day 0 — API side
 
-**Date:** 2026-10-31 · **Branch:** step 1 via PR #1 (merged → `main` `8173776`); steps 2–3 on `feature/20261031-bitacora-day0-t3` · **Released in:** —
+**Date:** 2026-10-31 · **Branch:** step 1 via PR #1 (merged → `main` `8173776`); steps 2–4 via PR #2 (merged → `main` `0373453`) · **Released in:** production 2026-11-01
 **Implements:** `module-docs/apps/bitacora/SPEC.md` v1.0.1 — D1, §3 (C2–C13), §4 (reads/writes), §6 API rows
 **Change ID:** `20261031-bitacora-day0` (also `module-data` PR #1 and `bitacora-react`)
 
@@ -9,7 +9,26 @@ Step 1 done and merged (PR #1, `8173776`, CI green): the shared token middleware
 Step 2 (hardening of step 1) and step 3 (the `bitacora` module, T3) done on
 `feature/20261031-bitacora-day0-t3`, unit + integration tests green at 100% coverage.
 Step 4 (T4): contract E2E 106/106 against the local database, negative controls A3/S2/S4 done.
-Next: PR to `main`, production env var, deploy.
+Step 5: PR #2 (CI green) squash-merged as `0373453` and **deployed to production on 2026-11-01**;
+read-only smoke checks pass.
+
+## Step 5 — production deploy (2026-11-01)
+Order (each confirmed before the next):
+1. Owner created `animecre_bitacora` in cPanel and added `MYDATABASEBITACORA=animecre_bitacora` to
+   the production `.env` (verified: key present, next to the other `MYDATABASE*`).
+2. Tables: `module-data` migration 0001 via `db-deploy-schema.bat` → `[db-remote-restore-swap] OK`;
+   confirmed from the first production backup (module-data change doc, step 2).
+3. Code: `npx tsc` on `main` (`0373453`) + `com\db-sync-FTP-both.bat` → whole `dist/` uploaded,
+   `/dist/modules/bitacora/**` present on the server.
+4. **Restart is manual** (found here, now in `docs/deployment.md`): the script only opens cPanel's
+   Node.js page; `/health` uptime stayed ~830 s and `/api/bitacora/*` stayed 404 until the owner
+   clicked Restart.
+5. Smoke (read-only, playbook D.1): `/health` UP (uptime 0.7 s, database UP); `/api/bitacora/
+   {trash, home/:date, entries?month, PUT entries/:date, POST entries/import}` → 401 without a
+   token and with a bad token; Swagger lists the 7 bitacora paths; `/api` and
+   `/api/series/genres` still 200.
+- Not checked in production: an authenticated call (it would write: `GET /trash` purges). The
+  first real use is the history load (D18, L4), run by the owner.
 
 ## Context
 Bitácora reuses the `auth` module (SPEC D8; playbook E.1): same users, same login, same 30-day
@@ -124,11 +143,13 @@ Details and rules: `docs/modules/bitacora.md`. Summary:
 
 ## Pending (same branch, same change ID)
 - [x] Local `.env`: `MYDATABASEBITACORA='animecre_bitacora'` added (2026-11-01, with the owner's OK).
-- [ ] **Production env**: add `MYDATABASEBITACORA` on cPanel before deploying this branch.
+- [x] **Production env**: `MYDATABASEBITACORA` added by the owner (2026-11-01).
 - [x] Local DB: `animecre_bitacora` created from `bitacora-data/sql/db-structure.sql` (2026-11-01).
 - [x] T4 E2E 106/106 + negative controls (above).
 - [x] Interpretations 1–6 confirmed by the owner (2026-11-01) → SPEC v1.0.1.
-- [ ] PR to `main` (CI), then deploy; production checks are read-only smoke only (D.1).
+- [x] PR #2 to `main` (CI green, `0373453`), deployed 2026-11-01; read-only smoke passed.
+- [ ] History load (D18, SPEC §4.5, L4): owner runs the migration script against local, then
+      production; backup right after it (N11).
 - [ ] At close: API rows of SPEC §6 → `docs/ACCEPTANCE_CRITERIA.md`; promote read-only checks
       (401 gate, month/home shape) into `scripts/smoke-test.js`.
 
@@ -140,3 +161,4 @@ Details and rules: `docs/modules/bitacora.md`. Summary:
 | 2026-11-01 | v1.2 | Step 2: client-sent `userId` dropped by the middleware (`3348143`) |
 | 2026-11-01 | v1.3 | Step 3 (T3): `bitacora` module, tests at 100%, docs, docker; 6 spec interpretations recorded |
 | 2026-11-01 | v1.4 | Step 4 (T4): E2E 106/106 on local, negative controls A3/S2/S4; interpretations confirmed (SPEC v1.0.1) |
+| 2026-11-01 | v1.5 | Step 5: merged (`0373453`), deployed to production, manual restart, smoke passed; deployment.md updated |

@@ -1,6 +1,6 @@
 # Acceptance Criteria Catalog
 
-**Status: living document** — grows whenever a bug hunt or investigation surfaces a new non-obvious business rule. Last entries added 2026-07-18 (#19-28, from the `series` module recovery sweep — see `docs/specification-roadmap.md` Phase 8). Split out of `docs/specification-roadmap.md` on 2026-07-18 so this evergreen reference doesn't keep growing inside that file's day-by-day project log — see that file's Progress log for the history of *how* each entry below was discovered, and Phase 7 for the full reasoning behind why this catalog exists as a separate, language-agnostic layer.
+**Status: living document** — grows whenever a bug hunt or investigation surfaces a new non-obvious business rule. Last entries added 2026-11-01 (#29-35, the Bitácora module, change `20261031-bitacora-day0`); before that 2026-07-18 (#19-28, from the `series` module recovery sweep — see `docs/specification-roadmap.md` Phase 8). Split out of `docs/specification-roadmap.md` on 2026-07-18 so this evergreen reference doesn't keep growing inside that file's day-by-day project log — see that file's Progress log for the history of *how* each entry below was discovered, and Phase 7 for the full reasoning behind why this catalog exists as a separate, language-agnostic layer.
 
 ## What this is
 

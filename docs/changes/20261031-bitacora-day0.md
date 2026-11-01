@@ -150,8 +150,10 @@ Details and rules: `docs/modules/bitacora.md`. Summary:
 - [x] PR #2 to `main` (CI green, `0373453`), deployed 2026-11-01; read-only smoke passed.
 - [x] History load (D18, SPEC §4.5, L4), 2026-11-01: owner ran `module-docs/apps/bitacora/migration/load.mjs` on local, then
       production → 2,675 entries for user 3 in both; verified from the post-load production backup restored locally: all 2,675 bodies identical to the file (N11 restore test).
-- [ ] At close: API rows of SPEC §6 → `docs/ACCEPTANCE_CRITERIA.md`; promote read-only checks
-      (401 gate, month/home shape) into `scripts/smoke-test.js`.
+- [x] At close: SPEC §6 API rules → `docs/ACCEPTANCE_CRITERIA.md` #29–#35 (2026-11-01).
+- [x] Read-only checks → `scripts/smoke-test.js`: all nine routes 401 without / with an invalid
+      token. Production, tier 1 only (no credentials): **25/25** (2026-11-01). Shape checks of
+      home/month need a token, so they stay in the E2E (local only).
 
 ## Version history
 | Date | Version | Change |

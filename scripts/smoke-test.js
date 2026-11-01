@@ -213,6 +213,35 @@ async function main() {
     assertStatus(res, 401, 'POST /api/finan/initial-load without token');
   });
 
+  // Bitácora (module-docs/apps/bitacora/SPEC.md §3.2, acceptance S1; catalog #29): every route is
+  // behind the token, with no exception. Read-only: a 401 never reaches the database. The full
+  // contract (writes, isolation between users) is scripts/20261031-e2e-bitacora.js, local only.
+  const bitacoraRoutes = [
+    ['get', '/api/bitacora/home/2020-03-04'],
+    ['get', '/api/bitacora/entries/2020-03-04/nearby'],
+    ['get', '/api/bitacora/entries/2020-03-04'],
+    ['put', '/api/bitacora/entries/2020-03-04'],
+    ['delete', '/api/bitacora/entries/2020-03-04'],
+    ['get', '/api/bitacora/entries?month=2020-03'],
+    ['post', '/api/bitacora/entries/import'],
+    ['get', '/api/bitacora/trash'],
+    ['post', '/api/bitacora/trash/2020-03-04/restore'],
+  ];
+  for (const [method, url] of bitacoraRoutes) {
+    await check(`${method.toUpperCase()} ${url} requires a valid token`, async () => {
+      const withBody = method === 'put' || method === 'post';
+      const none = await client.request({ method, url, data: withBody ? {} : undefined });
+      assertStatus(none, 401, `${method.toUpperCase()} ${url} without token`);
+      const bad = await client.request({
+        method,
+        url,
+        data: withBody ? {} : undefined,
+        headers: authHeader('not.a.valid-token'),
+      });
+      assertStatus(bad, 401, `${method.toUpperCase()} ${url} with an invalid token`);
+    });
+  }
+
   console.log('\nAuth module (negative paths — never creates a real user):');
   await check('POST /api/users/login rejects bogus credentials', async () => {
     const res = await client.post('/api/users/login', {

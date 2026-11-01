@@ -1,6 +1,6 @@
 # Acceptance Criteria Catalog
 
-**Status: living document** — grows whenever a bug hunt or investigation surfaces a new non-obvious business rule. Last entries added 2026-07-18 (#19-28, from the `series` module recovery sweep — see `docs/specification-roadmap.md` Phase 8). Split out of `docs/specification-roadmap.md` on 2026-07-18 so this evergreen reference doesn't keep growing inside that file's day-by-day project log — see that file's Progress log for the history of *how* each entry below was discovered, and Phase 7 for the full reasoning behind why this catalog exists as a separate, language-agnostic layer.
+**Status: living document** — grows whenever a bug hunt or investigation surfaces a new non-obvious business rule. Last entries added 2026-11-01 (#29-35, the Bitácora module, change `20261031-bitacora-day0`); before that 2026-07-18 (#19-28, from the `series` module recovery sweep — see `docs/specification-roadmap.md` Phase 8). Split out of `docs/specification-roadmap.md` on 2026-07-18 so this evergreen reference doesn't keep growing inside that file's day-by-day project log — see that file's Progress log for the history of *how* each entry below was discovered, and Phase 7 for the full reasoning behind why this catalog exists as a separate, language-agnostic layer.
 
 ## What this is
 
@@ -261,6 +261,66 @@ Added directly motivated by entry #16: a way to actually reset a real account's 
 
 **Verified in `scripts/smoke-test.js`:** not applicable — not an HTTP-observable behavior difference under any currently-reachable input.
 
+### Bitácora (`/api/bitacora`) — added 2026-11-01
+
+Source of truth: `module-docs/apps/bitacora/SPEC.md` v1.0.1 (§3 contract, §4 data, §6 acceptance). The black-box proof of the full contract is `scripts/20261031-e2e-bitacora.js` (106 checks, local only — it writes); `scripts/smoke-test.js` covers the read-only part that is safe against production.
+
+#### 29. Every journal row belongs to the token's numeric `userId` — never the username, never the request body
+
+**Rule:** all nine routes require a valid token (401 otherwise, with no exception) and read and write only the rows of the `userId` inside it. A `userId` sent in the JSON body is ignored — the token middleware removes it unless the token itself carries one. Usernames are not a safe key (no UNIQUE index, casing kept as registered — the `finan` bug of Phase 6). A second user sees none of the first user's entries, trash or months, and writing the same date creates their own row (no 409).
+
+**Enforced in:** `validate-token.ts` (sets or deletes `req.body.userId`); every bitacora use case (`isUserId` → 401); every SQL statement filters `user_id = ?` first.
+
+**Verified in:** `scripts/smoke-test.js` (401 on all nine routes, without and with an invalid token); E2E S1–S3 (two users).
+
+#### 30. Saving a day is optimistic: a stale `baseVersion` gets 409 with the stored entry and writes nothing
+
+**Rule:** `PUT /entries/:date` takes `{ body, baseVersion }`. `baseVersion` is the `version` the client last saw, `null` when it saw no entry. If the stored version differs — or an entry exists and `baseVersion` is `null` — the answer is 409 with the stored entry in `data`, and nothing is written. Versions are integers (+1 per write), not timestamps: two autosaves can land in the same second. A non-null `baseVersion` on a date with no entry (deleted elsewhere) **creates** it (201). Clients must treat a 409 whose stored body equals the text they sent as their own earlier save whose answer was lost, not as a conflict (found by the bitacora-react E2E, 2026-11-01).
+
+**Enforced in:** `BitacoraMysqlRepository.saveEntry` (`SELECT … FOR UPDATE` + version compare in one transaction; a concurrent first save's `ER_DUP_ENTRY`/`ER_LOCK_DEADLOCK` becomes a 409 with the winner's entry).
+
+**Verified in:** E2E A1–A4; negative control: with the version check removed, 7 checks fail.
+
+#### 31. A journal date is a calendar date chosen by the client, bounded by the server's UTC date + 1
+
+**Rule:** `:date` is `YYYY-MM-DD`, a real calendar date (`2026-02-30` → 400), from `1900-01-01` to one day after the server's **UTC** date (any time zone's "today" fits; further → 400). The server never decides which day is "today" — the client computes the journal day (before 04:00 it is still yesterday). No time zone is stored; the weekday is never stored. `created`/`modified` are written with `UTC_TIMESTAMP()` and returned as `…Z`; dates are formatted in SQL so the driver never shifts them.
+
+**Enforced in:** `domain/services/entry-dates.ts` (`isEntryDate`); `DATE_FORMAT` in every bitacora SELECT.
+
+**Verified in:** E2E A8.
+
+#### 32. "On this day" includes Feb 29 on Feb 28 of non-leap years; "nearby" judges the year by the anchor date
+
+**Rule:** `GET /home/:date` returns other years' entries with the same month/day, newest first, and on Feb 28 of a non-leap year also Feb 29 entries. `GET /entries/:date/nearby` returns other years within ±3 days, excluding exact matches; an entry belongs to the year of its anchor (entry date − offset), so for Jan 2, 2026 an entry on Dec 31, 2025 is the *same* year (excluded) and Dec 30, 2019 is 6 years ago, not 7.
+
+**Enforced in:** `onThisDayPairs`, `nearbyPairs`, `GetNearbyUseCase`.
+
+**Verified in:** E2E H1–H4.
+
+#### 33. Empty text is never saved and never deletes; delete is a move to a 30-day trash
+
+**Rule:** a body that is empty after trimming → 400 and no row; clearing a day never deletes it. `DELETE` moves the entry to `entries_trash` and returns `purgeOn` (deletion + 30 days). Rows older than 30 days are purged lazily by the next delete, trash list or restore — there is no scheduler — and are never listed or restored even before that purge. Restore takes the newest trash row of the date; if the date was written again, `onConflict` decides: `fail` (409 with the current entry), `replace`, or `keepBoth` (current text, a blank line, the deleted text).
+
+**Enforced in:** `BitacoraMysqlRepository.moveToTrash` / `listTrash` / `restoreFromTrash`; `checkBody`.
+
+**Verified in:** E2E A5, T1–T5.
+
+#### 34. The history import is all-or-nothing and safe to repeat
+
+**Rule:** `POST /entries/import` takes 1–1,000 items; one invalid item (bad date, empty or too long body, a date repeated in the same request) rejects the whole request with 400 and writes nothing. With `onConflict: "skip"` existing dates are never touched, so re-running a load creates 0. Bodies are 1–100,000 characters counted as code points (an emoji is one), and `/api/bitacora` accepts JSON bodies up to 10 MB (the app-wide limit is 100 kB).
+
+**Enforced in:** `checkImport`; `importEntries` (one transaction); `bitacoraJsonParser` mounted before the global parser.
+
+**Verified in:** E2E L1–L3; the real load (2,675 created, then 0 on a re-run; production backup restored and compared byte for byte, 2026-11-01).
+
+#### 35. Journal text never appears in logs, error mails or error messages
+
+**Rule:** the bitacora module never uses `executeSafeQuery` (it e-mails and logs the failing SQL, which can contain the text); failures are logged by message only, and the 500 body is generic.
+
+**Enforced in:** `BitacoraMysqlRepository` (`executeQuery` / `runInTransaction`), `BitacoraController.run`.
+
+**Verified in:** E2E S5 (the run's output and the server log are grepped for a random marker in every fixture text).
+
 ---
 
-**Last updated**: 2026-07-18
+**Last updated**: 2026-11-01

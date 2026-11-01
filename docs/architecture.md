@@ -88,6 +88,7 @@ Three separate MySQL databases, one per module, each via its own `Database` inst
 MYDATABASEANIME  → animecre_cake514   (series)
 MYDATABASEAUTH   → animecre_auth      (auth)
 MYDATABASEFINAN  → animecre_finan     (finan)
+MYDATABASEBITACORA → animecre_bitacora (bitacora)
 ```
 
 The schema for all three lives outside this repo, in three sibling repos (`animecream-data`, `auth-data`, `finan-data`) — see `docs/specification-roadmap.md`'s "multi-repo system" note and `docs/databases.md`.

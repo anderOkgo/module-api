@@ -13,6 +13,7 @@ import { swaggerSpec } from './infrastructure/services/swagger';
 import { buildSeriesModule } from './modules/series/infrastructure/config/series.module';
 import { buildAuthModule } from './modules/auth/infrastructure/config/auth.module';
 import { buildFinanModule } from './modules/finan/infrastructure/config/finan.module';
+import { buildBitacoraModule, bitacoraJsonParser } from './modules/bitacora/infrastructure/config/bitacora.module';
 
 /**
  * Builds the fully-wired Express app (middleware, routes, error handler) with
@@ -23,6 +24,9 @@ export function buildApp(database: Database): Application {
   const app = express();
 
   app.use(compression());
+  // Bitácora needs a larger body limit (see bitacoraJsonParser). It must run before the
+  // global parser, which then skips the already-parsed body.
+  app.use('/api/bitacora', bitacoraJsonParser);
   app.use(express.json());
   app.use(cors({ origin: '*' }));
 
@@ -59,6 +63,7 @@ export function buildApp(database: Database): Application {
   app.use('/api/series', buildSeriesModule().router);
   app.use('/api/users', buildAuthModule().router);
   app.use('/api/finan', buildFinanModule().router);
+  app.use('/api/bitacora', buildBitacoraModule().router);
 
   app.use((req: Request, res: Response) => {
     res.status(404).json({ error: 'Not Found' });

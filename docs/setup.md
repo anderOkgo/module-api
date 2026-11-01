@@ -31,6 +31,7 @@ MYPORT=3306
 MYDATABASEANIME=animecre_cake514
 MYDATABASEAUTH=animecre_auth
 MYDATABASEFINAN=animecre_finan
+MYDATABASEBITACORA=animecre_bitacora
 
 # JWT — required, no fallback. The server refuses to start without this
 # (src/infrastructure/config/env.ts's assertRequiredEnvVars()).

@@ -48,6 +48,7 @@ src/
   - `animecre_auth`: Authentication
   - `animecre_cake514`: Series/anime catalog (also referred to as "the main database" — there is no separate `animecre_series`)
   - `animecre_finan`: Finance
+  - `animecre_bitacora`: Bitácora daily journal (see `docs/modules/bitacora.md`)
 
 ## 📦 Modules
 

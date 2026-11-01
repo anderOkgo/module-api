@@ -26,6 +26,12 @@ No views or stored procedures — all logic here is in application code (`src/mo
 
 These 9 procedures used to build dynamic SQL by string-concatenating parameters into the query text — a real SQL-injection surface, fixed by switching to `EXECUTE ... USING` bound parameters (`docs/specification-roadmap.md` Phase 5).
 
+## `animecre_bitacora` — bitacora module (`MYDATABASEBITACORA`)
+
+**Tables**: `entries` (one row per `user_id` + `entry_date`, `UNIQUE (user_id, entry_date)`, `version` for optimistic concurrency) and `entries_trash` (deleted entries, kept 30 days). `utf8mb4`, InnoDB. Schema: `module-data/schemas/bitacora-data/sql/db-structure.sql`; contract: `module-docs/apps/bitacora/SPEC.md` §4.
+
+No views, procedures or triggers — all logic in `src/modules/bitacora/` (see `docs/modules/bitacora.md`).
+
 ## Connecting
 
 `src/infrastructure/data/mysql/database.ts`'s `Database` class takes the module's env var name as its constructor argument — one pooled connection per module, not a single shared pool:
@@ -34,6 +40,7 @@ These 9 procedures used to build dynamic SQL by string-concatenating parameters 
 new Database('MYDATABASEANIME')   // → series
 new Database('MYDATABASEAUTH')    // → auth
 new Database('MYDATABASEFINAN')   // → finan
+new Database('MYDATABASEBITACORA') // → bitacora
 ```
 
 See `docs/setup.md` for the real `.env` variable names, and `docker/README.md` for running these locally in Docker.

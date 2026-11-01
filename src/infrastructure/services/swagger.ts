@@ -2,6 +2,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import { userSwaggerDocumentation } from '../../modules/auth/infrastructure/documentation/user.swagger';
 import { seriesSwaggerDocumentation } from '../../modules/series/infrastructure/documentation/series.swagger';
 import { finanSwaggerDocumentation } from '../../modules/finan/infrastructure/documentation/finan.swagger';
+import { bitacoraSwaggerDocumentation } from '../../modules/bitacora/infrastructure/documentation/bitacora.swagger';
 import { swaggerSchemas } from './swagger.schemas';
 
 /**
@@ -45,6 +46,7 @@ const options = {
       ...convertToOpenAPIPaths(filterUserDocumentation(userSwaggerDocumentation)),
       ...convertToOpenAPIPaths(seriesSwaggerDocumentation),
       ...convertToOpenAPIPaths(finanSwaggerDocumentation),
+      ...convertToOpenAPIPaths(bitacoraSwaggerDocumentation),
     },
     security: [
       {

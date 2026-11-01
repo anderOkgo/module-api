@@ -98,6 +98,37 @@ describe('validateToken Middleware', () => {
     expect(next).toHaveBeenCalled();
   });
 
+  it('should drop a client-sent userId when the token has no numeric userId', () => {
+    process.env.SECRET_KEY = 'validate-token-test-secret';
+    req.headers = { authorization: 'Bearer valid.token' };
+    req.body = { userId: 7, username: 'spoofed' };
+
+    (jwt.verify as jest.Mock).mockImplementation((token, secret, callback) => {
+      callback(null, { username: 'testuser' });
+    });
+
+    validateToken(req as Request, res as Response, next);
+
+    expect(req.body.userId).toBeUndefined();
+    expect(req.body.username).toBe('testuser');
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('should override a client-sent userId with the token userId', () => {
+    process.env.SECRET_KEY = 'validate-token-test-secret';
+    req.headers = { authorization: 'Bearer valid.token' };
+    req.body = { userId: 7 };
+
+    (jwt.verify as jest.Mock).mockImplementation((token, secret, callback) => {
+      callback(null, { userId: 42, username: 'testuser' });
+    });
+
+    validateToken(req as Request, res as Response, next);
+
+    expect(req.body.userId).toBe(42);
+    expect(next).toHaveBeenCalled();
+  });
+
   it('should return 401 when token verification fails', () => {
     req.headers = { authorization: 'Bearer invalid.token' };
 

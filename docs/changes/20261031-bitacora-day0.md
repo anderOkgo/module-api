@@ -148,8 +148,8 @@ Details and rules: `docs/modules/bitacora.md`. Summary:
 - [x] T4 E2E 106/106 + negative controls (above).
 - [x] Interpretations 1–6 confirmed by the owner (2026-11-01) → SPEC v1.0.1.
 - [x] PR #2 to `main` (CI green, `0373453`), deployed 2026-11-01; read-only smoke passed.
-- [ ] History load (D18, SPEC §4.5, L4): owner runs the migration script against local, then
-      production; backup right after it (N11).
+- [x] History load (D18, SPEC §4.5, L4), 2026-11-01: owner ran `module-docs/apps/bitacora/migration/load.mjs` on local, then
+      production → 2,675 entries for user 3 in both; verified from the post-load production backup restored locally: all 2,675 bodies identical to the file (N11 restore test).
 - [ ] At close: API rows of SPEC §6 → `docs/ACCEPTANCE_CRITERIA.md`; promote read-only checks
       (401 gate, month/home shape) into `scripts/smoke-test.js`.
 

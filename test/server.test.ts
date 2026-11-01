@@ -17,6 +17,13 @@ jest.mock('../src/modules/auth/infrastructure/config/auth.module', () => ({
 jest.mock('../src/modules/finan/infrastructure/config/finan.module', () => ({
   buildFinanModule: () => ({ router: require('express').Router() }),
 }));
+// Keeps the real bitacoraJsonParser; the router only echoes the size of the parsed body.
+jest.mock('../src/modules/bitacora/infrastructure/config/bitacora.module', () => {
+  const actual = jest.requireActual('../src/modules/bitacora/infrastructure/config/bitacora.module');
+  const router = require('express').Router();
+  router.put('/echo', (req: Request, res: Response) => res.json({ length: req.body.body.length }));
+  return { ...actual, buildBitacoraModule: () => ({ router }) };
+});
 
 import Server, { buildApp, errorHandlerMiddleware, healthCheck } from '../src/server';
 
@@ -115,6 +122,21 @@ describe('server.ts', () => {
       expect(seriesRes.status).toBe(404);
       expect(authRes.status).toBe(404);
       expect(finanRes.status).toBe(404);
+    });
+
+    it('parses bodies above the global 100 kB limit only under /api/bitacora (SPEC A6, C11)', async () => {
+      const app = buildApp(mockDatabase as any);
+      const body = 'ñ'.repeat(100_000); // ~200 kB of UTF-8
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const bitacoraRes = await request(app).put('/api/bitacora/echo').send({ body });
+      const otherRes = await request(app).put('/api/finan/echo').send({ body });
+
+      expect(bitacoraRes.status).toBe(200);
+      expect(bitacoraRes.body).toEqual({ length: 100_000 });
+      expect(otherRes.status).not.toBe(200);
+
+      errorSpy.mockRestore();
     });
 
     it('returns a JSON 404 for an unknown route', async () => {

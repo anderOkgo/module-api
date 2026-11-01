@@ -19,9 +19,10 @@ declare -A db_map=(
   [animecream]=animecre_cake514
   [auth]=animecre_auth
   [finan]=animecre_finan
+  [bitacora]=animecre_bitacora
 )
 
-for name in animecream auth finan; do
+for name in animecream auth finan bitacora; do
   dir="/docker-entrypoint-initdb.d/$name"
   db="${db_map[$name]}"
   [ -d "$dir" ] || continue

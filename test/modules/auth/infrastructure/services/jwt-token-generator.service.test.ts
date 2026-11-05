@@ -64,16 +64,30 @@ describe('JwtTokenGeneratorService', () => {
   });
 
   describe('getExpiresInSeconds', () => {
-    it('returns 30 days in seconds, matching the real lifetime generate() signs tokens with', () => {
+    const DAY = 24 * 60 * 60;
+
+    afterEach(() => jest.useRealTimers());
+
+    it.each([
+      ['April has 30 days', '2026-04-05T12:00:00Z', '2026-05-05T12:00:00Z', 30],
+      ['March has 31 days', '2026-03-05T12:00:00Z', '2026-04-05T12:00:00Z', 31],
+      ['February has 28 days', '2027-02-05T12:00:00Z', '2027-03-05T12:00:00Z', 28],
+      ['a leap February has 29 days', '2028-02-05T12:00:00Z', '2028-03-05T12:00:00Z', 29],
+      ['January 31 ends on the last day of February', '2026-01-31T12:00:00Z', '2026-02-28T12:00:00Z', 28],
+      ['January 31 of a leap year', '2028-01-31T12:00:00Z', '2028-02-29T12:00:00Z', 29],
+      ['December crosses the year', '2026-12-15T12:00:00Z', '2027-01-15T12:00:00Z', 31],
+    ])('lasts one calendar month: %s', (_name, from, to, days) => {
+      jest.useFakeTimers({ now: new Date(from), doNotFake: ['nextTick', 'setImmediate'] });
       const service = new JwtTokenGeneratorService('explicit-secret');
 
-      expect(service.getExpiresInSeconds()).toBe(30 * 24 * 60 * 60);
+      expect(service.getExpiresInSeconds()).toBe(days * DAY);
 
-      // Cross-check against the actual token, not just the constant: decode
-      // the real exp/iat claims and confirm they're 30 days apart - this is
-      // what would have caught the expiresIn/EXPIRES_IN drift bug for real.
+      // Cross-check against the actual token, not just the number: decode the
+      // real exp/iat claims - this is what would have caught the
+      // expiresIn/EXPIRES_IN drift bug for real.
       const token = service.generate({ userId: 1, username: 'testuser', role: 2 });
-      const decoded = jwt.verify(token, 'explicit-secret') as any;
+      const decoded = jwt.decode(token) as any;
+      expect(decoded.exp).toBe(new Date(to).getTime() / 1000);
       expect(decoded.exp - decoded.iat).toBe(service.getExpiresInSeconds());
     });
   });

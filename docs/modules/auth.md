@@ -61,7 +61,7 @@ Two-step (email verification), driven by whether `verificationCode` is present i
 2. Rejects inactive or currently-locked accounts.
 3. Compares password via bcrypt.
 4. On failure: increments `login_attempts`, and locks the account for **15 minutes** once the pre-increment count is already `>= 4` — i.e. the account locks on the **5th** consecutive failure, not the 4th (Catalog #13). No auto-expiry sweep; only the next successful login clears it.
-5. On success: resets attempts, updates `last_login`, issues a JWT good for **30 days** (`JwtTokenGeneratorService.EXPIRES_IN_DAYS`), and returns `expiresIn` in seconds derived from that same constant — this used to be a hardcoded, wrong `86400` (24h), fixed in Catalog #12.
+5. On success: resets attempts, updates `last_login`, issues a JWT good for **one calendar month**, 28 to 31 days (`JwtTokenGeneratorService.expiresAt()`), and returns `expiresIn` in seconds derived from that same method — this used to be a hardcoded, wrong `86400` (24h), fixed in Catalog #12.
 
 ## Admin password reset
 

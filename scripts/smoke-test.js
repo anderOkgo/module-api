@@ -295,15 +295,15 @@ async function main() {
     });
 
     // Acceptance criterion #12 (regression): the login response's expiresIn
-    // must reflect the JWT's real lifetime (30 days), not a hardcoded value
+    // must reflect the JWT's real lifetime (one calendar month), not a hardcoded value
     // that can silently drift from it — read-only, safe to always run.
-    await check('POST /api/users/login reports the real 30-day token lifetime in expiresIn', async () => {
+    await check('POST /api/users/login reports one calendar month in expiresIn', async () => {
       const res = await client.post('/api/users/login', { username: adminLogin, password: adminPassword });
       assertStatus(res, 200, 'POST /api/users/login (expiresIn check)');
       const expiresIn = res.data.data && res.data.data.expiresIn;
-      const expected = 30 * 24 * 60 * 60;
-      if (expiresIn !== expected) {
-        throw new Error(`expected expiresIn to be ${expected} (30 days), got ${expiresIn}`);
+      const day = 24 * 60 * 60;
+      if (!(expiresIn >= 28 * day && expiresIn <= 31 * day)) {
+        throw new Error(`expected expiresIn to be 28 to 31 days, got ${expiresIn}`);
       }
     });
   }

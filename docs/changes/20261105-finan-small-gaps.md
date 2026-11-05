@@ -1,6 +1,6 @@
 # One movement validator, with the type check on update
 
-**Date:** 2026-11-05 · **Branch:** `fix/20261105-finan-small-gaps`
+**Date:** 2026-11-05 · **Branch:** `fix/20261105-finan-small-gaps` · **Released in:** https://info.animecream.com, 2026-11-05
 **Implements:** `module-docs/apps/finan/SPEC.md` v0.4, gaps G1, G2, G3, G4, G8, G9
 **Change ID:** `20261105-finan-small-gaps`
 
@@ -16,7 +16,8 @@ exist, as creating already did.
 `npm run bup`, then the owner restarts the app in cPanel. Rollback: revert and deploy.
 
 ## Verification
-Unit and E2E of the finan module pass.
+Unit and E2E of the finan module pass. In production: the upload ends with nothing left to synchronize, and after the
+owner restarted the app `GET /` answers 200. The update check was not tried there, since that would need a write.
 
 ## Version history
 | Date | Change |

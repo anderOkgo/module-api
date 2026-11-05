@@ -119,9 +119,11 @@ This catalog is the human-readable statement of *what* must be true. `scripts/sm
 
 **Rule (now enforced, previously violated):** the JWT `POST /api/users/login` issues is genuinely valid for 30 days (`jwt.sign(..., { expiresIn: '30d' })`), but the response's `expiresIn` field reported a hardcoded `86400` (24 hours) — a client trusting that field to decide when to re-authenticate would do so 29 days early, based on false information, for no reason other than the two numbers having been written independently and never kept in sync. **Fixed**: `TokenGeneratorPort` gained `getExpiresInSeconds()`, and `JwtTokenGeneratorService` derives both the JWT's real `expiresIn` string and the seconds value from one single constant (`EXPIRES_IN_DAYS = 30`), so they can never drift apart again. `LoginUserUseCase` now reads the seconds value from the token generator instead of hardcoding it.
 
-**Enforced in:** `jwt-token-generator.service.ts` (`EXPIRES_IN_DAYS`, `getExpiresInSeconds()`), `login.use-case.ts` (`expiresIn: this.tokenGenerator.getExpiresInSeconds()`).
+**Update 2026-11-05:** the lifetime is now one calendar month, 28 to 31 days, instead of a fixed 30 days.
 
-**Verified in `scripts/smoke-test.js`:** yes — the real-login check also asserts `expiresIn` equals `30 * 24 * 60 * 60`, a read-only regression guard against this exact drift recurring. Unit-level: `jwt-token-generator.service.test.ts` cross-checks the claim against the token's own decoded `exp`/`iat`, not just the constant.
+**Enforced in:** `jwt-token-generator.service.ts` (`expiresAt()`, `getExpiresInSeconds()`), `login.use-case.ts` (`expiresIn: this.tokenGenerator.getExpiresInSeconds()`).
+
+**Verified in `scripts/smoke-test.js`:** yes — the real-login check also asserts `expiresIn` is 28 to 31 days, a read-only regression guard against this exact drift recurring. Unit-level: `jwt-token-generator.service.test.ts` cross-checks the claim against the token's own decoded `exp`/`iat`, not just the constant.
 
 #### 13. Accounts lock after the 5th consecutive failed login attempt, for exactly 15 minutes, clearing only on the next successful login
 

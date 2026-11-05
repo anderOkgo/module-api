@@ -7,13 +7,6 @@ import { TokenGeneratorPort, TokenPayload } from '../../domain/ports/token-gener
  */
 export class JwtTokenGeneratorService implements TokenGeneratorPort {
   private readonly SECRET_KEY: string;
-  // Single source of truth for token lifetime - both the string jwt.sign()
-  // needs and the seconds getExpiresInSeconds() reports derive from this one
-  // number, so they can't drift apart the way EXPIRES_IN ('30d') and the
-  // login response's hardcoded expiresIn (86400 = 24h) previously did.
-  private static readonly EXPIRES_IN_DAYS = 30;
-  private readonly EXPIRES_IN = `${JwtTokenGeneratorService.EXPIRES_IN_DAYS}d`;
-
   constructor(secretKey?: string) {
     this.SECRET_KEY = secretKey ?? process.env.SECRET_KEY!;
   }
@@ -24,9 +17,9 @@ export class JwtTokenGeneratorService implements TokenGeneratorPort {
         userId: payload.userId,
         username: payload.username,
         role: payload.role,
+        exp: JwtTokenGeneratorService.expiresAt(new Date()),
       },
-      this.SECRET_KEY,
-      { expiresIn: this.EXPIRES_IN }
+      this.SECRET_KEY
     );
   }
 
@@ -44,6 +37,23 @@ export class JwtTokenGeneratorService implements TokenGeneratorPort {
   }
 
   getExpiresInSeconds(): number {
-    return JwtTokenGeneratorService.EXPIRES_IN_DAYS * 24 * 60 * 60;
+    const now = new Date();
+    return JwtTokenGeneratorService.expiresAt(now) - Math.floor(now.getTime() / 1000);
+  }
+
+  /**
+   * Single source of truth for token lifetime: one calendar month, in UTC, so
+   * 28 to 31 days. The same day of the next month, or its last day when that
+   * month is shorter (January 31 -> February 28). generate() and
+   * getExpiresInSeconds() both read this, so they can't drift apart the way
+   * EXPIRES_IN ('30d') and a hardcoded expiresIn (86400) once did.
+   */
+  private static expiresAt(now: Date): number {
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth();
+    const lastDayOfNextMonth = new Date(Date.UTC(year, month + 2, 0)).getUTCDate();
+    const day = Math.min(now.getUTCDate(), lastDayOfNextMonth);
+    const end = Date.UTC(year, month + 1, day, now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
+    return Math.floor(end / 1000);
   }
 }

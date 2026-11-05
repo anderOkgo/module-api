@@ -91,8 +91,9 @@ export class SeriesWriteMysqlRepository implements SeriesWriteRepository {
       await exec('DELETE FROM productions_genres WHERE production_id = ?', [seriesId]);
 
       if (genreIds.length > 0) {
-        const values = genreIds.map((gid) => `(${seriesId}, ${gid})`).join(',');
-        await exec(`INSERT INTO productions_genres (production_id, genre_id) VALUES ${values}`, []);
+        const placeholders = genreIds.map(() => '(?, ?)').join(',');
+        const params = genreIds.flatMap((gid) => [seriesId, gid]);
+        await exec(`INSERT INTO productions_genres (production_id, genre_id) VALUES ${placeholders}`, params);
       }
     };
 

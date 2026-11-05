@@ -272,7 +272,7 @@ describe('Series E2E (real database)', () => {
     await rawQuery('MYDATABASEANIME', 'DELETE FROM productions WHERE id = ?', [res.body.data.id]);
   });
 
-  it('excludes a genre-less series from the boot endpoint (POST /), even though it is fully visible via GET /:id (real INNER JOIN behavior in view_all_info_produtions)', async () => {
+  it('keeps a genre-less series on the boot endpoint (POST /), as well as via GET /:id (real INNER JOIN behavior in view_all_info_produtions)', async () => {
     const genrelessName = `${testSeriesName}_genreless`;
     const created = await new SeriesWriteMysqlRepository().create({
       name: genrelessName,
@@ -291,7 +291,8 @@ describe('Series E2E (real database)', () => {
       expect(getRes.status).toBe(200);
 
       const bootResBefore = await request(app).post('/api/series/').send({ production_name: genrelessName });
-      expect(bootResBefore.body).toHaveLength(0);
+      expect(bootResBefore.body).toHaveLength(1);
+      expect(bootResBefore.body[0].genre_names).toBeNull();
 
       await new SeriesWriteMysqlRepository().assignGenres(genrelessId, [realGenreIds[0]]);
 

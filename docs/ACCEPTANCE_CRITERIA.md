@@ -213,13 +213,13 @@ Added directly motivated by entry #16: a way to actually reset a real account's 
 
 **Verified in `scripts/smoke-test.js`:** not automated (would mean uploading a multi-megabyte payload on every run just to hit a boundary already fully covered at the unit level). Unit-covered: `update-series-image.handler.test.ts`.
 
-#### 23. A series with zero genres assigned is invisible on the "boot" listing endpoint — even though it's fully visible everywhere else
+#### 23. A series with zero genres used to vanish from the boot endpoint — fixed
 
-**Rule:** `POST /api/series/` (the "boot" endpoint that `getProductions`/`GetProductionsHandler` serve, likely what populates the site's main listing) reads from `view_all_info_produtions`, which `INNER JOIN`s `productions_genres`/`genres`. A series with **zero genres assigned has no matching row in that join and is completely absent from this endpoint's results** — while still being fully retrievable via `GET /api/series/:id`, `GET /api/series/list`, and `POST /api/series/search` (none of which join through genres at all). Concretely: create a series via `POST /api/series/create` without ever calling `POST /:id/genres`, and it will look fully created (200 on `GET /:id`) yet never appear in the endpoint the main catalog listing actually uses — a confusing, easy-to-hit trap for anyone driving the API directly (the admin UI presumably always assigns at least one genre, which is why this has likely never been reported as a bug).
+**Rule:** `POST /api/series/` reads `view_all_info_produtions`, whose joins to `productions_genres` and `genres` are `LEFT JOIN`. A series with no genres appears, with `genre_names: null`. The view used `INNER JOIN` until 2026-07-19, which hid such a series from every catalog read with no error (found in `animecream-react`'s `admin.spec.js`).
 
-**Enforced in:** `view_all_info_produtions` (`animecream-data/sql/db-views-procs.sql`, `INNER JOIN productions_genres pg ... INNER JOIN genres g ...`), read by `getProductions()` in `series-read.mysql.ts`. Contrast with `titles`, which is a `LEFT JOIN` in the same view — a title-less series is *not* hidden this way, only a genre-less one.
+**Enforced in:** `view_all_info_produtions` in `animecream-data/sql/db-views-procs.sql`, read by `getProductions()` in `series-read.mysql.ts`.
 
-**Verified:** yes, for real, against the live Docker database — created a genre-less series, confirmed it was retrievable via `GET /:id` but returned 0 results from `POST /api/series/` filtered by its exact name, then assigned a genre and confirmed it appeared. Locked in as a permanent regression in `test/e2e/series.e2e.test.ts`.
+**Verified:** `test/e2e/series.e2e.test.ts`, against the local database. It still expected the old behavior until 2026-11-05: this suite does not run in CI.
 
 #### 24. List/search endpoints can never surface an invisible (soft-deleted) series — not even for admins
 
@@ -253,13 +253,13 @@ Added directly motivated by entry #16: a way to actually reset a real account's 
 
 **Verified in `scripts/smoke-test.js`:** not automated — low real-world impact (a silent no-op on a bad remove id, or an avoidable duplicate title on a misbehaving caller, neither corrupts existing data) relative to the script-complexity cost of asserting on it; documented here as the authoritative reference.
 
-#### 28. `assignGenres`'s SQL is safe today only because every caller validates first — worth hardening
+#### 28. `assignGenres` used to build its SQL by interpolation — fixed
 
-**Rule (not currently exploitable, flagged for awareness):** `SeriesWriteMysqlRepository.assignGenres()` builds its `INSERT` values via raw string interpolation (`` `(${seriesId}, ${gid})` ``) rather than bound parameters — the same shape as the real SQL-injection issue fixed in `finan-data` (see entry in `docs/specification-roadmap.md` Phase 5, item 2). It is not exploitable through today's API because every call site (`AssignGenresHandler`, `CreateSeriesCompleteHandler`) validates that every id is a positive integer *before* calling it. The repository method itself, though, trusts its caller completely — any future caller that skips that validation (or a direct/internal call) would reopen the same class of vulnerability finan had. Flagged as a hardening item, not an active bug.
+**Rule:** `SeriesWriteMysqlRepository.assignGenres()` binds every value with placeholders. It used to interpolate them (`(${seriesId}, ${gid})`), which was safe only because every caller validated first. Fixed 2026-11-05, same reasoning as the `finan-data` procedures (`docs/specification-roadmap.md` Phase 5, item 2).
 
 **Enforced in:** `assignGenres()` in `series-write.mysql.ts`.
 
-**Verified in `scripts/smoke-test.js`:** not applicable — not an HTTP-observable behavior difference under any currently-reachable input.
+**Verified in `scripts/smoke-test.js`:** not applicable — no HTTP-observable difference. Covered by `series-write.mysql.test.ts` and the assign-genres cases of `test/e2e/series.e2e.test.ts`.
 
 ### Bitácora (`/api/bitacora`) — added 2026-11-01
 

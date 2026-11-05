@@ -155,8 +155,8 @@ describe('SeriesWriteMysqlRepository', () => {
       expect(mockExec).toHaveBeenNthCalledWith(1, 'DELETE FROM productions_genres WHERE production_id = ?', [5]);
       expect(mockExec).toHaveBeenNthCalledWith(
         2,
-        'INSERT INTO productions_genres (production_id, genre_id) VALUES (5, 1),(5, 2)',
-        []
+        'INSERT INTO productions_genres (production_id, genre_id) VALUES (?, ?),(?, ?)',
+        [5, 1, 5, 2]
       );
     });
 
@@ -188,8 +188,8 @@ describe('SeriesWriteMysqlRepository', () => {
       expect(txExec).toHaveBeenNthCalledWith(1, 'DELETE FROM productions_genres WHERE production_id = ?', [5]);
       expect(txExec).toHaveBeenNthCalledWith(
         2,
-        'INSERT INTO productions_genres (production_id, genre_id) VALUES (5, 1)',
-        []
+        'INSERT INTO productions_genres (production_id, genre_id) VALUES (?, ?)',
+        [5, 1]
       );
     });
   });

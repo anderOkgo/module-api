@@ -735,21 +735,20 @@ async function main() {
         }
       );
 
-      // Acceptance criterion #23: a series with zero genres assigned is
-      // invisible on the "boot" endpoint (view_all_info_produtions INNER
-      // JOINs genres), even though it's fully retrievable by id. Check this
-      // *before* genres are assigned below, then again after.
+      // Acceptance criterion #23: a series with zero genres assigned stays on
+      // the "boot" endpoint (view_all_info_produtions LEFT JOINs genres), with
+      // genre_names null. Check this *before* genres are assigned below.
       await check(
-        'POST /api/series/ (boot endpoint) excludes a genre-less series, even though GET /:id finds it',
+        'POST /api/series/ (boot endpoint) keeps a genre-less series, as GET /:id does',
         async () => {
           const getRes = await client.get(`/api/series/${seriesId}`);
           assertStatus(getRes, 200, 'GET /api/series/:id (genre-less check)');
 
           const bootRes = await client.post('/api/series/', { production_name: seriesName });
           assertStatus(bootRes, 200, 'POST /api/series/ (genre-less check)');
-          if (!Array.isArray(bootRes.data) || bootRes.data.length !== 0) {
+          if (!Array.isArray(bootRes.data) || bootRes.data.length !== 1 || bootRes.data[0].genre_names !== null) {
             throw new Error(
-              `expected the genre-less series to be absent from the boot endpoint, got ${JSON.stringify(bootRes.data)}`
+              `expected the genre-less series on the boot endpoint with null genres, got ${JSON.stringify(bootRes.data)}`
             );
           }
         }

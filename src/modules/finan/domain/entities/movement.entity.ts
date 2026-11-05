@@ -64,6 +64,8 @@ export enum MovementType {
   TRANSFER = 8,
 }
 
+export const isMovementType = (type: number): boolean => Object.values(MovementType).includes(type);
+
 /**
  * Initial load response
  */

@@ -49,6 +49,12 @@
  *     instead of logging in for real if you'd rather not send a real
  *     password over the wire (e.g. against production).
  *
+ * Credentials are used only against localhost. Any other target runs the
+ * anonymous, read-only checks: the user and admin tiers write real rows, and
+ * in production those rows move the public ranking (see
+ * docs/changes/20261105-smoke-production-writes.md). To override, the owner
+ * sets SMOKE_ALLOW_PRODUCTION_WRITES=yes for that one run.
+ *
  * Usage:
  *   node scripts/smoke-test.js [baseUrl]
  *   BASE_URL=https://info.animecream.com node scripts/smoke-test.js
@@ -66,10 +72,14 @@ const FormData = require('form-data');
 
 const baseUrl = (process.argv[2] || process.env.BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
 
-const adminLogin = process.env.SMOKE_ADMIN_LOGIN;
-const adminPassword = process.env.SMOKE_ADMIN_PASSWORD;
-const userLogin = process.env.SMOKE_USER_LOGIN;
-const userPassword = process.env.SMOKE_USER_PASSWORD;
+const isLocalTarget = /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(baseUrl);
+const writesAllowed = isLocalTarget || process.env.SMOKE_ALLOW_PRODUCTION_WRITES === 'yes';
+
+const credential = (name) => (writesAllowed ? process.env[name] : undefined);
+const adminLogin = credential('SMOKE_ADMIN_LOGIN');
+const adminPassword = credential('SMOKE_ADMIN_PASSWORD');
+const userLogin = credential('SMOKE_USER_LOGIN');
+const userPassword = credential('SMOKE_USER_PASSWORD');
 
 // A minimal but genuinely valid 1x1 PNG — the real (unmocked) sharp-based
 // image pipeline needs real image bytes to process, not a placeholder.
@@ -138,6 +148,9 @@ async function loginReal(identifier, password) {
 
 async function main() {
   console.log(`\nSmoke testing ${baseUrl}\n`);
+  if (!writesAllowed) {
+    console.log('Not a local target: credentials ignored, read-only checks only.\n');
+  }
 
   let genreIds = [];
   let demographyId;
@@ -268,8 +281,8 @@ async function main() {
 
   // ---- Resolve real tokens (real login, not pre-minted, unless a token was
   // supplied directly) ----------------------------------------------------
-  let adminToken = process.env.SMOKE_ADMIN_TOKEN;
-  let userToken = process.env.SMOKE_USER_TOKEN;
+  let adminToken = credential('SMOKE_ADMIN_TOKEN');
+  let userToken = credential('SMOKE_USER_TOKEN');
   // Which identifier ended up backing userToken, if we know it (a
   // pre-minted SMOKE_USER_TOKEN has no known identifier) — used below to
   // decide whether the username-casing regression check can run for real.

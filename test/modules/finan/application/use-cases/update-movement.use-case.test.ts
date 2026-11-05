@@ -340,6 +340,18 @@ describe('UpdateMovementUseCase', () => {
       expect(result.message).toContain('Movement type is required');
     });
 
+    it('should reject a movement type that does not exist, as creating does', async () => {
+      const result = await updateMovementUseCase.execute(
+        1,
+        { ...validRequest, movement_type: 3 as any },
+        'testuser'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Invalid movement type');
+      expect(mockRepository.update).not.toHaveBeenCalled();
+    });
+
     it('should return error when currency is missing', async () => {
       const invalidRequest: UpdateMovementRequest = {
         ...validRequest,

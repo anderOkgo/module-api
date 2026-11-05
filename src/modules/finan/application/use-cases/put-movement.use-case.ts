@@ -2,7 +2,7 @@ import { FinanRepository } from '../ports/finan.repository';
 import Movement, {
   CreateMovementRequest,
   MovementResponse,
-  MovementType,
+  isMovementType,
 } from '../../domain/entities/movement.entity';
 
 /**
@@ -111,7 +111,7 @@ export class PutMovementUseCase {
 
     if (!request.movement_type) {
       errors.push('Movement type is required');
-    } else if (!this.isValidMovementType(request.movement_type)) {
+    } else if (!isMovementType(request.movement_type)) {
       errors.push('Invalid movement type');
     }
 
@@ -131,10 +131,6 @@ export class PutMovementUseCase {
   private isValidDate(dateString: string): boolean {
     const date = new Date(dateString);
     return date instanceof Date && !isNaN(date.getTime());
-  }
-
-  private isValidMovementType(type: number): boolean {
-    return Object.values(MovementType).includes(type);
   }
 
   private async handleLinkedMovement(request: CreateMovementRequest): Promise<void> {

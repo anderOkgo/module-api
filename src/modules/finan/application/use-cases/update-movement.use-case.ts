@@ -1,5 +1,9 @@
 import { FinanRepository } from '../ports/finan.repository';
-import Movement, { UpdateMovementRequest, MovementResponse } from '../../domain/entities/movement.entity';
+import Movement, {
+  UpdateMovementRequest,
+  MovementResponse,
+  isMovementType,
+} from '../../domain/entities/movement.entity';
 
 /**
  * Use case for updating an existing financial movement
@@ -96,6 +100,8 @@ export class UpdateMovementUseCase {
 
     if (!request.movement_type) {
       errors.push('Movement type is required');
+    } else if (!isMovementType(request.movement_type)) {
+      errors.push('Invalid movement type');
     }
 
     if (!request.currency) {

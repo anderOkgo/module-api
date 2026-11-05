@@ -29,7 +29,7 @@ This catalog is the human-readable statement of *what* must be true. `scripts/sm
 
 #### 1. Series qualification is silently rescaled on every write
 
-**Rule:** whatever `qualification` value a client submits for a series is **not** stored verbatim. After every create/update, `update_rank()` re-ranks the *entire* `productions` catalog by qualification and re-normalizes every row's qualification to an evenly-spaced 7.000–9.700 scale by rank position. This is intentional (confirmed with the user): it keeps decimal room to insert new series between existing ones later, since qualification is what determines display order.
+**Rule:** whatever `qualification` value a client submits for a series is **not** stored verbatim. After every create/update, `update_rank()` re-ranks every **visible** series by qualification and re-normalizes its qualification to an evenly-spaced 7.000–9.700 scale by rank position. Hidden rows keep their old values and take no place (since 2026-11-05; they used to count, so a soft-deleted row moved public numbers). This is intentional (confirmed with the user): it keeps decimal room to insert new series between existing ones later, since qualification is what determines display order.
 
 **Enforced in:** `animecream-data/sql/db-views-procs.sql` (`update_rank` procedure), invoked by `updateRank()` in `src/modules/series/infrastructure/persistence/series-write.mysql.ts`, called from `create-series.handler.ts`, `update-series.handler.ts`, and `create-series-complete.handler.ts` after every write.
 

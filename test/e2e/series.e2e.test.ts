@@ -305,6 +305,33 @@ describe('Series E2E (real database)', () => {
     }
   });
 
+  it('ranks visible series only: a hidden row takes no public place', async () => {
+    const hidden = await new SeriesWriteMysqlRepository().create({
+      name: `${testSeriesName}_hidden`,
+      chapter_number: 1,
+      year: 2024,
+      description: '',
+      description_en: '',
+      qualification: 9.9,
+      demography_id: realDemographyId,
+      visible: false,
+    });
+
+    try {
+      await new SeriesWriteMysqlRepository().updateRank();
+
+      const [stats] = await rawQuery(
+        'MYDATABASEANIME',
+        'SELECT COUNT(*) AS total, MIN(`rank`) AS first, MAX(`rank`) AS last, COUNT(DISTINCT `rank`) AS places FROM productions WHERE visible = 1'
+      );
+      expect(Number(stats.first)).toBe(1);
+      expect(Number(stats.last)).toBe(Number(stats.total));
+      expect(Number(stats.places)).toBe(Number(stats.total));
+    } finally {
+      await rawQuery('MYDATABASEANIME', 'DELETE FROM productions WHERE id = ?', [hidden.id]);
+    }
+  });
+
   it('rejects operating on a series id that does not exist', async () => {
     const res = await request(app).get('/api/series/999999999');
 

@@ -7,10 +7,11 @@ import {
   ImportResult,
   MonthDay,
   RestoreConflictPolicy,
+  SearchPage,
   TrashRow,
 } from '../../domain/entities/entry.entity';
 import { TRASH_DAYS } from '../../domain/services/entry-dates';
-import { KEEP_BOTH_SEPARATOR, PREVIEW_CHARS } from '../../domain/services/entry-rules';
+import { KEEP_BOTH_SEPARATOR, likePattern, PREVIEW_CHARS } from '../../domain/services/entry-rules';
 
 /**
  * MySQL/MariaDB implementation of the Bitácora port (SPEC §4,
@@ -179,6 +180,24 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
       await query('DELETE FROM entries_trash WHERE id = ? AND user_id = ?', [trashId, userId]);
       return { kind: 'restored', entry: await this.readEntry(query, userId, date) };
     });
+  }
+
+  async searchEntries(userId: number, terms: string[], limit: number, offset: number): Promise<SearchPage> {
+    // One LIKE per term; the collation (utf8mb4_unicode_ci) makes it case- and accent-blind (SPEC constraint 8).
+    const where = `user_id = ? ${terms.map(() => `AND body LIKE ? ESCAPE '\\\\'`).join(' ')}`;
+    const params = [userId, ...terms.map(likePattern)];
+    const counted: Array<{ total: number | string }> = await this.database.executeQuery(
+      `SELECT COUNT(*) AS total FROM entries WHERE ${where}`,
+      params
+    );
+    const total = Number(counted[0].total);
+    if (total === 0 || offset >= total) return { total, rows: [] };
+    const rows: Array<{ date: string; body: string }> = await this.database.executeQuery(
+      `SELECT DATE_FORMAT(entry_date, '%Y-%m-%d') AS date, body FROM entries
+       WHERE ${where} ORDER BY entry_date DESC LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+    return { total, rows };
   }
 
   async importEntries(userId: number, items: ImportItem[], onConflict: ImportConflictPolicy): Promise<ImportResult> {

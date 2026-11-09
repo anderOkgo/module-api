@@ -279,4 +279,51 @@ export const bitacoraSwaggerDocumentation = {
       },
     },
   },
+  searchEntries: {
+    '/api/bitacora/search': {
+      post: {
+        summary: 'Find the days whose text holds every word and phrase of a query',
+        description:
+          'Terms: each "…" pair is a phrase, the rest is split on whitespace; terms under 2 characters are ' +
+          'dropped; at most 10. Case- and accent-blind; %, _ and \\ are literal. Newest first, 50 per page. ' +
+          'POST so the query, which is diary text, never appears in a URL (SPEC v1.10, N2).',
+        tags,
+        security,
+        requestBody: jsonBody(
+          {
+            q: { type: 'string', minLength: 2, maxLength: 200, example: 'melgar "the beach"' },
+            offset: { type: 'integer', minimum: 0, default: 0 },
+          },
+          ['q']
+        ),
+        responses: {
+          200: envelope(
+            {
+              type: 'object',
+              properties: {
+                total: { type: 'integer', example: 12 },
+                offset: { type: 'integer', example: 0 },
+                results: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      date: { type: 'string', example: '2026-03-03' },
+                      snippet: {
+                        type: 'string',
+                        description: 'Up to 200 characters around the first match of the first term, … where cut',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            'Matching days, newest first'
+          ),
+          400: failure('q is not 2–200 characters, holds no term or more than 10, or offset is not an integer ≥ 0'),
+          401: UNAUTHORIZED,
+        },
+      },
+    },
+  },
 };

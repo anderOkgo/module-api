@@ -9,6 +9,7 @@ import { ListMonthUseCase } from '../../application/use-cases/list-month.use-cas
 import { ListTrashUseCase } from '../../application/use-cases/list-trash.use-case';
 import { RestoreEntryUseCase } from '../../application/use-cases/restore-entry.use-case';
 import { ImportEntriesUseCase } from '../../application/use-cases/import-entries.use-case';
+import { SearchEntriesUseCase } from '../../application/use-cases/search-entries.use-case';
 
 export interface BitacoraUseCases {
   getHome: GetHomeUseCase;
@@ -20,6 +21,7 @@ export interface BitacoraUseCases {
   listTrash: ListTrashUseCase;
   restoreEntry: RestoreEntryUseCase;
   importEntries: ImportEntriesUseCase;
+  searchEntries: SearchEntriesUseCase;
 }
 
 /**
@@ -61,6 +63,9 @@ export class BitacoraController {
 
   importEntries = (req: Request, res: Response) =>
     this.run('importEntries', res, () => this.useCases.importEntries.execute(req.body.userId, req.body));
+
+  searchEntries = (req: Request, res: Response) =>
+    this.run('searchEntries', res, () => this.useCases.searchEntries.execute(req.body.userId, req.body));
 
   private async run(name: string, res: Response, work: () => Promise<UseCaseResult>): Promise<Response> {
     try {

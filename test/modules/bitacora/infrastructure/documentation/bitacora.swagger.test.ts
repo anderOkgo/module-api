@@ -14,6 +14,7 @@ describe('bitacoraSwaggerDocumentation', () => {
         '/api/bitacora/home/{date}',
         '/api/bitacora/trash',
         '/api/bitacora/trash/{date}/restore',
+        '/api/bitacora/search',
       ].sort()
     );
     expect(Object.keys(bitacoraSwaggerDocumentation.entry['/api/bitacora/entries/{date}'])).toEqual([

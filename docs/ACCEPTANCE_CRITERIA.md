@@ -323,6 +323,14 @@ Source of truth: `module-docs/apps/bitacora/SPEC.md` v1.0.1 (§3 contract, §4 d
 
 **Verified in:** E2E S5 (the run's output and the server log are grepped for a random marker in every fixture text).
 
+#### 36. Search finds days by every word and phrase, and the query never travels in a URL
+
+**Rule:** `POST /search` with `{ q, offset? }` (SPEC v1.10, C14). Each `"…"` pair of `q` is a phrase, the rest is split on whitespace, terms under 2 characters are dropped, at most 10. A day matches when its text holds **every** term, case- and accent-blind (the collation), with `%`, `_` and `\` literal. Newest first, 50 per page, `total` counts every match; each result is `{ date, snippet }` with ≤ 200 characters of text around the first match of the first term. `GET /search` does not exist: the query is diary text, and URLs reach access logs. A 400 never echoes the query.
+
+**Enforced in:** `checkSearch`, `likePattern`, `searchSnippet` (`domain/services/entry-rules.ts`); `BitacoraMysqlRepository.searchEntries` (`user_id = ?` first); `router.post('/search')` only.
+
+**Verified in:** `scripts/20261108-e2e-bitacora-search.js` Q1–Q7, S1, S5 (38/38 local, 2026-11-08); negative controls: without the escape Q4 fails, without the `user_id` filter Q7 fails.
+
 ---
 
-**Last updated**: 2026-11-01
+**Last updated**: 2026-11-08

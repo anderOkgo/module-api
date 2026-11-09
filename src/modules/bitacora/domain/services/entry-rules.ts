@@ -88,3 +88,93 @@ export function checkImport(
   if (errors.length > 0) return invalid(...errors);
   return valid({ items, onConflict: payload.onConflict as ImportConflictPolicy });
 }
+
+/* ------------------------------------------------------------------ Search (C14, SPEC v1.10) */
+
+export const SEARCH_MAX_QUERY_CHARS = 200;
+export const SEARCH_MIN_TERM_CHARS = 2;
+export const SEARCH_MAX_TERMS = 10;
+export const SEARCH_PAGE_SIZE = 50;
+export const SNIPPET_CHARS = 200;
+/** Characters of context kept before the first match in a snippet. */
+const SNIPPET_LEAD = 60;
+const ELLIPSIS = '…';
+
+/**
+ * Splits a query into terms: each `"…"` pair is one phrase, the rest is split
+ * on whitespace; an unmatched `"` stays a plain character. Terms shorter than
+ * 2 characters are dropped.
+ */
+export function searchTerms(query: string): string[] {
+  const terms: string[] = [];
+  const pattern = /"([^"]+)"|(\S+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(query)) !== null) {
+    const term = (match[1] ?? match[2]).trim();
+    if (charCount(term) >= SEARCH_MIN_TERM_CHARS) terms.push(term);
+  }
+  return terms;
+}
+
+/** `{ q, offset? }` of C14. Error messages never echo the query (N2). */
+export function checkSearch(raw: unknown): Checked<{ terms: string[]; offset: number }> {
+  const { q, offset = 0 } = (raw ?? {}) as { q?: unknown; offset?: unknown };
+  const errors: string[] = [];
+  let terms: string[] = [];
+
+  if (typeof q !== 'string') {
+    errors.push('q must be a string');
+  } else {
+    const query = q.trim();
+    if (charCount(query) < SEARCH_MIN_TERM_CHARS || charCount(query) > SEARCH_MAX_QUERY_CHARS) {
+      errors.push(`q must be ${SEARCH_MIN_TERM_CHARS} to ${SEARCH_MAX_QUERY_CHARS} characters`);
+    } else {
+      terms = searchTerms(query);
+      if (terms.length === 0) errors.push(`q must hold a word or phrase of at least ${SEARCH_MIN_TERM_CHARS} characters`);
+      if (terms.length > SEARCH_MAX_TERMS) errors.push(`q must hold at most ${SEARCH_MAX_TERMS} words or phrases`);
+    }
+  }
+  if (!Number.isInteger(offset) || (offset as number) < 0) errors.push('offset must be an integer of 0 or more');
+
+  if (errors.length > 0) return invalid(...errors);
+  return valid({ terms, offset: offset as number });
+}
+
+/** A `LIKE` pattern matching `term` anywhere, with `\`, `%` and `_` taken literally (escape `\`). */
+export const likePattern = (term: string): string => `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+
+/**
+ * Folds text as the collation does for search (lower case, accents removed),
+ * keeping for each folded code point the index of its source code point.
+ */
+function fold(chars: string[]): { text: string[]; source: number[] } {
+  const text: string[] = [];
+  const source: number[] = [];
+  chars.forEach((char, index) => {
+    for (const folded of char.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()) {
+      text.push(folded);
+      source.push(index);
+    }
+  });
+  return { text, source };
+}
+
+/**
+ * Up to 200 characters of `body` around the first match of `term`, with line
+ * breaks and runs of spaces as one space and `…` where it was cut (C14). If
+ * the folding finds no match, the snippet starts at the beginning.
+ */
+export function searchSnippet(body: string, term: string): string {
+  const chars = [...body.replace(/\s+/g, ' ').trim()];
+  const haystack = fold(chars);
+  const needle = fold([...term]).text.join('');
+  const at = haystack.text.join('').indexOf(needle);
+  // indexOf works on UTF-16 units; folded code points outside the BMP are rare, so map back through them.
+  const foldedIndex = at === -1 ? -1 : [...haystack.text.join('').slice(0, at)].length;
+  const position = foldedIndex === -1 ? 0 : haystack.source[foldedIndex];
+
+  let start = Math.max(0, position - SNIPPET_LEAD);
+  start = Math.max(0, Math.min(start, chars.length - SNIPPET_CHARS));
+  const end = Math.min(chars.length, start + SNIPPET_CHARS);
+  return `${start > 0 ? ELLIPSIS : ''}${chars.slice(start, end).join('')}${end < chars.length ? ELLIPSIS : ''}`;
+}

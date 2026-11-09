@@ -132,7 +132,8 @@ merge and deploy; nothing else depends on the route until the front ships.
 - [x] `POST /api/bitacora/search` → 401 without and with a bad token; `GET /api/bitacora/search` → 404; checked
       with single read-only `curl` requests, not `smoke-test.js` (it logs in real accounts and writes).
 - [x] Swagger lists `/api/bitacora/search`.
-- [ ] N8 (< 500 ms with a common word on the owner's data) is measured from the front, once it ships, by the owner.
+- [x] N8 (< 500 ms with a common word on the owner's data): reviewed by the owner on the phone with the real diary,
+      2026-11-08 — "instant". Not timed: the owner chose a review over a number.
 
 ## Notes from the release
 - The first `npm run bup` was never run (the agent's tool refused it and the owner restarted the old build); the
@@ -154,3 +155,4 @@ None.
 |---|---|
 | 2026-11-08 | Created; implemented; unit 1,516 at 100%, E2E 38/38 local, negative controls recorded |
 | 2026-11-08 | Released to production; post-deploy checks passed |
+| 2026-11-08 | N8 closed by the owner's review on the phone (instant) |

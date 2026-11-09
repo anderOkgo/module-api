@@ -11,6 +11,7 @@ import { ListMonthUseCase } from '../../application/use-cases/list-month.use-cas
 import { ListTrashUseCase } from '../../application/use-cases/list-trash.use-case';
 import { RestoreEntryUseCase } from '../../application/use-cases/restore-entry.use-case';
 import { ImportEntriesUseCase } from '../../application/use-cases/import-entries.use-case';
+import { SearchEntriesUseCase } from '../../application/use-cases/search-entries.use-case';
 
 /**
  * JSON body limit for /api/bitacora. The app-wide `express.json()` default
@@ -39,6 +40,7 @@ export function buildBitacoraModule() {
     listTrash: new ListTrashUseCase(bitacoraRepository),
     restoreEntry: new RestoreEntryUseCase(bitacoraRepository),
     importEntries: new ImportEntriesUseCase(bitacoraRepository),
+    searchEntries: new SearchEntriesUseCase(bitacoraRepository),
   };
 
   const bitacoraController = new BitacoraController(useCases);
@@ -53,6 +55,8 @@ export function buildBitacoraModule() {
   router.delete('/entries/:date', validateToken, bitacoraController.deleteEntry);
   router.get('/trash', validateToken, bitacoraController.listTrash);
   router.post('/trash/:date/restore', validateToken, bitacoraController.restoreEntry);
+  // POST, not GET: the query is diary text and must stay out of URLs and access logs (SPEC v1.10, N2).
+  router.post('/search', validateToken, bitacoraController.searchEntries);
 
   return { router, bitacoraController, bitacoraRepository, ...useCases };
 }

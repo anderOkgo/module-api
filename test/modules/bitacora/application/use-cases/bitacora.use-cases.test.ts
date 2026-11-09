@@ -31,6 +31,7 @@ const makeRepo = (): jest.Mocked<BitacoraRepository> => ({
   listTrash: jest.fn(),
   restoreFromTrash: jest.fn(),
   importEntries: jest.fn(),
+  searchEntries: jest.fn(),
 });
 
 describe('Bitacora use cases', () => {

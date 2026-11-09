@@ -5,6 +5,7 @@ import {
   ImportResult,
   MonthDay,
   RestoreConflictPolicy,
+  SearchPage,
   TrashRow,
 } from '../../domain/entities/entry.entity';
 
@@ -41,6 +42,11 @@ export interface BitacoraRepository {
   listTrash(userId: number): Promise<TrashRow[]>;
   /** Restores the newest trash row of `date` within 30 days (C13). */
   restoreFromTrash(userId: number, date: string, onConflict: RestoreConflictPolicy): Promise<RestoreOutcome>;
+  /**
+   * Days whose body holds every term (case- and accent-blind, terms literal),
+   * newest first: the total and one page of rows (C14).
+   */
+  searchEntries(userId: number, terms: string[], limit: number, offset: number): Promise<SearchPage>;
   /** All-or-nothing bulk load (C11). */
   importEntries(userId: number, items: ImportItem[], onConflict: ImportConflictPolicy): Promise<ImportResult>;
 }

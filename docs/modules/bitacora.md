@@ -40,6 +40,7 @@ bitacora/
 | `POST /entries/import` | `ImportEntriesUseCase` | C11 |
 | `GET /trash` | `ListTrashUseCase` | C12 |
 | `POST /trash/:date/restore` | `RestoreEntryUseCase` | C13 |
+| `POST /search` | `SearchEntriesUseCase` | C14 (SPEC v1.10) |
 
 Envelope (D3): `{ success, message, data?, errors? }`; 409 responses carry the stored entry in `data`.
 
@@ -65,15 +66,20 @@ Envelope (D3): `{ success, message, data?, errors? }`; 409 responses carry the s
   of the date; "keep both" stores the current text, a blank line, then the deleted text (§2.3).
 - **Nearby (C3).** An entry belongs to the year of its anchor date (entry date minus its offset):
   for Jan 2, the Dec 30 just before it is the same year, not "1 year ago".
+- **Search (C14).** `POST`, never `GET`: the query is diary text and a URL ends up in access
+  logs (N2). One `body LIKE ? ESCAPE '\\'` per term; `likePattern` escapes `\`, `%` and `_`, and the
+  collation (`utf8mb4_unicode_ci`) makes it case- and accent-blind, so there is no index and no
+  schema change. `COUNT(*)` then one page of 50; the snippet is cut in `searchSnippet` with the
+  same folding the front uses to mark matches.
 
 ## Tests
 
 - Unit: `test/modules/bitacora/` (domain rules, use cases, repository SQL with a mocked `Database`).
 - Integration: `test/integration/bitacora.integration.test.ts` (real router, middleware and use
   cases; repository mocked): 401 on every route, route ordering (S4), envelope, no text in logs.
-- Black-box contract E2E: `scripts/20261031-e2e-bitacora.js` (SPEC §6 API cases), run against a
-  real database.
+- Black-box contract E2E: `scripts/20261031-e2e-bitacora.js` (SPEC §6 API cases) and
+  `scripts/20261108-e2e-bitacora-search.js` (§6.11 Q1–Q7), run against a real database.
 
 ---
 
-**Last verified against source**: 2026-11-01
+**Last verified against source**: 2026-11-08

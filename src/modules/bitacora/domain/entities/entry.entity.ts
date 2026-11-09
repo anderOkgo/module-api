@@ -63,6 +63,24 @@ export interface ImportResult {
   skipped: string[];
 }
 
+/** One day found by a search (C14): its date and a snippet around the first match. */
+export interface SearchHit {
+  date: string;
+  snippet: string;
+}
+
+export interface SearchData {
+  total: number;
+  offset: number;
+  results: SearchHit[];
+}
+
+/** A page of matching rows, read before the snippets are cut. */
+export interface SearchPage {
+  total: number;
+  rows: Array<{ date: string; body: string }>;
+}
+
 export type RestoreConflictPolicy = 'fail' | 'replace' | 'keepBoth';
 export type ImportConflictPolicy = 'skip' | 'overwrite';
 

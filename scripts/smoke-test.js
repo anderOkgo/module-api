@@ -239,6 +239,7 @@ async function main() {
     ['post', '/api/bitacora/entries/import'],
     ['get', '/api/bitacora/trash'],
     ['post', '/api/bitacora/trash/2020-03-04/restore'],
+    ['post', '/api/bitacora/search'],
   ];
   for (const [method, url] of bitacoraRoutes) {
     await check(`${method.toUpperCase()} ${url} requires a valid token`, async () => {

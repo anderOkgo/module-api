@@ -22,6 +22,7 @@ const mockRepo: jest.Mocked<BitacoraRepository> = {
   listTrash: jest.fn(),
   restoreFromTrash: jest.fn(),
   importEntries: jest.fn(),
+  searchEntries: jest.fn(),
 };
 MockedRepository.mockImplementation(() => mockRepo as any);
 
@@ -55,6 +56,7 @@ describe('Bitacora module — integration', () => {
       ['post', '/api/bitacora/entries/import'],
       ['get', '/api/bitacora/trash'],
       ['post', '/api/bitacora/trash/2020-03-04/restore'],
+      ['post', '/api/bitacora/search'],
     ];
 
     it.each(routes)('%s %s without a token → 401', async (method, path) => {
@@ -207,6 +209,35 @@ describe('Bitacora module — integration', () => {
     it('GET /entries?month=2026-13 → 400 (M2)', async () => {
       const res = await request(app).get('/api/bitacora/entries?month=2026-13').set('Authorization', auth);
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('POST /search (C14, SPEC v1.10)', () => {
+    it('returns the total, the offset and one snippet per day, scoped to the token user', async () => {
+      mockRepo.searchEntries.mockResolvedValue({ total: 1, rows: [{ date: '2019-01-14', body: 'Back from Melgar at noon.' }] });
+      const res = await request(app)
+        .post('/api/bitacora/search')
+        .set('Authorization', auth)
+        .send({ q: 'melgar', userId: 1 });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        success: true,
+        message: 'Search done',
+        data: { total: 1, offset: 0, results: [{ date: '2019-01-14', snippet: 'Back from Melgar at noon.' }] },
+      });
+      expect(mockRepo.searchEntries).toHaveBeenCalledWith(USER_ID, ['melgar'], 50, 0);
+    });
+
+    it('rejects a bad query with 400 and never echoes it (N2)', async () => {
+      const res = await request(app).post('/api/bitacora/search').set('Authorization', auth).send({ q: 'x' });
+      expect(res.status).toBe(400);
+      expect(JSON.stringify(res.body)).not.toContain('"x"');
+      expect(mockRepo.searchEntries).not.toHaveBeenCalled();
+    });
+
+    it('is not reachable with GET, so a query never travels in a URL', async () => {
+      const res = await request(app).get('/api/bitacora/search?q=melgar').set('Authorization', auth);
+      expect(res.status).toBe(404);
     });
   });
 

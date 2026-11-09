@@ -1,6 +1,6 @@
 # Bitácora search: `POST /api/bitacora/search`
 
-**Date:** 2026-11-08 · **Branch:** `feature/20261108-bitacora-search` · **Consumer contract:** `bitacora-react` Search screen · **Released in:** — (pending the owner's go-ahead)
+**Date:** 2026-11-08 · **Branch:** `feature/20261108-bitacora-search` · **Consumer contract:** `bitacora-react` Search screen · **Released in:** https://info.animecream.com, 2026-11-08 (PR #9, `56f195a`)
 **Implements:** `module-docs/apps/bitacora/SPEC.md` v1.10 — C14 (§3.1, §3.2 "Search terms", "Why POST"), §4.3 C14 row, constraints 8–9, N2, N8, acceptance §6.11 Q1–Q8
 **Change ID:** `20261108-bitacora-search`
 
@@ -128,11 +128,17 @@ the app in cPanel. The front (`bitacora-react`) ships after this, since it calls
 merge and deploy; nothing else depends on the route until the front ships.
 
 ## Post-deploy checklist
-- [ ] `GET /health` 200 after the restart.
-- [ ] `node scripts/smoke-test.js` against production (read-only): `POST /api/bitacora/search` → 401 without and
-      with a bad token.
-- [ ] Swagger lists `/api/bitacora/search`.
+- [x] `GET /health` 200 after the restart, database UP (2026-11-08).
+- [x] `POST /api/bitacora/search` → 401 without and with a bad token; `GET /api/bitacora/search` → 404; checked
+      with single read-only `curl` requests, not `smoke-test.js` (it logs in real accounts and writes).
+- [x] Swagger lists `/api/bitacora/search`.
 - [ ] N8 (< 500 ms with a common word on the owner's data) is measured from the front, once it ships, by the owner.
+
+## Notes from the release
+- The first `npm run bup` was never run (the agent's tool refused it and the owner restarted the old build); the
+  check after that restart showed `POST /search` → 404 and caught it. The second run uploaded `dist/`, and after the
+  second restart every check passed. The script ends with `TIMEOUT /T 5`, which fails without a console ("Input
+  redirection is not supported") after the upload has finished: harmless.
 
 ## Open questions
 None.
@@ -147,3 +153,4 @@ None.
 | Date | Change |
 |---|---|
 | 2026-11-08 | Created; implemented; unit 1,516 at 100%, E2E 38/38 local, negative controls recorded |
+| 2026-11-08 | Released to production; post-deploy checks passed |

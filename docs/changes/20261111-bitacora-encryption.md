@@ -22,7 +22,7 @@ decrypts in memory, and stores no key it can use alone. C2–C14 keep their shap
 | `user_keys` access | `infrastructure/persistence/user-keys.mysql.ts` | ✅ |
 | Swagger: key header + 403/428 on every diary route; the `/key` routes | `documentation/bitacora.swagger.ts` | ✅ |
 | §4.7 step 2 migration script | `scripts/20261111-encrypt-bitacora.js` | ✅ rehearsed on a scratch DB |
-| E2E: existing scripts with the key header + new K cases | `scripts/2026…-e2e-*.js` | ⏳ |
+| E2E: existing scripts with the key header + new K cases | `scripts/_e2e-helpers.js` (`openDiary`), `scripts/20261111-e2e-bitacora-encryption.js` | ✅ local |
 
 ## Constraints found
 - **One pool per `Database` instance** (`src/infrastructure/data/mysql/database.ts`: the constructor calls
@@ -54,8 +54,17 @@ decrypts in memory, and stores no key it can use alone. C2–C14 keep their shap
 - Unit + integration: **1,625 tests, 99 suites, 100 % statements / branches / functions / lines**
   (`npx jest --coverage`). New: `aes-gcm.test.ts`, `key-rules.test.ts`, `diary-key.use-cases.test.ts`,
   `user-keys.mysql.test.ts`; integration K1 (428 on every diary route, with and without a key row), K4 (403,
-  zero repository calls), K2/K6 on `/key`, K5 (500 without text). One full run showed 1 failed test that
-  did not reproduce in three later runs (not in a Bitácora suite; not investigated further).
+  zero repository calls), K2/K6 on `/key`, K5 (500 without text). One full run with coverage showed 1
+  failed test that did not reproduce in three later runs; its name was not captured (not investigated).
+- E2E against the local API built from this branch, server output captured as `E2E_SERVER_LOG`:
+  `scripts/20261111-e2e-bitacora-encryption.js` **60/60** (K1 incl. the CORS preflight for
+  `x-bitacora-key`, K2–K7, K9 on the output and the server log); `scripts/20261031-e2e-bitacora.js`
+  **106/106** and `scripts/20261108-e2e-bitacora-search.js` **38/38**, both now opening the test users'
+  diaries with `openDiary` (`_e2e-helpers.js`). A7's "identical bytes in the database" became "stored
+  encrypted, none of the text bytes in the database": its old form failed, as it should, on ciphertext.
+- Negative control (§6.9): a build whose `OpenDiaryUseCase` accepts a wrong key (served a zero key
+  instead of 403) → the encryption E2E **45 passed, 14 failed**: every K4 403 check, the "database
+  unchanged" check, K6's "old key → 403" and K7's "A's token with B's key → 403". Rebuilt afterwards.
 - Search timing (K8/N8, synthetic data the size of the owner's diary: 2,700 days, 1.57 MB stored): decrypt
   + match + snippets **~45–52 ms median, < 70 ms max** on the development machine, against N8's 500 ms.
   Production will add the transfer of ~1.6 MB from MySQL; Q8 is timed after deploy.
@@ -80,4 +89,4 @@ Rollback: redeploy the previous `dist/` (and restore §4.7 step 1's dump if the 
 ## Version history
 | Date | Change |
 |---|---|
-| 2026-11-11 | Created: API side implemented and verified locally; E2E scripts pending |
+| 2026-11-11 | Created: API side implemented and verified locally (unit, integration, E2E 60 + 106 + 38, negative control) |

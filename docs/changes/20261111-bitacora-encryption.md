@@ -86,10 +86,12 @@ Rollback: redeploy the previous `dist/` (and restore §4.7 step 1's dump if the 
   answer 401 without a token; the CORS preflight from `bitacora.animecream.com` allows `x-bitacora-key`.
 - [x] After the copy (§4.7 step 5): the owner opened the app on the phone with the passphrase; it works.
 - [ ] Q8 timed (< 500 ms): not timed; the owner found search working on the phone.
-- [ ] K12 restore test with the passphrase from the password manager:
-  `scripts/20261111-verify-bitacora-restore.js --user 3 --database restore_test_bitacora` (the production
-  dump of 2026-11-11 15:30 is restored there). The script was tested on a scratch DB (right passphrase 3/3,
-  wrong passphrase refused, also against the restored backup). **Pending: the owner runs it.**
+- [x] K12 restore test with the passphrase from the password manager, 2026-11-11: the production dump of
+  15:30 (encrypted) restored into the scratch local `restore_test_bitacora`; the owner ran
+  `scripts/20261111-verify-bitacora-restore.js --user 3 --database restore_test_bitacora` in their own
+  terminal — **the key opens and 2,734 of 2,734 bodies decrypt**. The script had been tested first on a
+  scratch DB (right passphrase 3/3, wrong passphrase refused, also against the restored backup). The scratch
+  database was dropped afterwards.
 
 ## Release log (2026-11-11, SPEC §4.7, one sitting)
 1. The owner restored production into local (13:48 dump) and rehearsed: the migration script with the real
@@ -110,3 +112,4 @@ Rollback: redeploy the previous `dist/` (and restore §4.7 step 1's dump if the 
 |---|---|
 | 2026-11-11 | Created: API side implemented and verified locally (unit, integration, E2E 60 + 106 + 38, negative control) |
 | 2026-11-11 | Released to production (release log above); restore-check script added; K12 pending the owner |
+| 2026-11-11 | K12 passed: the restored production backup opens with the passphrase, 2,734 of 2,734 bodies |

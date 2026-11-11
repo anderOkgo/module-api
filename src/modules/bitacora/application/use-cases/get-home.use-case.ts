@@ -1,4 +1,5 @@
 import { BitacoraRepository } from '../ports/bitacora.repository';
+import { BodyCipher } from '../ports/body-cipher';
 import { HomeData } from '../../domain/entities/entry.entity';
 import { addDays, isEntryDate, onThisDayPairs, yearOf } from '../../domain/services/entry-dates';
 import { badRequest, Clock, INVALID_DATE, isUserId, succeed, systemClock, unauthorized, UseCaseResult } from './use-case-result';
@@ -7,16 +8,16 @@ import { badRequest, Clock, INVALID_DATE, isUserId, succeed, systemClock, unauth
 export class GetHomeUseCase {
   constructor(private readonly repository: BitacoraRepository, private readonly clock: Clock = systemClock) {}
 
-  async execute(userId: unknown, date: unknown): Promise<UseCaseResult<HomeData>> {
+  async execute(userId: unknown, date: unknown, cipher: BodyCipher): Promise<UseCaseResult<HomeData>> {
     if (!isUserId(userId)) return unauthorized();
     if (!isEntryDate(date, this.clock())) return badRequest([INVALID_DATE]);
 
     const previousDate = addDays(date, -1);
     const year = yearOf(date);
     const [entry, previousWritten, sameDay] = await Promise.all([
-      this.repository.findEntry(userId, date),
+      this.repository.findEntry(userId, date, cipher),
       this.repository.hasEntry(userId, previousDate),
-      this.repository.findByMonthDays(userId, onThisDayPairs(date)),
+      this.repository.findByMonthDays(userId, onThisDayPairs(date), cipher),
     ]);
 
     // Newest first comes from the repository; the requested year itself is not "another year".

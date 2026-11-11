@@ -1,7 +1,10 @@
 import express, { Router } from 'express';
 import validateToken from '../../../../infrastructure/services/validate-token';
+import { Database } from '../../../../infrastructure/my.database.helper';
 import { BitacoraController } from '../controllers/bitacora.controller';
 import { BitacoraMysqlRepository } from '../persistence/bitacora.mysql';
+import { UserKeysMysqlRepository } from '../persistence/user-keys.mysql';
+import { aesGcmDiaryKeyCrypto } from '../crypto/aes-gcm';
 import { GetHomeUseCase } from '../../application/use-cases/get-home.use-case';
 import { GetNearbyUseCase } from '../../application/use-cases/get-nearby.use-case';
 import { GetEntryUseCase } from '../../application/use-cases/get-entry.use-case';
@@ -12,6 +15,12 @@ import { ListTrashUseCase } from '../../application/use-cases/list-trash.use-cas
 import { RestoreEntryUseCase } from '../../application/use-cases/restore-entry.use-case';
 import { ImportEntriesUseCase } from '../../application/use-cases/import-entries.use-case';
 import { SearchEntriesUseCase } from '../../application/use-cases/search-entries.use-case';
+import {
+  ChangeKeyUseCase,
+  CreateKeyUseCase,
+  GetKeyUseCase,
+  OpenDiaryUseCase,
+} from '../../application/use-cases/diary-key.use-cases';
 
 /**
  * JSON body limit for /api/bitacora. The app-wide `express.json()` default
@@ -23,12 +32,16 @@ export const bitacoraJsonParser = express.json({ limit: '10mb' });
 
 /**
  * Composition root of the Bitácora module (module-docs/apps/bitacora/SPEC.md
- * v1.0 §3). Route order matters (§3.2): `/entries/import` and `/entries`
+ * v1.11 §3). Route order matters (§3.2): `/entries/import` and `/entries`
  * (month) before `/entries/:date`; `/entries/:date/nearby` before
- * `/entries/:date`.
+ * `/entries/:date`. Every diary route needs the key header (§3.5); the `/key`
+ * routes manage it.
  */
 export function buildBitacoraModule() {
-  const bitacoraRepository = new BitacoraMysqlRepository();
+  const database = new Database('MYDATABASEBITACORA');
+  const bitacoraRepository = new BitacoraMysqlRepository(database);
+  const userKeysRepository = new UserKeysMysqlRepository(database);
+  const keyCrypto = aesGcmDiaryKeyCrypto;
 
   const useCases = {
     getHome: new GetHomeUseCase(bitacoraRepository),
@@ -41,6 +54,10 @@ export function buildBitacoraModule() {
     restoreEntry: new RestoreEntryUseCase(bitacoraRepository),
     importEntries: new ImportEntriesUseCase(bitacoraRepository),
     searchEntries: new SearchEntriesUseCase(bitacoraRepository),
+    getKey: new GetKeyUseCase(userKeysRepository),
+    createKey: new CreateKeyUseCase(userKeysRepository, keyCrypto),
+    changeKey: new ChangeKeyUseCase(userKeysRepository, keyCrypto),
+    openDiary: new OpenDiaryUseCase(userKeysRepository, keyCrypto),
   };
 
   const bitacoraController = new BitacoraController(useCases);
@@ -57,6 +74,10 @@ export function buildBitacoraModule() {
   router.post('/trash/:date/restore', validateToken, bitacoraController.restoreEntry);
   // POST, not GET: the query is diary text and must stay out of URLs and access logs (SPEC v1.10, N2).
   router.post('/search', validateToken, bitacoraController.searchEntries);
+  // The diary key (SPEC v1.11 §3.5, C15–C17). The key itself only ever travels in a header.
+  router.get('/key', validateToken, bitacoraController.getKey);
+  router.post('/key', validateToken, bitacoraController.createKey);
+  router.put('/key', validateToken, bitacoraController.changeKey);
 
-  return { router, bitacoraController, bitacoraRepository, ...useCases };
+  return { router, bitacoraController, bitacoraRepository, userKeysRepository, ...useCases };
 }

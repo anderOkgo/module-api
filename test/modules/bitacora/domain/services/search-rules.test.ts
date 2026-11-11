@@ -1,10 +1,11 @@
 import {
   checkSearch,
-  likePattern,
+  foldForSearch,
   SEARCH_MAX_TERMS,
   searchSnippet,
   searchTerms,
   SNIPPET_CHARS,
+  termMatcher,
 } from '../../../../../src/modules/bitacora/domain/services/entry-rules';
 
 describe('search rules (C14, SPEC v1.10)', () => {
@@ -63,12 +64,31 @@ describe('search rules (C14, SPEC v1.10)', () => {
     });
   });
 
-  describe('likePattern (Q4)', () => {
-    it('wraps the term in % and escapes \\, % and _', () => {
-      expect(likePattern('melgar')).toBe('%melgar%');
-      expect(likePattern('100%')).toBe('%100\\%%');
-      expect(likePattern('a_b')).toBe('%a\\_b%');
-      expect(likePattern('c:\\dir')).toBe('%c:\\\\dir%');
+  describe('foldForSearch and termMatcher (SPEC v1.11 §4.6, Q1–Q4)', () => {
+    it('folds to lower case without accents', () => {
+      expect(foldForSearch('Bogotá ÉCOLE Ñandú')).toBe('bogota ecole nandu');
+    });
+
+    it('needs every term, in any order, inside words too', () => {
+      const matches = termMatcher(['beach', 'melgar']);
+      expect(matches('Back from MELGAR; the beaches were full')).toBe(true);
+      expect(matches('Back from Melgar')).toBe(false);
+    });
+
+    it('is accent-blind on both sides', () => {
+      expect(termMatcher(['bogota'])('In Bogotá')).toBe(true);
+      expect(termMatcher(['Bogotá'])('in bogota')).toBe(true);
+    });
+
+    it('takes %, _ and \\ literally', () => {
+      expect(termMatcher(['100%'])('1000')).toBe(false);
+      expect(termMatcher(['a_b'])('axb')).toBe(false);
+      expect(termMatcher(['c:\\dir'])('see c:\\dir')).toBe(true);
+    });
+
+    it('matches a phrase only as typed (Q2)', () => {
+      expect(termMatcher(['left for'])('I left for home')).toBe(true);
+      expect(termMatcher(['left for'])('for once I left')).toBe(false);
     });
   });
 

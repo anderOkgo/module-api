@@ -1,4 +1,5 @@
 import { BitacoraRepository } from '../ports/bitacora.repository';
+import { BodyCipher } from '../ports/body-cipher';
 import { Entry } from '../../domain/entities/entry.entity';
 import { isEntryDate } from '../../domain/services/entry-dates';
 import { checkRestorePolicy } from '../../domain/services/entry-rules';
@@ -23,7 +24,7 @@ import {
 export class RestoreEntryUseCase {
   constructor(private readonly repository: BitacoraRepository, private readonly clock: Clock = systemClock) {}
 
-  async execute(userId: unknown, date: unknown, request: unknown): Promise<UseCaseResult<Entry>> {
+  async execute(userId: unknown, date: unknown, request: unknown, cipher: BodyCipher): Promise<UseCaseResult<Entry>> {
     if (!isUserId(userId)) return unauthorized();
 
     const validDate = isEntryDate(date, this.clock());
@@ -32,7 +33,7 @@ export class RestoreEntryUseCase {
       return badRequest([...(validDate ? [] : [INVALID_DATE]), ...(policy.ok ? [] : policy.errors)]);
     }
 
-    const outcome = await this.repository.restoreFromTrash(userId, date, policy.value);
+    const outcome = await this.repository.restoreFromTrash(userId, date, policy.value, cipher);
     if (outcome.kind === 'notFound') return notFound('Not in the trash, or deleted more than 30 days ago');
     if (outcome.kind === 'conflict') return conflict(outcome.entry, 'The date already has a new entry');
     return succeed(outcome.entry, 'Entry restored');

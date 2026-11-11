@@ -1,4 +1,5 @@
 import { BitacoraRepository } from '../ports/bitacora.repository';
+import { BodyCipher } from '../ports/body-cipher';
 import { Entry } from '../../domain/entities/entry.entity';
 import { isEntryDate } from '../../domain/services/entry-dates';
 import { checkBaseVersion, checkBody } from '../../domain/services/entry-rules';
@@ -22,7 +23,7 @@ import {
 export class SaveEntryUseCase {
   constructor(private readonly repository: BitacoraRepository, private readonly clock: Clock = systemClock) {}
 
-  async execute(userId: unknown, date: unknown, request: unknown): Promise<UseCaseResult<Entry>> {
+  async execute(userId: unknown, date: unknown, request: unknown, cipher: BodyCipher): Promise<UseCaseResult<Entry>> {
     if (!isUserId(userId)) return unauthorized();
 
     const { body, baseVersion } = (request ?? {}) as { body?: unknown; baseVersion?: unknown };
@@ -37,7 +38,7 @@ export class SaveEntryUseCase {
       ]);
     }
 
-    const outcome = await this.repository.saveEntry(userId, date, checkedBody.value, checkedVersion.value);
+    const outcome = await this.repository.saveEntry(userId, date, checkedBody.value, checkedVersion.value, cipher);
     if (outcome.kind === 'conflict') return conflict(outcome.entry, 'The entry changed on another device');
     return outcome.kind === 'created'
       ? succeed(outcome.entry, 'Entry created', 201)

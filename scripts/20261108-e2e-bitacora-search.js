@@ -19,7 +19,7 @@
  * Expected 4xx on purpose: Q5 (400), S1 (401), the GET control (404).
  */
 const fs = require('fs');
-const { check, section, http, login, tokenUserId, withDb, onCleanup, run } = require('./_e2e-helpers');
+const { check, section, http, login, tokenUserId, withDb, onCleanup, run, openDiary } = require('./_e2e-helpers');
 
 // ── S5: keep everything this run prints, to grep it at the end ──
 const output = [];
@@ -61,8 +61,12 @@ run(async () => {
     withDb('MYDATABASEBITACORA', async (q) => {
       await q('DELETE FROM entries WHERE user_id IN (?, ?)', [userA, userB]);
       await q('DELETE FROM entries_trash WHERE user_id IN (?, ?)', [userA, userB]);
+      await q('DELETE FROM user_keys WHERE user_id IN (?, ?)', [userA, userB]);
     });
   await wipe();
+  // v1.11 (D32): the search runs over encrypted bodies, matched in the API.
+  await openDiary(tokenA);
+  await openDiary(tokenB);
   onCleanup(async () => {
     await wipe();
     const [{ n }] = await withDb('MYDATABASEBITACORA', (q) =>

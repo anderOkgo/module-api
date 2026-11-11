@@ -12,6 +12,9 @@
  *   - optional E2E_SERVER_LOG: path of the server's captured output, grepped for entry text (N2).
  * Usage: node scripts/20261031-e2e-bitacora.js
  *
+ * Since v1.11 (D32) every diary call carries the test user's key header: `openDiary` creates the
+ * test users' keys from an invented passphrase after the wipe, and `http` adds the header.
+ *
  * Data: only the two test users' rows are touched. Every run starts and ends by deleting their
  * entries and trash rows, and ends with an orphan check. Never run against the owner's account.
  * Privacy (N2, S5): entry text is never printed; every fixture text carries a random marker and
@@ -20,7 +23,7 @@
  * Negative controls (§6.9): A3, S2 and S4 must FAIL against a build with that protection removed.
  */
 const fs = require('fs');
-const { check, section, http, login, tokenUserId, withDb, onCleanup, run } = require('./_e2e-helpers');
+const { check, section, http, login, tokenUserId, withDb, onCleanup, run, openDiary } = require('./_e2e-helpers');
 
 // ── S5: keep everything this run prints, to grep it for entry text at the end ──
 const output = [];
@@ -52,8 +55,11 @@ run(async () => {
     withDb('MYDATABASEBITACORA', async (q) => {
       await q('DELETE FROM entries WHERE user_id IN (?, ?)', [userA, userB]);
       await q('DELETE FROM entries_trash WHERE user_id IN (?, ?)', [userA, userB]);
+      await q('DELETE FROM user_keys WHERE user_id IN (?, ?)', [userA, userB]);
     });
   await wipe();
+  await openDiary(tokenA);
+  await openDiary(tokenB);
   onCleanup(async () => {
     await wipe();
     const [{ n }] = await withDb('MYDATABASEBITACORA', (q) =>
@@ -122,10 +128,14 @@ run(async () => {
   check('201 Created', a7.status === 201, a7);
   const a7Back = await get('2015-05-11');
   check('identical string through the API', a7Back.body?.data?.body === a7Text, { length: a7Back.body?.data?.body?.length });
+  // Since v1.11 (D32) the database holds ciphertext: the bytes of the text must NOT be there.
   const [a7Row] = await withDb('MYDATABASEBITACORA', (q) =>
-    q('SELECT HEX(body) AS hex FROM entries WHERE user_id = ? AND entry_date = ?', [userA, '2015-05-11'])
+    q('SELECT body, HEX(body) AS hex FROM entries WHERE user_id = ? AND entry_date = ?', [userA, '2015-05-11'])
   );
-  check('identical bytes in the database (utf8mb4)', a7Row?.hex === Buffer.from(a7Text, 'utf8').toString('hex').toUpperCase());
+  check(
+    'stored encrypted: v1: and none of the text bytes in the database (K3)',
+    a7Row?.body?.startsWith('v1:') && !a7Row.hex.includes(Buffer.from(text('A7'), 'utf8').toString('hex').toUpperCase())
+  );
 
   section('A8 — invalid dates → 400');
   for (const date of ['2026-02-30', '2026-13-01', 'abc', '1899-12-31', utcDate(2)]) {

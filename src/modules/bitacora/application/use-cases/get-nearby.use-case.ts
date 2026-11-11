@@ -1,4 +1,5 @@
 import { BitacoraRepository } from '../ports/bitacora.repository';
+import { BodyCipher } from '../ports/body-cipher';
 import { NearbyEntry } from '../../domain/entities/entry.entity';
 import { addDays, isEntryDate, nearbyPairs, yearOf } from '../../domain/services/entry-dates';
 import { badRequest, Clock, INVALID_DATE, isUserId, succeed, systemClock, unauthorized, UseCaseResult } from './use-case-result';
@@ -13,14 +14,14 @@ import { badRequest, Clock, INVALID_DATE, isUserId, succeed, systemClock, unauth
 export class GetNearbyUseCase {
   constructor(private readonly repository: BitacoraRepository, private readonly clock: Clock = systemClock) {}
 
-  async execute(userId: unknown, date: unknown): Promise<UseCaseResult<NearbyEntry[]>> {
+  async execute(userId: unknown, date: unknown, cipher: BodyCipher): Promise<UseCaseResult<NearbyEntry[]>> {
     if (!isUserId(userId)) return unauthorized();
     if (!isEntryDate(date, this.clock())) return badRequest([INVALID_DATE]);
 
     const pairs = nearbyPairs(date);
     const offsetByMonthDay = new Map(pairs.map((p) => [`${p.month}-${p.day}`, p.offsetDays]));
     const year = yearOf(date);
-    const rows = await this.repository.findByMonthDays(userId, pairs);
+    const rows = await this.repository.findByMonthDays(userId, pairs, cipher);
 
     const nearby: NearbyEntry[] = [];
     for (const row of rows) {

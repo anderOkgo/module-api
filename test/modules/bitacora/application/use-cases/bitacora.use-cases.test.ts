@@ -13,6 +13,8 @@ import { systemClock } from '../../../../../src/modules/bitacora/application/use
 
 const clock = () => new Date('2026-10-31T12:00:00Z');
 const USER = 7;
+/** The request's body cipher: use cases only pass it on to the repository (SPEC v1.11 §4.6). */
+const CIPHER = { encrypt: jest.fn(), decrypt: jest.fn() };
 
 const entry = (date: string, version = 1): Entry => ({
   date,
@@ -48,15 +50,15 @@ describe('Bitacora use cases', () => {
 
   describe('every use case rejects a missing or non-numeric userId with 401 (D1) and touches no data', () => {
     const cases: Array<[string, () => Promise<{ status: number }>]> = [
-      ['getHome', () => new GetHomeUseCase(makeRepo(), clock).execute(undefined, '2026-03-04')],
-      ['getNearby', () => new GetNearbyUseCase(makeRepo(), clock).execute('7', '2026-03-04')],
-      ['getEntry', () => new GetEntryUseCase(makeRepo(), clock).execute(0, '2026-03-04')],
-      ['saveEntry', () => new SaveEntryUseCase(makeRepo(), clock).execute(1.5, '2026-03-04', {})],
+      ['getHome', () => new GetHomeUseCase(makeRepo(), clock).execute(undefined, '2026-03-04', CIPHER)],
+      ['getNearby', () => new GetNearbyUseCase(makeRepo(), clock).execute('7', '2026-03-04', CIPHER)],
+      ['getEntry', () => new GetEntryUseCase(makeRepo(), clock).execute(0, '2026-03-04', CIPHER)],
+      ['saveEntry', () => new SaveEntryUseCase(makeRepo(), clock).execute(1.5, '2026-03-04', {}, CIPHER)],
       ['deleteEntry', () => new DeleteEntryUseCase(makeRepo(), clock).execute(null, '2026-03-04')],
       ['listMonth', () => new ListMonthUseCase(makeRepo()).execute(undefined, '2026-03')],
-      ['listTrash', () => new ListTrashUseCase(makeRepo()).execute(-1)],
-      ['restoreEntry', () => new RestoreEntryUseCase(makeRepo(), clock).execute(undefined, '2026-03-04', {})],
-      ['importEntries', () => new ImportEntriesUseCase(makeRepo(), clock).execute(undefined, {})],
+      ['listTrash', () => new ListTrashUseCase(makeRepo()).execute(-1, CIPHER)],
+      ['restoreEntry', () => new RestoreEntryUseCase(makeRepo(), clock).execute(undefined, '2026-03-04', {}, CIPHER)],
+      ['importEntries', () => new ImportEntriesUseCase(makeRepo(), clock).execute(undefined, {}, CIPHER)],
     ];
 
     it.each(cases)('%s', async (_name, run) => {
@@ -66,12 +68,12 @@ describe('Bitacora use cases', () => {
 
   describe('every :date use case rejects an invalid date with 400 (A8)', () => {
     const cases: Array<[string, () => Promise<{ status: number; errors?: string[] }>]> = [
-      ['getHome', () => new GetHomeUseCase(repo, clock).execute(USER, '2026-02-30')],
-      ['getNearby', () => new GetNearbyUseCase(repo, clock).execute(USER, 'abc')],
-      ['getEntry', () => new GetEntryUseCase(repo, clock).execute(USER, '1899-12-31')],
+      ['getHome', () => new GetHomeUseCase(repo, clock).execute(USER, '2026-02-30', CIPHER)],
+      ['getNearby', () => new GetNearbyUseCase(repo, clock).execute(USER, 'abc', CIPHER)],
+      ['getEntry', () => new GetEntryUseCase(repo, clock).execute(USER, '1899-12-31', CIPHER)],
       ['deleteEntry', () => new DeleteEntryUseCase(repo, clock).execute(USER, '2026-11-02')],
-      ['saveEntry', () => new SaveEntryUseCase(repo, clock).execute(USER, '2026-13-01', { body: 'x', baseVersion: null })],
-      ['restoreEntry', () => new RestoreEntryUseCase(repo, clock).execute(USER, '2026-13-01', {})],
+      ['saveEntry', () => new SaveEntryUseCase(repo, clock).execute(USER, '2026-13-01', { body: 'x', baseVersion: null }, CIPHER)],
+      ['restoreEntry', () => new RestoreEntryUseCase(repo, clock).execute(USER, '2026-13-01', {}, CIPHER)],
     ];
 
     it.each(cases)('%s', async (_name, run) => {
@@ -87,7 +89,7 @@ describe('Bitacora use cases', () => {
       repo.hasEntry.mockResolvedValue(true);
       repo.findByMonthDays.mockResolvedValue([entry('2026-03-04'), entry('2021-03-04'), entry('2019-03-04')]);
 
-      const result = await new GetHomeUseCase(repo, clock).execute(USER, '2026-03-04');
+      const result = await new GetHomeUseCase(repo, clock).execute(USER, '2026-03-04', CIPHER);
 
       expect(result).toEqual({
         success: true,
@@ -104,7 +106,7 @@ describe('Bitacora use cases', () => {
         },
       });
       expect(repo.hasEntry).toHaveBeenCalledWith(USER, '2026-03-03');
-      expect(repo.findByMonthDays).toHaveBeenCalledWith(USER, [{ month: 3, day: 4 }]);
+      expect(repo.findByMonthDays).toHaveBeenCalledWith(USER, [{ month: 3, day: 4 }], CIPHER);
     });
 
     it('asks for Feb 29 on Feb 28 of a non-leap year (H3)', async () => {
@@ -112,12 +114,12 @@ describe('Bitacora use cases', () => {
       repo.hasEntry.mockResolvedValue(false);
       repo.findByMonthDays.mockResolvedValue([entry('2024-02-29')]);
 
-      const result = await new GetHomeUseCase(repo, clock).execute(USER, '2026-02-28');
+      const result = await new GetHomeUseCase(repo, clock).execute(USER, '2026-02-28', CIPHER);
 
       expect(repo.findByMonthDays).toHaveBeenCalledWith(USER, [
         { month: 2, day: 28 },
         { month: 2, day: 29 },
-      ]);
+      ], CIPHER);
       expect(result.data?.entry).toBeNull();
       expect(result.data?.previousDay).toEqual({ date: '2026-02-27', written: false });
       expect(result.data?.onThisDay).toEqual([{ ...entry('2024-02-29'), yearsAgo: 2 }]);
@@ -125,7 +127,7 @@ describe('Bitacora use cases', () => {
 
     it('uses the system clock by default', async () => {
       repo.findByMonthDays.mockResolvedValue([]);
-      expect((await new GetHomeUseCase(repo).execute(USER, '2020-01-01')).status).toBe(200);
+      expect((await new GetHomeUseCase(repo).execute(USER, '2020-01-01', CIPHER)).status).toBe(200);
     });
   });
 
@@ -138,7 +140,7 @@ describe('Bitacora use cases', () => {
         entry('2019-12-30'), // anchor 2020-01-02: 6 years ago, -3
       ]);
 
-      const result = await new GetNearbyUseCase(repo, clock).execute(USER, '2026-01-02');
+      const result = await new GetNearbyUseCase(repo, clock).execute(USER, '2026-01-02', CIPHER);
 
       expect(result.status).toBe(200);
       expect(result.data).toEqual([
@@ -153,13 +155,13 @@ describe('Bitacora use cases', () => {
   describe('GetEntryUseCase (C4)', () => {
     it('returns the entry', async () => {
       repo.findEntry.mockResolvedValue(entry('2026-03-04'));
-      const result = await new GetEntryUseCase(repo, clock).execute(USER, '2026-03-04');
+      const result = await new GetEntryUseCase(repo, clock).execute(USER, '2026-03-04', CIPHER);
       expect(result).toMatchObject({ success: true, status: 200, data: entry('2026-03-04') });
     });
 
     it('returns 404 when there is none (A9)', async () => {
       repo.findEntry.mockResolvedValue(null);
-      expect(await new GetEntryUseCase(repo, clock).execute(USER, '2026-03-04')).toEqual({
+      expect(await new GetEntryUseCase(repo, clock).execute(USER, '2026-03-04', CIPHER)).toEqual({
         success: false,
         status: 404,
         message: 'Entry not found',
@@ -173,20 +175,20 @@ describe('Bitacora use cases', () => {
       const result = await new SaveEntryUseCase(repo, clock).execute(USER, '2026-03-04', {
         body: '  Hello  ',
         baseVersion: null,
-      });
+      }, CIPHER);
       expect(result.status).toBe(201);
-      expect(repo.saveEntry).toHaveBeenCalledWith(USER, '2026-03-04', 'Hello', null);
+      expect(repo.saveEntry).toHaveBeenCalledWith(USER, '2026-03-04', 'Hello', null, CIPHER);
     });
 
     it('replaces with 200 (A2)', async () => {
       repo.saveEntry.mockResolvedValue({ kind: 'replaced', entry: entry('2026-03-04', 2) });
-      const result = await new SaveEntryUseCase(repo, clock).execute(USER, '2026-03-04', { body: 'x', baseVersion: 1 });
+      const result = await new SaveEntryUseCase(repo, clock).execute(USER, '2026-03-04', { body: 'x', baseVersion: 1 }, CIPHER);
       expect(result).toMatchObject({ status: 200, data: { version: 2 } });
     });
 
     it('returns 409 with the stored entry on a version conflict (A3, A4)', async () => {
       repo.saveEntry.mockResolvedValue({ kind: 'conflict', entry: entry('2026-03-04', 5) });
-      const result = await new SaveEntryUseCase(repo, clock).execute(USER, '2026-03-04', { body: 'x', baseVersion: 4 });
+      const result = await new SaveEntryUseCase(repo, clock).execute(USER, '2026-03-04', { body: 'x', baseVersion: 4 }, CIPHER);
       expect(result).toEqual({
         success: false,
         status: 409,
@@ -196,19 +198,19 @@ describe('Bitacora use cases', () => {
     });
 
     it('collects every input error and writes nothing (A5)', async () => {
-      const result = await new SaveEntryUseCase(repo, clock).execute(USER, 'abc', { body: '   ' });
+      const result = await new SaveEntryUseCase(repo, clock).execute(USER, 'abc', { body: '   ' }, CIPHER);
       expect(result.status).toBe(400);
       expect(result.errors).toHaveLength(3);
       expect(repo.saveEntry).not.toHaveBeenCalled();
     });
 
     it('treats a missing request body as invalid', async () => {
-      const result = await new SaveEntryUseCase(repo, clock).execute(USER, '2026-03-04', undefined);
+      const result = await new SaveEntryUseCase(repo, clock).execute(USER, '2026-03-04', undefined, CIPHER);
       expect(result.errors).toEqual(['body must be a string', 'baseVersion must be a positive integer or null']);
     });
 
     it('reports only the version error when date and body are valid', async () => {
-      const result = await new SaveEntryUseCase(repo, clock).execute(USER, '2026-03-04', { body: 'x', baseVersion: 0 });
+      const result = await new SaveEntryUseCase(repo, clock).execute(USER, '2026-03-04', { body: 'x', baseVersion: 0 }, CIPHER);
       expect(result.errors).toEqual(['baseVersion must be a positive integer or null']);
     });
   });
@@ -247,7 +249,7 @@ describe('Bitacora use cases', () => {
   describe('ListTrashUseCase (C12)', () => {
     it('adds purgeOn to every row', async () => {
       repo.listTrash.mockResolvedValue([{ date: '2026-03-04', preview: 'Text', deletedAt: '2026-10-01T08:00:00Z' }]);
-      const result = await new ListTrashUseCase(repo).execute(USER);
+      const result = await new ListTrashUseCase(repo).execute(USER, CIPHER);
       expect(result.data).toEqual([
         { date: '2026-03-04', preview: 'Text', deletedAt: '2026-10-01T08:00:00Z', purgeOn: '2026-10-31T08:00:00Z' },
       ]);
@@ -257,25 +259,25 @@ describe('Bitacora use cases', () => {
   describe('RestoreEntryUseCase (C13)', () => {
     it('restores with the default policy "fail" (T2)', async () => {
       repo.restoreFromTrash.mockResolvedValue({ kind: 'restored', entry: entry('2026-03-04', 2) });
-      const result = await new RestoreEntryUseCase(repo, clock).execute(USER, '2026-03-04', undefined);
-      expect(repo.restoreFromTrash).toHaveBeenCalledWith(USER, '2026-03-04', 'fail');
+      const result = await new RestoreEntryUseCase(repo, clock).execute(USER, '2026-03-04', undefined, CIPHER);
+      expect(repo.restoreFromTrash).toHaveBeenCalledWith(USER, '2026-03-04', 'fail', CIPHER);
       expect(result).toMatchObject({ status: 200, data: entry('2026-03-04', 2) });
     });
 
     it('passes the policy and returns 409 with the current entry (T3)', async () => {
       repo.restoreFromTrash.mockResolvedValue({ kind: 'conflict', entry: entry('2026-03-04') });
-      const result = await new RestoreEntryUseCase(repo, clock).execute(USER, '2026-03-04', { onConflict: 'fail' });
+      const result = await new RestoreEntryUseCase(repo, clock).execute(USER, '2026-03-04', { onConflict: 'fail' }, CIPHER);
       expect(result).toMatchObject({ status: 409, data: entry('2026-03-04') });
     });
 
     it('returns 404 when not in the trash or expired (T5)', async () => {
       repo.restoreFromTrash.mockResolvedValue({ kind: 'notFound' });
-      const result = await new RestoreEntryUseCase(repo, clock).execute(USER, '2026-03-04', { onConflict: 'replace' });
+      const result = await new RestoreEntryUseCase(repo, clock).execute(USER, '2026-03-04', { onConflict: 'replace' }, CIPHER);
       expect(result.status).toBe(404);
     });
 
     it('rejects an unknown policy with 400', async () => {
-      const result = await new RestoreEntryUseCase(repo, clock).execute(USER, '2026-03-04', { onConflict: 'merge' });
+      const result = await new RestoreEntryUseCase(repo, clock).execute(USER, '2026-03-04', { onConflict: 'merge' }, CIPHER);
       expect(result).toMatchObject({ status: 400, errors: ['onConflict must be one of: fail, replace, keepBoth'] });
       expect(repo.restoreFromTrash).not.toHaveBeenCalled();
     });
@@ -288,8 +290,8 @@ describe('Bitacora use cases', () => {
       const result = await new ImportEntriesUseCase(repo, clock).execute(USER, {
         entries: [{ date: '2019-03-04', body: 'Text' }],
         onConflict: 'skip',
-      });
-      expect(repo.importEntries).toHaveBeenCalledWith(USER, [{ date: '2019-03-04', body: 'Text' }], 'skip');
+      }, CIPHER);
+      expect(repo.importEntries).toHaveBeenCalledWith(USER, [{ date: '2019-03-04', body: 'Text' }], 'skip', CIPHER);
       expect(result).toMatchObject({ status: 200, data: summary });
     });
 
@@ -297,7 +299,7 @@ describe('Bitacora use cases', () => {
       const result = await new ImportEntriesUseCase(repo, clock).execute(USER, {
         entries: [{ date: '2019-03-04', body: 'Text' }, { date: 'bad', body: 'Text' }],
         onConflict: 'skip',
-      });
+      }, CIPHER);
       expect(result.status).toBe(400);
       expect(repo.importEntries).not.toHaveBeenCalled();
     });

@@ -2,6 +2,7 @@ import { BitacoraRepository } from '../../../../../src/modules/bitacora/applicat
 import { SearchEntriesUseCase } from '../../../../../src/modules/bitacora/application/use-cases/search-entries.use-case';
 
 const USER = 7;
+const CIPHER = { encrypt: jest.fn(), decrypt: jest.fn() };
 
 const makeRepo = (): jest.Mocked<BitacoraRepository> =>
   ({ searchEntries: jest.fn() }) as unknown as jest.Mocked<BitacoraRepository>;
@@ -9,13 +10,13 @@ const makeRepo = (): jest.Mocked<BitacoraRepository> =>
 describe('SearchEntriesUseCase (C14, SPEC v1.10)', () => {
   it('rejects a missing userId with 401 and touches no data (D1)', async () => {
     const repo = makeRepo();
-    expect((await new SearchEntriesUseCase(repo).execute(undefined, { q: 'melgar' })).status).toBe(401);
+    expect((await new SearchEntriesUseCase(repo).execute(undefined, { q: 'melgar' }, CIPHER)).status).toBe(401);
     expect(repo.searchEntries).not.toHaveBeenCalled();
   });
 
   it('rejects a bad query with 400 and touches no data (Q5)', async () => {
     const repo = makeRepo();
-    const result = await new SearchEntriesUseCase(repo).execute(USER, { q: 'a' });
+    const result = await new SearchEntriesUseCase(repo).execute(USER, { q: 'a' }, CIPHER);
     expect(result).toMatchObject({ status: 400, errors: ['q must be 2 to 200 characters'] });
     expect(repo.searchEntries).not.toHaveBeenCalled();
   });
@@ -30,9 +31,9 @@ describe('SearchEntriesUseCase (C14, SPEC v1.10)', () => {
       ],
     });
 
-    const result = await new SearchEntriesUseCase(repo).execute(USER, { q: 'melgar beach', offset: 50 });
+    const result = await new SearchEntriesUseCase(repo).execute(USER, { q: 'melgar beach', offset: 50 }, CIPHER);
 
-    expect(repo.searchEntries).toHaveBeenCalledWith(USER, ['melgar', 'beach'], 50, 50);
+    expect(repo.searchEntries).toHaveBeenCalledWith(USER, ['melgar', 'beach'], 50, 50, CIPHER);
     expect(result).toEqual({
       success: true,
       status: 200,

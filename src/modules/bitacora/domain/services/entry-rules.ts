@@ -140,12 +140,28 @@ export function checkSearch(raw: unknown): Checked<{ terms: string[]; offset: nu
   return valid({ terms, offset: offset as number });
 }
 
-/** A `LIKE` pattern matching `term` anywhere, with `\`, `%` and `_` taken literally (escape `\`). */
-export const likePattern = (term: string): string => `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+/**
+ * Search folding (SPEC v1.11 §4.6): lower case, accents removed (Unicode NFD without marks). The
+ * same folding as the snippet below and the front's marks, so `bogota` finds `Bogotá`.
+ */
+export const foldForSearch = (text: string): string => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
 /**
- * Folds text as the collation does for search (lower case, accents removed),
- * keeping for each folded code point the index of its source code point.
+ * A matcher for one query: true when a body holds every term, in any order, each anywhere (inside
+ * words too) and literally (`%`, `_` and `\` are plain characters). Replaces the SQL `LIKE` of v1.10,
+ * since the database now holds ciphertext only.
+ */
+export function termMatcher(terms: string[]): (body: string) => boolean {
+  const folded = terms.map(foldForSearch);
+  return (body: string) => {
+    const haystack = foldForSearch(body);
+    return folded.every((term) => haystack.includes(term));
+  };
+}
+
+/**
+ * Folds text for search (lower case, accents removed), keeping for each folded
+ * code point the index of its source code point.
  */
 function fold(chars: string[]): { text: string[]; source: number[] } {
   const text: string[] = [];

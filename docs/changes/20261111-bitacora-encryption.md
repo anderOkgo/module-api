@@ -1,0 +1,83 @@
+# Bitácora: the diary encrypted at rest with a key only the user holds
+
+**Date:** 2026-11-11 · **Branch:** `feature/20261111-bitacora-encryption` · **Released:** not yet
+**Implements:** `module-docs/apps/bitacora/SPEC.md` v1.11 — §3.5 (C15–C17, key header), §4.6 (encryption,
+search in the API), §4.7 step 2 (migration script), N2/N8/N10, §6.12 (K1–K9 on the API side), D32
+**Change ID:** `20261111-bitacora-encryption` (also `module-data` PR #8 and `bitacora-react`)
+
+## Summary
+Every entry body is stored AES-256-GCM encrypted. The device derives a key from the passphrase and
+sends it in `X-Bitacora-Key` on each request; the API opens the user's data key with it, encrypts and
+decrypts in memory, and stores no key it can use alone. C2–C14 keep their shape. Search moves from SQL
+`LIKE` into the API. Three new routes manage the key: `GET/POST/PUT /api/bitacora/key`.
+
+## What this repo implements
+| Spec item | Where | Status |
+|---|---|---|
+| §3.5 key header on C2–C14: 401 → 428 `KEY_NOT_SET` / `KEY_REQUIRED` → 403 `KEY_WRONG` | `controllers/bitacora.controller.ts` (`diary()`), `OpenDiaryUseCase` | ✅ |
+| C16 `GET /key`, C15 `POST /key`, C17 `PUT /key` | `application/use-cases/diary-key.use-cases.ts`, `config/bitacora.module.ts` | ✅ |
+| §4.6 envelope: DEK wrapped by the KEK, `v1:` format, AAD `<userId>:<date>` / `user_keys:<userId>` | `infrastructure/crypto/aes-gcm.ts` | ✅ |
+| §4.6 every body read decrypted, every write encrypted; trash preview and "keep both" on plain text | `infrastructure/persistence/bitacora.mysql.ts` | ✅ |
+| §4.6 search in the API: every day of the user, decrypted, folded (NFD, lower case), all terms | `termMatcher` in `domain/services/entry-rules.ts`; `searchEntries` | ✅ |
+| `user_keys` access | `infrastructure/persistence/user-keys.mysql.ts` | ✅ |
+| Swagger: key header + 403/428 on every diary route; the `/key` routes | `documentation/bitacora.swagger.ts` | ✅ |
+| §4.7 step 2 migration script | `scripts/20261111-encrypt-bitacora.js` | ✅ rehearsed on a scratch DB |
+| E2E: existing scripts with the key header + new K cases | `scripts/2026…-e2e-*.js` | ⏳ |
+
+## Constraints found
+- **One pool per `Database` instance** (`src/infrastructure/data/mysql/database.ts`: the constructor calls
+  `mysql.createPool`). The module now builds one `Database` and gives it to both repositories.
+- **The rows move between `entries` and `entries_trash` by `INSERT … SELECT`.** The ciphertext is copied as
+  is; since its AAD is user + date, and a move never changes either, it still decrypts. So delete and
+  restore-without-conflict need no decrypt at all.
+- **`LIKE` and `LEFT()` on ciphertext are meaningless**: search and the trash preview now work on decrypted
+  text in the repository. The SQL of C7 (month) and `hasEntry` never read a body.
+- **Error messages carry no text**: `UndecryptableBodyError` says only "An entry body cannot be decrypted";
+  the controller logs `error.message` only, never headers (N2).
+- **The front must derive the key exactly like the script**: PBKDF2-HMAC-SHA-256, the passphrase normalized
+  to Unicode NFC and encoded as UTF-8, the stored 16-byte salt, the stored rounds, 32 bytes out, sent as
+  unpadded base64url. Recorded for `bitacora-react`; worth a spec clarification (§4.6).
+
+## Decisions
+- The cipher travels as an explicit argument (`execute(…, cipher)` → repository method), not hidden state:
+  each request has its own data key, and a forgotten argument is a type error.
+- `OpenDiaryUseCase` runs in the controller before the use case, so a diary use case never runs without a
+  cipher, and a refusal touches no entry table (checked in integration: zero repository calls).
+- A body that does not decrypt is a 500 (data corrupted or moved by hand), not a 4xx: the user did nothing
+  wrong, and the message stays generic.
+- Base64url is implemented by hand (`key-rules.ts`) and rejects non-canonical strings, so the code does not
+  depend on Node's `base64url` encoding (the production Node version was not checked).
+- The migration script loads the compiled API code (`dist/`), so it encrypts with exactly the code that will
+  read the data; it refuses a non-local `MYHOST`.
+
+## Verification (local, 2026-11-11)
+- Unit + integration: **1,625 tests, 99 suites, 100 % statements / branches / functions / lines**
+  (`npx jest --coverage`). New: `aes-gcm.test.ts`, `key-rules.test.ts`, `diary-key.use-cases.test.ts`,
+  `user-keys.mysql.test.ts`; integration K1 (428 on every diary route, with and without a key row), K4 (403,
+  zero repository calls), K2/K6 on `/key`, K5 (500 without text). One full run showed 1 failed test that
+  did not reproduce in three later runs (not in a Bitácora suite; not investigated further).
+- Search timing (K8/N8, synthetic data the size of the owner's diary: 2,700 days, 1.57 MB stored): decrypt
+  + match + snippets **~45–52 ms median, < 70 ms max** on the development machine, against N8's 500 ms.
+  Production will add the transfer of ~1.6 MB from MySQL; Q8 is timed after deploy.
+- Migration script, on a scratch database with invented fixtures (accents, emoji, a 10,000-char body, one
+  trash row) and an invented passphrase — **13/13**: refuses another user's rows, mismatched or short
+  passphrases, a missing `--user`, a non-local `MYHOST`, and a second run, writing nothing each time;
+  encrypts and commits; output holds no text or passphrase; every body `v1:`; `version` and `modified`
+  unchanged; the key opens with a PBKDF2 derivation done independently of the script; every body decrypts
+  to its original; another passphrase does not open the key. Database dropped afterwards.
+
+## Release and rollback (E.4: data → API → front)
+Part of the one sitting of SPEC §4.7: `module-data` `0002` first, this API (build, `npm run bup`, manual
+Restart in cPanel), then `bitacora-react`, then the local → production copy. Between the API deploy and the
+copy, production answers 428 `KEY_NOT_SET`: nobody uses the app in that window.
+Rollback: redeploy the previous `dist/` (and restore §4.7 step 1's dump if the copy was already made).
+
+## Post-deploy checklist
+- [ ] `/health` UP after the restart; Swagger lists `/api/bitacora/key`.
+- [ ] Every diary route: 401 without token, 428 with a token and no key header.
+- [ ] After the copy (§4.7 step 5): the owner opens the app; Q8 timed (< 500 ms).
+
+## Version history
+| Date | Change |
+|---|---|
+| 2026-11-11 | Created: API side implemented and verified locally; E2E scripts pending |

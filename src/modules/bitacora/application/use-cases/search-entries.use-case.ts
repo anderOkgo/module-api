@@ -1,4 +1,5 @@
 import { BitacoraRepository } from '../ports/bitacora.repository';
+import { BodyCipher } from '../ports/body-cipher';
 import { SearchData } from '../../domain/entities/entry.entity';
 import { checkSearch, SEARCH_PAGE_SIZE, searchSnippet } from '../../domain/services/entry-rules';
 import { badRequest, isUserId, succeed, unauthorized, UseCaseResult } from './use-case-result';
@@ -12,13 +13,13 @@ import { badRequest, isUserId, succeed, unauthorized, UseCaseResult } from './us
 export class SearchEntriesUseCase {
   constructor(private readonly repository: BitacoraRepository) {}
 
-  async execute(userId: unknown, payload: unknown): Promise<UseCaseResult<SearchData>> {
+  async execute(userId: unknown, payload: unknown, cipher: BodyCipher): Promise<UseCaseResult<SearchData>> {
     if (!isUserId(userId)) return unauthorized();
     const checked = checkSearch(payload);
     if (!checked.ok) return badRequest(checked.errors);
 
     const { terms, offset } = checked.value;
-    const page = await this.repository.searchEntries(userId, terms, SEARCH_PAGE_SIZE, offset);
+    const page = await this.repository.searchEntries(userId, terms, SEARCH_PAGE_SIZE, offset, cipher);
     const results = page.rows.map((row) => ({ date: row.date, snippet: searchSnippet(row.body, terms[0]) }));
 
     return succeed({ total: page.total, offset, results }, 'Search done');

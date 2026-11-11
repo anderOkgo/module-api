@@ -5,7 +5,7 @@
  */
 export interface UseCaseResult<T = unknown> {
   success: boolean;
-  status: 200 | 201 | 400 | 401 | 404 | 409;
+  status: 200 | 201 | 400 | 401 | 403 | 404 | 409 | 428;
   message: string;
   data?: T;
   errors?: string[];
@@ -33,6 +33,15 @@ export const unauthorized = (): UseCaseResult<never> => ({
   status: 401,
   message: 'Unauthorized: the token carries no user id',
 });
+
+/** The account has no diary key yet (SPEC v1.11 §3.5): the front shows "Create your diary key". */
+export const keyNotSet = (): UseCaseResult<never> => ({ success: false, status: 428, message: 'KEY_NOT_SET' });
+
+/** No key header, or not 32 bytes of base64url: the front shows "Open your diary". */
+export const keyRequired = (): UseCaseResult<never> => ({ success: false, status: 428, message: 'KEY_REQUIRED' });
+
+/** The header does not open the account's key; nothing was read or written. */
+export const keyWrong = (): UseCaseResult<never> => ({ success: false, status: 403, message: 'KEY_WRONG' });
 
 export const notFound = (message: string): UseCaseResult<never> => ({ success: false, status: 404, message });
 

@@ -1,5 +1,6 @@
 import { Database, QueryExecutor } from '../../../../infrastructure/my.database.helper';
 import { BitacoraRepository, RestoreOutcome, SaveOutcome } from '../../application/ports/bitacora.repository';
+import { BodyCipher } from '../../application/ports/body-cipher';
 import {
   Entry,
   ImportConflictPolicy,
@@ -11,7 +12,7 @@ import {
   TrashRow,
 } from '../../domain/entities/entry.entity';
 import { TRASH_DAYS } from '../../domain/services/entry-dates';
-import { KEEP_BOTH_SEPARATOR, likePattern, PREVIEW_CHARS } from '../../domain/services/entry-rules';
+import { KEEP_BOTH_SEPARATOR, PREVIEW_CHARS, termMatcher } from '../../domain/services/entry-rules';
 
 /**
  * MySQL/MariaDB implementation of the Bitácora port (SPEC §4,
@@ -21,8 +22,13 @@ import { KEEP_BOTH_SEPARATOR, likePattern, PREVIEW_CHARS } from '../../domain/se
  *   them through the server's time zone (D4); timestamps are written with
  *   `UTC_TIMESTAMP()`;
  * - queries throw (no `executeSafeQuery`): its error e-mail and log would carry
- *   the SQL text, which may contain entry text (N2). The controller logs only
- *   the error message.
+ *   the SQL text (N2). The controller logs only the error message;
+ * - `body` is ciphertext in the database (SPEC v1.11 §4.6, D32): it is
+ *   encrypted right before every write and decrypted right after every read,
+ *   with the request's cipher. SQL never looks inside a body: moving a row
+ *   between `entries` and `entries_trash` copies the ciphertext as is (same
+ *   user and date, so it still decrypts), and previews, "keep both" and search
+ *   work on decrypted text here.
  */
 
 const ENTRY_COLUMNS = `DATE_FORMAT(entry_date, '%Y-%m-%d') AS date, body, version,
@@ -34,23 +40,23 @@ const PURGE_EXPIRED = `DELETE FROM entries_trash WHERE user_id = ? AND deleted_a
 /** Errors a concurrent first save of the same date can raise; both mean "someone else inserted it". */
 const RACE_ERRORS = ['ER_DUP_ENTRY', 'ER_LOCK_DEADLOCK'];
 
-const toEntry = (row: Entry): Entry => ({
+const toEntry = (row: Entry, cipher: BodyCipher): Entry => ({
   date: row.date,
-  body: row.body,
+  body: cipher.decrypt(row.date, row.body),
   version: Number(row.version),
   modified: row.modified,
 });
 
+/** The first `PREVIEW_CHARS` characters (code points, like SQL `LEFT`). */
+const preview = (text: string): string => [...text].slice(0, PREVIEW_CHARS).join('');
+
 export class BitacoraMysqlRepository implements BitacoraRepository {
-  private readonly database: Database;
+  /** One pool for the module: the entries and the keys repositories share it. */
+  constructor(private readonly database: Database = new Database('MYDATABASEBITACORA')) {}
 
-  constructor() {
-    this.database = new Database('MYDATABASEBITACORA');
-  }
-
-  async findEntry(userId: number, date: string): Promise<Entry | null> {
+  async findEntry(userId: number, date: string, cipher: BodyCipher): Promise<Entry | null> {
     const rows: Entry[] = await this.database.executeQuery(SELECT_ENTRY, [userId, date]);
-    return rows.length > 0 ? toEntry(rows[0]) : null;
+    return rows.length > 0 ? toEntry(rows[0], cipher) : null;
   }
 
   async hasEntry(userId: number, date: string): Promise<boolean> {
@@ -61,7 +67,7 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
     return rows.length > 0;
   }
 
-  async findByMonthDays(userId: number, pairs: MonthDay[]): Promise<Entry[]> {
+  async findByMonthDays(userId: number, pairs: MonthDay[], cipher: BodyCipher): Promise<Entry[]> {
     const tuples = pairs.map(() => '(?, ?)').join(', ');
     const rows: Entry[] = await this.database.executeQuery(
       `SELECT ${ENTRY_COLUMNS} FROM entries
@@ -69,7 +75,7 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
        ORDER BY entry_date DESC`,
       [userId, ...pairs.flatMap((p) => [p.month, p.day])]
     );
-    return rows.map(toEntry);
+    return rows.map((row) => toEntry(row, cipher));
   }
 
   async listDates(userId: number, from: string, to: string): Promise<string[]> {
@@ -81,33 +87,39 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
     return rows.map((row) => row.date);
   }
 
-  async saveEntry(userId: number, date: string, body: string, baseVersion: number | null): Promise<SaveOutcome> {
+  async saveEntry(
+    userId: number,
+    date: string,
+    body: string,
+    baseVersion: number | null,
+    cipher: BodyCipher
+  ): Promise<SaveOutcome> {
     try {
       return await this.database.runInTransaction(async (query) => {
-        const current = await this.lockEntry(query, userId, date);
+        const current = await this.lockEntry(query, userId, date, cipher);
         if (!current) {
           // No stored entry: create it. A non-null baseVersion here means the entry was deleted
           // elsewhere; the text being typed is kept (the deleted one is still in the trash).
           await query(
             `INSERT INTO entries (user_id, entry_date, body, version, created, modified)
              VALUES (?, ?, ?, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
-            [userId, date, body]
+            [userId, date, cipher.encrypt(date, body)]
           );
-          return { kind: 'created', entry: await this.readEntry(query, userId, date) } as SaveOutcome;
+          return { kind: 'created', entry: await this.readEntry(query, userId, date, cipher) } as SaveOutcome;
         }
         if (current.version !== baseVersion) return { kind: 'conflict', entry: current } as SaveOutcome;
 
         await query(
           `UPDATE entries SET body = ?, version = version + 1, modified = UTC_TIMESTAMP()
            WHERE user_id = ? AND entry_date = ?`,
-          [body, userId, date]
+          [cipher.encrypt(date, body), userId, date]
         );
-        return { kind: 'replaced', entry: await this.readEntry(query, userId, date) } as SaveOutcome;
+        return { kind: 'replaced', entry: await this.readEntry(query, userId, date, cipher) } as SaveOutcome;
       });
     } catch (error) {
       // Two first saves of the same date at once: the loser sees the winner's entry as a conflict.
       const current = RACE_ERRORS.includes((error as { code?: string }).code as string)
-        ? await this.findEntry(userId, date)
+        ? await this.findEntry(userId, date, cipher)
         : null;
       if (!current) throw error;
       return { kind: 'conflict', entry: current };
@@ -117,9 +129,10 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
   async moveToTrash(userId: number, date: string): Promise<{ deletedAt: string } | null> {
     return this.database.runInTransaction(async (query) => {
       await query(PURGE_EXPIRED, [userId]);
-      const current = await this.lockEntry(query, userId, date);
-      if (!current) return null;
+      const locked = await query('SELECT 1 FROM entries WHERE user_id = ? AND entry_date = ? FOR UPDATE', [userId, date]);
+      if (locked.length === 0) return null;
 
+      // The ciphertext moves as is: same user and date, so it still decrypts from the trash.
       const inserted = await query(
         `INSERT INTO entries_trash (user_id, entry_date, body, version, created, modified, deleted_at)
          SELECT user_id, entry_date, body, version, created, modified, UTC_TIMESTAMP()
@@ -136,18 +149,28 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
     });
   }
 
-  async listTrash(userId: number): Promise<TrashRow[]> {
+  async listTrash(userId: number, cipher: BodyCipher): Promise<TrashRow[]> {
     await this.database.executeQuery(PURGE_EXPIRED, [userId]);
-    return this.database.executeQuery(
-      `SELECT DATE_FORMAT(entry_date, '%Y-%m-%d') AS date, LEFT(body, ${PREVIEW_CHARS}) AS preview,
+    const rows: Array<{ date: string; body: string; deletedAt: string }> = await this.database.executeQuery(
+      `SELECT DATE_FORMAT(entry_date, '%Y-%m-%d') AS date, body,
          DATE_FORMAT(deleted_at, '%Y-%m-%dT%H:%i:%sZ') AS deletedAt
        FROM entries_trash WHERE user_id = ? AND ${WITHIN_TRASH_WINDOW}
        ORDER BY deleted_at DESC, id DESC`,
       [userId]
     );
+    return rows.map((row) => ({
+      date: row.date,
+      preview: preview(cipher.decrypt(row.date, row.body)),
+      deletedAt: row.deletedAt,
+    }));
   }
 
-  async restoreFromTrash(userId: number, date: string, onConflict: RestoreConflictPolicy): Promise<RestoreOutcome> {
+  async restoreFromTrash(
+    userId: number,
+    date: string,
+    onConflict: RestoreConflictPolicy,
+    cipher: BodyCipher
+  ): Promise<RestoreOutcome> {
     return this.database.runInTransaction(async (query): Promise<RestoreOutcome> => {
       await query(PURGE_EXPIRED, [userId]);
       const trashed: Array<{ id: number; body: string }> = await query(
@@ -157,9 +180,10 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
         [userId, date]
       );
       if (trashed.length === 0) return { kind: 'notFound' };
-      const { id: trashId, body: deletedBody } = trashed[0];
+      const trashId = trashed[0].id;
+      const deletedBody = cipher.decrypt(date, trashed[0].body);
 
-      const current = await this.lockEntry(query, userId, date);
+      const current = await this.lockEntry(query, userId, date, cipher);
       if (current && onConflict === 'fail') return { kind: 'conflict', entry: current };
 
       if (current) {
@@ -167,7 +191,7 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
         await query(
           `UPDATE entries SET body = ?, version = version + 1, modified = UTC_TIMESTAMP()
            WHERE user_id = ? AND entry_date = ?`,
-          [body, userId, date]
+          [cipher.encrypt(date, body), userId, date]
         );
       } else {
         await query(
@@ -178,29 +202,36 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
         );
       }
       await query('DELETE FROM entries_trash WHERE id = ? AND user_id = ?', [trashId, userId]);
-      return { kind: 'restored', entry: await this.readEntry(query, userId, date) };
+      return { kind: 'restored', entry: await this.readEntry(query, userId, date, cipher) };
     });
   }
 
-  async searchEntries(userId: number, terms: string[], limit: number, offset: number): Promise<SearchPage> {
-    // One LIKE per term; the collation (utf8mb4_unicode_ci) makes it case- and accent-blind (SPEC constraint 8).
-    const where = `user_id = ? ${terms.map(() => `AND body LIKE ? ESCAPE '\\\\'`).join(' ')}`;
-    const params = [userId, ...terms.map(likePattern)];
-    const counted: Array<{ total: number | string }> = await this.database.executeQuery(
-      `SELECT COUNT(*) AS total FROM entries WHERE ${where}`,
-      params
-    );
-    const total = Number(counted[0].total);
-    if (total === 0 || offset >= total) return { total, rows: [] };
+  async searchEntries(
+    userId: number,
+    terms: string[],
+    limit: number,
+    offset: number,
+    cipher: BodyCipher
+  ): Promise<SearchPage> {
+    // The database holds ciphertext only: read the user's days, newest first, and match here.
     const rows: Array<{ date: string; body: string }> = await this.database.executeQuery(
       `SELECT DATE_FORMAT(entry_date, '%Y-%m-%d') AS date, body FROM entries
-       WHERE ${where} ORDER BY entry_date DESC LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+       WHERE user_id = ? ORDER BY entry_date DESC`,
+      [userId]
     );
-    return { total, rows };
+    const matches = termMatcher(terms);
+    const found = rows
+      .map((row) => ({ date: row.date, body: cipher.decrypt(row.date, row.body) }))
+      .filter((row) => matches(row.body));
+    return { total: found.length, rows: found.slice(offset, offset + limit) };
   }
 
-  async importEntries(userId: number, items: ImportItem[], onConflict: ImportConflictPolicy): Promise<ImportResult> {
+  async importEntries(
+    userId: number,
+    items: ImportItem[],
+    onConflict: ImportConflictPolicy,
+    cipher: BodyCipher
+  ): Promise<ImportResult> {
     return this.database.runInTransaction(async (query) => {
       const existingRows: Array<{ date: string }> = await query(
         `SELECT DATE_FORMAT(entry_date, '%Y-%m-%d') AS date FROM entries
@@ -218,7 +249,7 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
           : '';
         await query(
           `INSERT INTO entries (user_id, entry_date, body, version, created, modified) VALUES ${values}${onDuplicate}`,
-          toWrite.flatMap((item) => [userId, item.date, item.body])
+          toWrite.flatMap((item) => [userId, item.date, cipher.encrypt(item.date, item.body)])
         );
       }
 
@@ -232,13 +263,18 @@ export class BitacoraMysqlRepository implements BitacoraRepository {
     });
   }
 
-  private async lockEntry(query: QueryExecutor, userId: number, date: string): Promise<Entry | null> {
+  private async lockEntry(
+    query: QueryExecutor,
+    userId: number,
+    date: string,
+    cipher: BodyCipher
+  ): Promise<Entry | null> {
     const rows: Entry[] = await query(`${SELECT_ENTRY} FOR UPDATE`, [userId, date]);
-    return rows.length > 0 ? toEntry(rows[0]) : null;
+    return rows.length > 0 ? toEntry(rows[0], cipher) : null;
   }
 
-  private async readEntry(query: QueryExecutor, userId: number, date: string): Promise<Entry> {
+  private async readEntry(query: QueryExecutor, userId: number, date: string, cipher: BodyCipher): Promise<Entry> {
     const rows: Entry[] = await query(SELECT_ENTRY, [userId, date]);
-    return toEntry(rows[0]);
+    return toEntry(rows[0], cipher);
   }
 }

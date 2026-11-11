@@ -1,4 +1,5 @@
 import { BitacoraRepository } from '../ports/bitacora.repository';
+import { BodyCipher } from '../ports/body-cipher';
 import { TrashItem } from '../../domain/entities/entry.entity';
 import { purgeOn } from '../../domain/services/entry-dates';
 import { isUserId, succeed, unauthorized, UseCaseResult } from './use-case-result';
@@ -7,10 +8,10 @@ import { isUserId, succeed, unauthorized, UseCaseResult } from './use-case-resul
 export class ListTrashUseCase {
   constructor(private readonly repository: BitacoraRepository) {}
 
-  async execute(userId: unknown): Promise<UseCaseResult<TrashItem[]>> {
+  async execute(userId: unknown, cipher: BodyCipher): Promise<UseCaseResult<TrashItem[]>> {
     if (!isUserId(userId)) return unauthorized();
 
-    const rows = await this.repository.listTrash(userId);
+    const rows = await this.repository.listTrash(userId, cipher);
     return succeed(
       rows.map((row) => ({ ...row, purgeOn: purgeOn(row.deletedAt) })),
       'Trash loaded'

@@ -62,7 +62,8 @@ const UNAUTHORIZED = failure('Missing or invalid token, or token without userId'
 const NOT_FOUND = failure('Not found');
 const conflict = (description: string) => envelope(entrySchema, description);
 
-export const bitacoraSwaggerDocumentation = {
+/** The diary routes (C2–C14); each one also needs the key header, added at the end of this file. */
+const diaryDocumentation = {
   getHome: {
     '/api/bitacora/home/{date}': {
       get: {
@@ -327,3 +328,107 @@ export const bitacoraSwaggerDocumentation = {
     },
   },
 };
+
+/* ------------------------------------------------------------------ Diary key (SPEC v1.11 §3.5) */
+
+const keyHeader = (name: string, description: string) => ({
+  name,
+  in: 'header',
+  required: true,
+  description,
+  schema: { type: 'string', description: '32 bytes in unpadded base64url (43 characters)' },
+});
+const KEY_PARAM = keyHeader(
+  'X-Bitacora-Key',
+  'The key the device derived from the passphrase (PBKDF2-SHA256). Never the passphrase; never logged'
+);
+const NEW_KEY_PARAM = keyHeader('X-Bitacora-New-Key', 'The key derived from the new passphrase');
+const KEY_REFUSED = failure('KEY_NOT_SET: the account has no key yet · KEY_REQUIRED: no key header, or malformed');
+const KEY_WRONG = failure('KEY_WRONG: the header does not open the account key; nothing read or written');
+
+const keyParamsSchema = {
+  type: 'object',
+  properties: {
+    kdf: { type: 'string', example: 'PBKDF2-SHA256' },
+    iterations: { type: 'integer', example: 600000 },
+    salt: { type: 'string', description: '16 bytes in unpadded base64url, made on the device' },
+  },
+};
+const keyParamsBody = jsonBody(
+  {
+    iterations: { type: 'integer', minimum: 600000, maximum: 10000000, example: 600000 },
+    salt: { type: 'string', description: '16 random bytes in unpadded base64url, made on the device' },
+  },
+  ['iterations', 'salt']
+);
+const BAD_KEY_PARAMS = failure('iterations outside 600,000–10,000,000, salt not 16 bytes, or a key header malformed');
+
+const keyDocumentation = {
+  key: {
+    '/api/bitacora/key': {
+      get: {
+        summary: 'Whether the account has a diary key, and how a device derives it (C16)',
+        tags,
+        security,
+        responses: {
+          200: envelope(keyParamsSchema, 'Key parameters (never the key)'),
+          401: UNAUTHORIZED,
+          404: failure('KEY_NOT_SET: the account has no diary key yet'),
+        },
+      },
+      post: {
+        summary: 'Create the account diary key once (C15)',
+        tags,
+        security,
+        parameters: [KEY_PARAM],
+        requestBody: keyParamsBody,
+        responses: {
+          201: envelope(keyParamsSchema, 'Key created'),
+          400: BAD_KEY_PARAMS,
+          401: UNAUTHORIZED,
+          409: failure('The account already has a diary key'),
+        },
+      },
+      put: {
+        summary: 'Change the passphrase: the data key is re-wrapped, no entry is re-encrypted (C17)',
+        tags,
+        security,
+        parameters: [KEY_PARAM, NEW_KEY_PARAM],
+        requestBody: keyParamsBody,
+        responses: {
+          200: envelope(keyParamsSchema, 'Key changed'),
+          400: BAD_KEY_PARAMS,
+          401: UNAUTHORIZED,
+          403: KEY_WRONG,
+          428: KEY_REFUSED,
+        },
+      },
+    },
+  },
+};
+
+type OperationDoc = { parameters?: object[]; responses: Record<string, unknown> };
+
+/** Adds the key header and the 403/428 answers to every operation of the diary routes. */
+function withDiaryKey<T extends Record<string, Record<string, Record<string, OperationDoc>>>>(docs: T): T {
+  const result: Record<string, Record<string, Record<string, OperationDoc>>> = {};
+  for (const [name, paths] of Object.entries(docs)) {
+    result[name] = {};
+    for (const [path, operations] of Object.entries(paths)) {
+      result[name][path] = {};
+      for (const [method, operation] of Object.entries(operations)) {
+        result[name][path][method] = {
+          ...operation,
+          parameters: [...(operation.parameters ?? []), KEY_PARAM],
+          responses: { ...operation.responses, 403: KEY_WRONG, 428: KEY_REFUSED },
+        };
+      }
+    }
+  }
+  return result as T;
+}
+
+export const bitacoraSwaggerDocumentation = {
+  ...withDiaryKey(diaryDocumentation as unknown as Record<string, Record<string, Record<string, OperationDoc>>>),
+  ...keyDocumentation,
+} as typeof diaryDocumentation & typeof keyDocumentation;

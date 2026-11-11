@@ -1,6 +1,6 @@
 # Bitácora: the diary encrypted at rest with a key only the user holds
 
-**Date:** 2026-11-11 · **Branch:** `feature/20261111-bitacora-encryption` · **Released:** not yet
+**Date:** 2026-11-11 · **Branch:** `feature/20261111-bitacora-encryption` · **Released:** production, 2026-11-11 (deployed from the branch, then merged)
 **Implements:** `module-docs/apps/bitacora/SPEC.md` v1.11 — §3.5 (C15–C17, key header), §4.6 (encryption,
 search in the API), §4.7 step 2 (migration script), N2/N8/N10, §6.12 (K1–K9 on the API side), D32
 **Change ID:** `20261111-bitacora-encryption` (also `module-data` PR #8 and `bitacora-react`)
@@ -82,11 +82,31 @@ copy, production answers 428 `KEY_NOT_SET`: nobody uses the app in that window.
 Rollback: redeploy the previous `dist/` (and restore §4.7 step 1's dump if the copy was already made).
 
 ## Post-deploy checklist
-- [ ] `/health` UP after the restart; Swagger lists `/api/bitacora/key`.
-- [ ] Every diary route: 401 without token, 428 with a token and no key header.
-- [ ] After the copy (§4.7 step 5): the owner opens the app; Q8 timed (< 500 ms).
+- [x] `/health` UP after the owner's Restart (uptime 0.7 s, production); every diary route and `/key`
+  answer 401 without a token; the CORS preflight from `bitacora.animecream.com` allows `x-bitacora-key`.
+- [x] After the copy (§4.7 step 5): the owner opened the app on the phone with the passphrase; it works.
+- [ ] Q8 timed (< 500 ms): not timed; the owner found search working on the phone.
+- [ ] K12 restore test with the passphrase from the password manager:
+  `scripts/20261111-verify-bitacora-restore.js --user 3 --database restore_test_bitacora` (the production
+  dump of 2026-11-11 15:30 is restored there). The script was tested on a scratch DB (right passphrase 3/3,
+  wrong passphrase refused, also against the restored backup). **Pending: the owner runs it.**
+
+## Release log (2026-11-11, SPEC §4.7, one sitting)
+1. The owner restored production into local (13:48 dump) and rehearsed: the migration script with the real
+   passphrase in their own terminal — 2,734 entries, 2,734 verified, 0 plain left; the local app opened
+   with it and looked the same.
+2. A new production backup (15:17) was identical to the 13:48 dump apart from its date line: production
+   had not changed. Kept as `D:\Bitacora-import\backups\prod-2026-11-11-1348-before-encryption.sql`.
+3. API: `npm run bup` from the branch. The first upload's output was cut (exit 255); a second
+   `com\db-sync-FTP-both.bat` said "Nothing to synchronize", so every file had arrived. The owner restarted.
+4. Data: `module-data` steps of `db-copy-local-to-remote.bat` one at a time; the swap checked before upload
+   (2,734 rows of user 3, all `v1:`, one `user_keys` row, empty trash), re-synced ("Nothing to
+   synchronize"), restored; a new production dump then showed the same counts and the same key row.
+5. Front: `bitacora-react` `npm run bup`; production serves the new hashed bundle.
+6. The owner opened the diary on the phone with the passphrase.
 
 ## Version history
 | Date | Change |
 |---|---|
 | 2026-11-11 | Created: API side implemented and verified locally (unit, integration, E2E 60 + 106 + 38, negative control) |
+| 2026-11-11 | Released to production (release log above); restore-check script added; K12 pending the owner |

@@ -20,3 +20,8 @@ Part D.1 for the workspace annex (environments, release, known traps).
   reuses the ID from the spec's change log and states `Implements: SPEC vX.Y`.
 - Before creating a change doc, search this repo's `docs/changes/` and the
   spec's change log; update an existing doc instead of creating a new one.
+- **PR or `main`** (playbook E.12): a change that touches only Markdown
+  (`*.md`) is committed straight to `main`. Anything else (code, scripts,
+  config), even mixed with docs, goes through a branch and a PR that the
+  owner merges. The docs of an open change go in its PR, before the merge.
+  Check with `git diff --cached --name-only`.

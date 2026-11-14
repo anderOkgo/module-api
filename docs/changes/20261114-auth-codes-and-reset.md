@@ -1,6 +1,6 @@
 # Codes that expire, and password reset by email
 
-**Date:** 2026-11-14 · **Branch:** `feature/20261114-auth-codes-and-reset` · **Released in:** — (waiting for the owner's merge and deploy)
+**Date:** 2026-11-14 · **Branch:** `feature/20261114-auth-codes-and-reset` · **Released in:** https://info.animecream.com, 2026-11-14 (PR #14, `npm run bup`, restarted by the owner)
 **Implements:** `module-docs/apps/auth/SPEC.md` v0.5 — R.2 flows, R.3 contract (C1 changed, C4, C5), R.5, R.6 (E1–E9, E11)
 **Change ID:** `20261114-auth-codes-and-reset` (the same in `module-data` and `finan-react`)
 

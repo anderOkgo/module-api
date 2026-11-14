@@ -230,4 +230,102 @@ export const userSwaggerDocumentation = {
       },
     },
   },
+
+  // Auth SPEC v0.5, C4: the answer never tells whether an account uses the email (D6)
+  requestPasswordReset: {
+    '/api/users/password-reset/request': {
+      post: {
+        summary: 'Ask for a password reset code by email',
+        tags: ['Authentication'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email'],
+                properties: { email: { type: 'string', example: 'user@example.com' } },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description:
+              'Always the same answer. A code (valid 15 minutes) is emailed only when an account uses the email, at most once a minute',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    error: { type: 'boolean', example: false },
+                    message: { type: 'string', example: 'If an account uses this email, a code was sent' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Invalid email format',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
+          500: {
+            description: 'Internal server error',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
+        },
+      },
+    },
+  },
+
+  // Auth SPEC v0.5, C5: also clears the login lock; other sessions stay open (D7)
+  confirmPasswordReset: {
+    '/api/users/password-reset/confirm': {
+      post: {
+        summary: 'Set a new password with the emailed code',
+        tags: ['Authentication'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['email', 'code', 'newPassword'],
+                properties: {
+                  email: { type: 'string', example: 'user@example.com' },
+                  code: { type: 'integer', example: 123456 },
+                  newPassword: { type: 'string', minLength: 6, example: 'newSecret123' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Password changed',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    error: { type: 'boolean', example: false },
+                    message: { type: 'string', example: 'Password changed' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description:
+              '"Invalid or expired code" (wrong, older than 15 minutes, used up after 5 wrong tries, or unknown email), or a password under 6 characters',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
+          500: {
+            description: 'Internal server error',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+          },
+        },
+      },
+    },
+  },
 };

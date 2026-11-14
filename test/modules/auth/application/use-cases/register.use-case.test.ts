@@ -14,7 +14,8 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   delete: jest.fn(),
   findByEmailOrUsername: jest.fn(),
   saveVerificationCode: jest.fn(),
-  validateVerificationCode: jest.fn(),
+  findVerificationCode: jest.fn(),
+  incrementVerificationAttempts: jest.fn(),
   deleteVerificationCode: jest.fn(),
   incrementLoginAttempts: jest.fn(),
   resetLoginAttempts: jest.fn(),
@@ -23,6 +24,9 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   updateLastLogin: jest.fn(),
   updatePassword: jest.fn(),
 };
+
+// A stored code that matches 123456 and was sent 10 seconds ago
+const freshCode = { id: 1, code: 123456, attempts: 0, ageSeconds: 10 };
 
 const mockPasswordHasher: jest.Mocked<PasswordHasherPort> = {
   hash: jest.fn(),
@@ -41,6 +45,8 @@ describe('RegisterUserUseCase', () => {
   beforeEach(() => {
     registerUserUseCase = new RegisterUserUseCase(mockUserRepository, mockPasswordHasher, mockEmailService);
     jest.clearAllMocks();
+    // clearAllMocks keeps implementations: start each test with no stored code
+    mockUserRepository.findVerificationCode.mockReset();
   });
 
   describe('execute', () => {
@@ -56,7 +62,7 @@ describe('RegisterUserUseCase', () => {
       // Mock no existing user
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockUserRepository.findByUsername.mockResolvedValue(null);
-      mockUserRepository.validateVerificationCode.mockResolvedValue(true);
+      mockUserRepository.findVerificationCode.mockResolvedValue(freshCode);
       mockPasswordHasher.hash.mockResolvedValue('hashedpassword');
       mockUserRepository.create.mockResolvedValue({
         id: 1,
@@ -80,7 +86,7 @@ describe('RegisterUserUseCase', () => {
       expect(result.data?.username).toBe('testuser');
       expect(mockPasswordHasher.hash).toHaveBeenCalledWith('password123');
       expect(mockUserRepository.create).toHaveBeenCalled();
-      expect(mockUserRepository.deleteVerificationCode).toHaveBeenCalledWith('test@example.com');
+      expect(mockUserRepository.deleteVerificationCode).toHaveBeenCalledWith('test@example.com', 'register');
     });
 
     it('should default first_name and last_name to empty strings when not provided', async () => {
@@ -88,7 +94,7 @@ describe('RegisterUserUseCase', () => {
 
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockUserRepository.findByUsername.mockResolvedValue(null);
-      mockUserRepository.validateVerificationCode.mockResolvedValue(true);
+      mockUserRepository.findVerificationCode.mockResolvedValue(freshCode);
       mockPasswordHasher.hash.mockResolvedValue('hashedpassword');
       mockUserRepository.create.mockResolvedValue({
         id: 1,
@@ -123,8 +129,35 @@ describe('RegisterUserUseCase', () => {
 
       expect(result.error).toBe(false);
       expect(result.message).toBe('Verification code sent');
-      expect(mockUserRepository.saveVerificationCode).toHaveBeenCalledWith('test@example.com', expect.any(Number));
+      expect(mockUserRepository.saveVerificationCode).toHaveBeenCalledWith(
+        'test@example.com',
+        expect.any(Number),
+        'register'
+      );
       expect(mockEmailService.sendVerificationCode).toHaveBeenCalledWith('test@example.com', expect.any(Number));
+    });
+
+    it('answers 429 and sends nothing when a code went out less than a minute ago (Auth v0.5)', async () => {
+      mockUserRepository.findByEmail.mockResolvedValue(null);
+      mockUserRepository.findByUsername.mockResolvedValue(null);
+      mockUserRepository.findVerificationCode.mockResolvedValue({ ...freshCode, ageSeconds: 30 });
+
+      const result = await registerUserUseCase.execute(validUserData);
+
+      expect(result).toEqual({ error: true, message: 'Too many requests, try again in a minute', status: 429 });
+      expect(mockUserRepository.saveVerificationCode).not.toHaveBeenCalled();
+      expect(mockEmailService.sendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    it('refuses a code older than 15 minutes as expired, and creates no user (E1)', async () => {
+      mockUserRepository.findByEmail.mockResolvedValue(null);
+      mockUserRepository.findByUsername.mockResolvedValue(null);
+      mockUserRepository.findVerificationCode.mockResolvedValue({ ...freshCode, ageSeconds: 16 * 60 });
+
+      const result = await registerUserUseCase.execute({ ...validUserData, verificationCode: 123456 });
+
+      expect(result).toEqual({ error: true, message: 'Verification code expired' });
+      expect(mockUserRepository.create).not.toHaveBeenCalled();
     });
 
     it('should return error for invalid email format', async () => {
@@ -201,7 +234,7 @@ describe('RegisterUserUseCase', () => {
     it('should return error for invalid verification code', async () => {
       mockUserRepository.findByEmail.mockResolvedValue(null);
       mockUserRepository.findByUsername.mockResolvedValue(null);
-      mockUserRepository.validateVerificationCode.mockResolvedValue(false);
+      mockUserRepository.findVerificationCode.mockResolvedValue({ ...freshCode, code: 999999 });
 
       const result = await registerUserUseCase.execute({
         ...validUserData,

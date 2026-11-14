@@ -1,6 +1,6 @@
 import { Database } from '../../../../infrastructure/my.database.helper';
 import User from '../../domain/entities/user.entity';
-import { UserRepository } from '../../application/ports/user.repository';
+import { CodePurpose, StoredCode, UserRepository } from '../../application/ports/user.repository';
 
 /**
  * MySQL implementation of the user repository
@@ -120,19 +120,36 @@ export class userMysqlRepository implements UserRepository {
 
   // ==================== VERIFICATION CODES ====================
 
-  async saveVerificationCode(email: string, code: number): Promise<void> {
-    const query = 'INSERT INTO email_verification (email, verification_code) VALUES (?, ?)';
-    await this.Database.executeSafeQuery(query, [email, code]);
+  // One pending code per email and purpose: saving a new one drops the earlier ones (Auth SPEC v0.5).
+
+  async saveVerificationCode(email: string, code: number, purpose: CodePurpose = 'register'): Promise<void> {
+    await this.deleteVerificationCode(email, purpose);
+    const query = 'INSERT INTO email_verification (email, verification_code, purpose) VALUES (?, ?, ?)';
+    await this.Database.executeSafeQuery(query, [email, code, purpose]);
   }
 
-  async validateVerificationCode(email: string, code: number): Promise<boolean> {
-    const query = 'SELECT * FROM email_verification WHERE email = ? AND verification_code = ?';
-    const result = await this.Database.executeSafeQuery(query, [email, code]);
-    return result.length > 0;
+  async findVerificationCode(email: string, purpose: CodePurpose = 'register'): Promise<StoredCode | null> {
+    const query =
+      'SELECT id, verification_code, attempts, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age_seconds ' +
+      'FROM email_verification WHERE email = ? AND purpose = ? ORDER BY id DESC LIMIT 1';
+    const rows = await this.Database.executeSafeQuery(query, [email, purpose]);
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    const row = rows[0];
+    return {
+      id: row.id,
+      code: Number(row.verification_code),
+      attempts: Number(row.attempts),
+      ageSeconds: Number(row.age_seconds),
+    };
   }
 
-  async deleteVerificationCode(email: string): Promise<void> {
-    const query = 'DELETE FROM email_verification WHERE email = ?';
-    await this.Database.executeSafeQuery(query, [email]);
+  async incrementVerificationAttempts(id: number): Promise<void> {
+    const query = 'UPDATE email_verification SET attempts = attempts + 1 WHERE id = ?';
+    await this.Database.executeSafeQuery(query, [id]);
+  }
+
+  async deleteVerificationCode(email: string, purpose: CodePurpose = 'register'): Promise<void> {
+    const query = 'DELETE FROM email_verification WHERE email = ? AND purpose = ?';
+    await this.Database.executeSafeQuery(query, [email, purpose]);
   }
 }

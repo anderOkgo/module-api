@@ -18,9 +18,9 @@ export interface EmailServicePort {
   sendWelcomeEmail(email: string, username: string): Promise<void>;
 
   /**
-   * Sends password reset email
+   * Sends the password reset code (Auth SPEC v0.5, C4)
    * @param email Recipient email address
-   * @param resetToken Reset token
+   * @param resetCode 6-digit code, valid for 15 minutes
    */
-  sendPasswordResetEmail(email: string, resetToken: string): Promise<void>;
+  sendPasswordResetEmail(email: string, resetCode: number): Promise<void>;
 }

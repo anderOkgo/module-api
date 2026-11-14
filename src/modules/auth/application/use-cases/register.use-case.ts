@@ -2,19 +2,24 @@ import User, { UserCreateRequest, UserResponse, UserRole } from '../../domain/en
 import { UserRepository } from '../ports/user.repository';
 import { PasswordHasherPort } from '../../domain/ports/password-hasher.port';
 import { EmailServicePort } from '../ports/email.service.port';
+import { VerificationCodePolicy } from './verification-code.policy';
 
 /**
  * Use case for user registration
- * Implements all business logic for registration
+ * Implements all business logic for registration.
+ * Codes follow VerificationCodePolicy (Auth SPEC v0.5): 15 minutes, 5 wrong tries, one a minute.
  */
 export class RegisterUserUseCase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly passwordHasher: PasswordHasherPort,
-    private readonly emailService: EmailServicePort
+    private readonly emailService: EmailServicePort,
+    private readonly codes: VerificationCodePolicy = new VerificationCodePolicy(userRepository)
   ) {}
 
-  async execute(userData: UserCreateRequest): Promise<{ error: boolean; message?: string; data?: UserResponse }> {
+  async execute(
+    userData: UserCreateRequest
+  ): Promise<{ error: boolean; message?: string; data?: UserResponse; status?: number }> {
     try {
       const errors: string[] = [];
 
@@ -53,17 +58,22 @@ export class RegisterUserUseCase {
         return { error: true, message: errors.join(', ') };
       }
 
-      // 6. If no verification code, generate and send
+      // 6. If no verification code, generate and send (at most one a minute)
       if (!userData.verificationCode) {
-        const verificationCode = this.generateVerificationCode();
-        await this.saveVerificationCode(userData.email, verificationCode);
-        await this.emailService.sendVerificationCode(userData.email, verificationCode);
+        const issued = await this.codes.issue(userData.email, 'register');
+        if (!issued.sent) {
+          return { error: true, message: 'Too many requests, try again in a minute', status: 429 };
+        }
+        await this.emailService.sendVerificationCode(userData.email, issued.code);
         return { error: false, message: 'Verification code sent' };
       }
 
-      // 7. Validate verification code
-      const isValidCode = await this.validateVerificationCode(userData.email, userData.verificationCode);
-      if (!isValidCode) {
+      // 7. Validate verification code: expired after 15 minutes, gone after 5 wrong tries
+      const check = await this.codes.check(userData.email, 'register', userData.verificationCode);
+      if (check === 'expired') {
+        return { error: true, message: 'Verification code expired' };
+      }
+      if (check !== 'ok') {
         return { error: true, message: 'Invalid verification code' };
       }
 
@@ -86,7 +96,7 @@ export class RegisterUserUseCase {
       const user = await this.userRepository.create(newUser as User);
 
       // 10. Delete used verification code
-      await this.deleteVerificationCode(userData.email);
+      await this.userRepository.deleteVerificationCode(userData.email, 'register');
 
       // 11. Map response
       const response: UserResponse = {
@@ -116,24 +126,5 @@ export class RegisterUserUseCase {
     // Username: 3-20 characters, alphanumeric and underscore
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
     return usernameRegex.test(username);
-  }
-
-  private generateVerificationCode(): number {
-    return Math.floor(100000 + Math.random() * 900000);
-  }
-
-  private async saveVerificationCode(email: string, code: number): Promise<void> {
-    // Delegate to repository (specific method)
-    await this.userRepository.saveVerificationCode(email, code);
-  }
-
-  private async validateVerificationCode(email: string, code: number): Promise<boolean> {
-    // Delegate to repository (specific method)
-    return await this.userRepository.validateVerificationCode(email, code);
-  }
-
-  private async deleteVerificationCode(email: string): Promise<void> {
-    // Delegate to repository (specific method)
-    await this.userRepository.deleteVerificationCode(email);
   }
 }

@@ -33,7 +33,8 @@ const mockRepo: jest.Mocked<UserRepository> = {
   lockUser: jest.fn(),
   unlockUser: jest.fn(),
   saveVerificationCode: jest.fn(),
-  validateVerificationCode: jest.fn(),
+  findVerificationCode: jest.fn(),
+  incrementVerificationAttempts: jest.fn(),
   deleteVerificationCode: jest.fn(),
 };
 
@@ -72,7 +73,7 @@ describe('Auth module — integration', () => {
     it('creates the user once a valid verification code is provided', async () => {
       mockRepo.findByEmail.mockResolvedValue(null);
       mockRepo.findByUsername.mockResolvedValue(null);
-      mockRepo.validateVerificationCode.mockResolvedValue(true);
+      mockRepo.findVerificationCode.mockResolvedValue({ id: 1, code: 123456, attempts: 0, ageSeconds: 10 });
       mockRepo.create.mockResolvedValue({
         id: 1,
         first_name: 'Test',
@@ -272,6 +273,67 @@ describe('Auth module — integration', () => {
 
       expect(res.status).toBe(400);
       expect(mockRepo.findByEmailOrUsername).not.toHaveBeenCalled();
+    });
+  });
+
+  // Auth SPEC v0.5: C4 and C5 through the real router, controller and use cases
+  describe('POST /password-reset/request and /confirm', () => {
+    const account = {
+      id: 5,
+      first_name: '',
+      last_name: '',
+      username: 'resetuser',
+      email: 'reset@example.com',
+      role: UserRole.USER,
+      password: 'old-hash',
+      active: true,
+    };
+
+    beforeEach(() => mockRepo.findVerificationCode.mockReset());
+
+    it('answers the same for an account and for no account, and emails only the account (E5, D6)', async () => {
+      mockRepo.findByEmail.mockResolvedValueOnce(account as any);
+      const real = await request(app).post('/api/users/password-reset/request').send({ email: 'reset@example.com' });
+      mockRepo.findByEmail.mockResolvedValueOnce(null);
+      const none = await request(app).post('/api/users/password-reset/request').send({ email: 'none@example.com' });
+
+      expect(real.status).toBe(200);
+      expect(none.status).toBe(200);
+      expect(real.body).toEqual(none.body);
+      expect(mockSendEmail).toHaveBeenCalledTimes(1);
+      expect(mockSendEmail).toHaveBeenCalledWith('reset@example.com', expect.any(String), expect.any(String));
+    });
+
+    it('changes the password with the right code and clears the login lock (E6, E7)', async () => {
+      mockRepo.findByEmail.mockResolvedValue(account as any);
+      mockRepo.findVerificationCode.mockResolvedValue({ id: 2, code: 246810, attempts: 0, ageSeconds: 20 });
+
+      const res = await request(app)
+        .post('/api/users/password-reset/confirm')
+        .send({ email: 'reset@example.com', code: '246810', newPassword: 'brandNew1' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ error: false, message: 'Password changed' });
+      const [id, hash] = mockRepo.updatePassword.mock.calls[0];
+      expect(id).toBe(5);
+      expect(await bcrypt.compare('brandNew1', hash)).toBe(true);
+      expect(mockRepo.resetLoginAttempts).toHaveBeenCalledWith(5);
+    });
+
+    it('refuses a register code for a reset (E8)', async () => {
+      mockRepo.findByEmail.mockResolvedValue(account as any);
+      // The repository is asked for the reset purpose only; a register code is never returned for it
+      mockRepo.findVerificationCode.mockImplementation(async (_email, purpose) =>
+        purpose === 'register' ? { id: 3, code: 111222, attempts: 0, ageSeconds: 5 } : null
+      );
+
+      const res = await request(app)
+        .post('/api/users/password-reset/confirm')
+        .send({ email: 'reset@example.com', code: 111222, newPassword: 'brandNew1' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Invalid or expired code');
+      expect(mockRepo.updatePassword).not.toHaveBeenCalled();
     });
   });
 });

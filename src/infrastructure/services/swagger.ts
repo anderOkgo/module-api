@@ -61,10 +61,12 @@ const options = {
  * Filters user documentation based on environment
  */
 function filterUserDocumentation(documentation: any) {
-  // In production, hide registration endpoint
+  // In production, hide the registration and self-service password reset endpoints (Auth SPEC §3, v0.5)
   if (process.env.NODE_ENV === 'production') {
     const filtered = { ...documentation };
     delete filtered.addUser; // Remove registration endpoint documentation
+    delete filtered.requestPasswordReset;
+    delete filtered.confirmPasswordReset;
     return filtered;
   }
   return documentation;

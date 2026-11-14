@@ -275,37 +275,87 @@ describe('userMysqlRepository', () => {
   });
 
   describe('verification code methods', () => {
-    it('saveVerificationCode issues the expected query', async () => {
+    it('saveVerificationCode replaces earlier codes of the email and purpose, registration by default', async () => {
       mockDatabase.executeSafeQuery.mockResolvedValue({});
 
       await repository.saveVerificationCode('test@example.com', 123456);
 
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
-        'INSERT INTO email_verification (email, verification_code) VALUES (?, ?)',
-        ['test@example.com', 123456]
+      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
+        1,
+        'DELETE FROM email_verification WHERE email = ? AND purpose = ?',
+        ['test@example.com', 'register']
+      );
+      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
+        2,
+        'INSERT INTO email_verification (email, verification_code, purpose) VALUES (?, ?, ?)',
+        ['test@example.com', 123456, 'register']
       );
     });
 
-    it('validateVerificationCode returns true when a matching row exists', async () => {
-      mockDatabase.executeSafeQuery.mockResolvedValue([{ email: 'test@example.com' }]);
+    it('saveVerificationCode stores a reset code under its purpose', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue({});
 
-      expect(await repository.validateVerificationCode('test@example.com', 123456)).toBe(true);
+      await repository.saveVerificationCode('test@example.com', 654321, 'reset');
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenLastCalledWith(
+        'INSERT INTO email_verification (email, verification_code, purpose) VALUES (?, ?, ?)',
+        ['test@example.com', 654321, 'reset']
+      );
     });
 
-    it('validateVerificationCode returns false when no matching row exists', async () => {
-      mockDatabase.executeSafeQuery.mockResolvedValue([]);
+    it('findVerificationCode returns the newest code with its age from the database clock', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue([
+        { id: 7, verification_code: '123456', attempts: '2', age_seconds: '30' },
+      ]);
 
-      expect(await repository.validateVerificationCode('test@example.com', 999999)).toBe(false);
+      expect(await repository.findVerificationCode('test@example.com', 'reset')).toEqual({
+        id: 7,
+        code: 123456,
+        attempts: 2,
+        ageSeconds: 30,
+      });
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        'SELECT id, verification_code, attempts, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age_seconds ' +
+          'FROM email_verification WHERE email = ? AND purpose = ? ORDER BY id DESC LIMIT 1',
+        ['test@example.com', 'reset']
+      );
     });
 
-    it('deleteVerificationCode issues the expected query', async () => {
+    it('findVerificationCode returns null when there is no code, or the query fails', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([]);
+      expect(await repository.findVerificationCode('test@example.com')).toBeNull();
+      expect(mockDatabase.executeSafeQuery).toHaveBeenLastCalledWith(expect.any(String), ['test@example.com', 'register']);
+
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce({ errorSys: true });
+      expect(await repository.findVerificationCode('test@example.com')).toBeNull();
+    });
+
+    it('incrementVerificationAttempts counts one wrong try', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValue({});
+
+      await repository.incrementVerificationAttempts(7);
+
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
+        'UPDATE email_verification SET attempts = attempts + 1 WHERE id = ?',
+        [7]
+      );
+    });
+
+    it('deleteVerificationCode deletes only that purpose, registration by default', async () => {
       mockDatabase.executeSafeQuery.mockResolvedValue({});
 
       await repository.deleteVerificationCode('test@example.com');
+      await repository.deleteVerificationCode('test@example.com', 'reset');
 
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
-        'DELETE FROM email_verification WHERE email = ?',
-        ['test@example.com']
+      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
+        1,
+        'DELETE FROM email_verification WHERE email = ? AND purpose = ?',
+        ['test@example.com', 'register']
+      );
+      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
+        2,
+        'DELETE FROM email_verification WHERE email = ? AND purpose = ?',
+        ['test@example.com', 'reset']
       );
     });
   });

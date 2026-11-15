@@ -4,6 +4,7 @@ import Movement, {
   MovementResponse,
   isMovementType,
 } from '../../domain/entities/movement.entity';
+import { applyTo, originOf } from './linked-adjustment';
 
 /**
  * Use case for creating a new financial movement
@@ -46,12 +47,7 @@ export class PutMovementUseCase {
         };
       }
 
-      // 3. Process linked movement if exists
-      if (request.operate_for) {
-        await this.handleLinkedMovement(request);
-      }
-
-      // 4. Normalize data and create movement
+      // 3. Normalize data
       const movement: Movement = {
         name: request.movement_name.trim(),
         value: request.movement_val,
@@ -63,8 +59,11 @@ export class PutMovementUseCase {
         log: request.operate_for || 0,
       };
 
-      // 5. Create in database
-      const created = await this.repository.create(movement);
+      // 4. Adjust the origin balance and insert, both or neither (Finanz SPEC v0.10, D9)
+      const created = await this.repository.runInTransaction(async (tx) => {
+        await applyTo(tx, originOf(request.operate_for), request.movement_type, request.movement_val, request.username);
+        return tx.create(movement);
+      });
 
       // 6. Map to response
       const response: MovementResponse = {
@@ -131,16 +130,5 @@ export class PutMovementUseCase {
   private isValidDate(dateString: string): boolean {
     const date = new Date(dateString);
     return date instanceof Date && !isNaN(date.getTime());
-  }
-
-  private async handleLinkedMovement(request: CreateMovementRequest): Promise<void> {
-    // Business logic: update linked movement
-    // Only called from execute() when request.operate_for is already truthy.
-    await this.repository.operateForLinkedMovement(
-      request.operate_for!,
-      request.movement_val,
-      request.movement_type,
-      request.username
-    );
   }
 }

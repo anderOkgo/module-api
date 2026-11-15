@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { buildTestApp } from './helpers/build-test-app';
 import { signToken, bearer, TEST_SECRET_KEY } from './helpers/jwt';
-import { FinanRepository } from '../../src/modules/finan/application/ports/finan.repository';
+import { FinanRepository, FinanTransaction } from '../../src/modules/finan/application/ports/finan.repository';
 
 process.env.SECRET_KEY = TEST_SECRET_KEY;
 
@@ -12,7 +12,7 @@ import { buildFinanModule } from '../../src/modules/finan/infrastructure/config/
 
 const MockedFinanMysqlRepository = FinanMysqlRepository as jest.MockedClass<typeof FinanMysqlRepository>;
 
-const mockRepo: jest.Mocked<FinanRepository> = {
+const mockRepo: jest.Mocked<FinanRepository & FinanTransaction> = {
   createTableForUser: jest.fn(),
   create: jest.fn(),
   findById: jest.fn(),
@@ -31,7 +31,8 @@ const mockRepo: jest.Mocked<FinanRepository> = {
   getCurrentMonthExpenses: jest.fn(),
   getGeneralInfo: jest.fn(),
   getTripInfo: jest.fn(),
-  operateForLinkedMovement: jest.fn(),
+  adjustValue: jest.fn(),
+  runInTransaction: jest.fn((work: any) => work(mockRepo)),
 };
 
 MockedFinanMysqlRepository.mockImplementation(() => mockRepo as any);

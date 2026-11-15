@@ -404,7 +404,8 @@ export const swaggerSchemas = {
       },
       operate_for: {
         type: 'number',
-        description: 'Linked movement ID (optional)',
+        description:
+          'Origin balance id (optional). An income adds its value to it, an expense or a balance takes it away; editing or deleting the movement re-adjusts it, in the same transaction. 400 "Linked movement not found" when it does not exist (Finanz SPEC v0.10)',
         example: 5,
       },
     },
@@ -457,7 +458,8 @@ export const swaggerSchemas = {
       },
       operate_for: {
         type: 'number',
-        description: 'Linked movement ID (optional)',
+        description:
+          'Origin balance id (optional). An income adds its value to it, an expense or a balance takes it away; editing or deleting the movement re-adjusts it, in the same transaction. 400 "Linked movement not found" when it does not exist (Finanz SPEC v0.10)',
         example: 5,
       },
     },

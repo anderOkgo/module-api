@@ -1,4 +1,5 @@
 import { FinanRepository } from '../ports/finan.repository';
+import { originOf, undoOn } from './linked-adjustment';
 
 /**
  * Use case for deleting a financial movement
@@ -35,7 +36,12 @@ export class DeleteMovementUseCase {
       }
 
       // 4. Delete
-      const deleted = await this.repository.delete(id, normalizedUsername);
+      // Give its effect back to the origin balance and delete, both or neither (Finanz SPEC v0.10, L.2).
+      // An origin that no longer exists is skipped: the movement is still deleted.
+      const deleted = await this.repository.runInTransaction(async (tx) => {
+        await undoOn(tx, originOf(existing.log), existing.type_source_id, existing.value, normalizedUsername);
+        return tx.delete(id, normalizedUsername);
+      });
 
       if (deleted) {
         return {

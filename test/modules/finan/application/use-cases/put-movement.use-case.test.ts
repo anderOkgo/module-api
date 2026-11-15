@@ -1,12 +1,12 @@
 import { PutMovementUseCase } from '../../../../../src/modules/finan/application/use-cases/put-movement.use-case';
-import { FinanRepository } from '../../../../../src/modules/finan/application/ports/finan.repository';
+import { FinanRepository, FinanTransaction } from '../../../../../src/modules/finan/application/ports/finan.repository';
 import {
   CreateMovementRequest,
   MovementType,
 } from '../../../../../src/modules/finan/domain/entities/movement.entity';
 
 // Mock repository
-const mockRepository: jest.Mocked<FinanRepository> = {
+const mockRepository: jest.Mocked<FinanRepository & FinanTransaction> = {
   create: jest.fn(),
   findById: jest.fn(),
   findByNameAndDate: jest.fn(),
@@ -22,7 +22,9 @@ const mockRepository: jest.Mocked<FinanRepository> = {
   getMonthlyExpensesUntilCurrentDay: jest.fn(),
   getGeneralInfo: jest.fn(),
   getTripInfo: jest.fn(),
-  operateForLinkedMovement: jest.fn(),
+  adjustValue: jest.fn(),
+  // The transaction gets the same mock: tx.create, tx.update, tx.delete and tx.adjustValue (SPEC v0.10)
+  runInTransaction: jest.fn((work: any) => work(mockRepository)),
   createTableForUser: jest.fn(),
 };
 
@@ -150,18 +152,15 @@ describe('PutMovementUseCase', () => {
       };
 
       mockRepository.findByNameAndDate.mockResolvedValue(null);
-      mockRepository.operateForLinkedMovement.mockResolvedValue();
+      mockRepository.adjustValue.mockResolvedValue(true);
       mockRepository.create.mockResolvedValue(createdMovement);
 
       const result = await putMovementUseCase.execute(requestWithLinked);
 
       expect(result.success).toBe(true);
-      expect(mockRepository.operateForLinkedMovement).toHaveBeenCalledWith(
-        123,
-        100.5,
-        MovementType.INCOME,
-        'testuser'
-      );
+      // An income adds its value to the origin, in the same transaction as the insert (SPEC v0.10, J1, D9)
+      expect(mockRepository.runInTransaction).toHaveBeenCalledTimes(1);
+      expect(mockRepository.adjustValue).toHaveBeenCalledWith(123, 100.5, 'testuser');
       expect(mockRepository.create).toHaveBeenCalledWith({
         name: 'Test Movement',
         value: 100.5,
@@ -413,12 +412,43 @@ describe('PutMovementUseCase', () => {
         operate_for: 123,
       };
 
-      mockRepository.operateForLinkedMovement.mockRejectedValue(new Error('Linked movement operation failed'));
+      mockRepository.adjustValue.mockRejectedValue(new Error('Linked movement operation failed'));
 
       const result = await putMovementUseCase.execute(requestWithLinked);
 
       expect(result.success).toBe(false);
       expect(result.message).toBe('Linked movement operation failed');
+      expect(mockRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses an origin that does not exist, and inserts nothing (M4)', async () => {
+      mockRepository.adjustValue.mockResolvedValue(false);
+
+      const result = await putMovementUseCase.execute({ ...validRequest, operate_for: 999 });
+
+      expect(result).toEqual({ success: false, message: 'Linked movement not found' });
+      expect(mockRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('takes an expense or a balance away from the origin (M1)', async () => {
+      mockRepository.adjustValue.mockResolvedValue(true);
+      mockRepository.create.mockResolvedValue({ id: 3 } as any);
+
+      await putMovementUseCase.execute({ ...validRequest, movement_type: MovementType.EXPENSE, operate_for: 7 });
+      expect(mockRepository.adjustValue).toHaveBeenLastCalledWith(7, -100.5, 'testuser');
+
+      await putMovementUseCase.execute({ ...validRequest, movement_type: MovementType.TRANSFER, operate_for: 7 });
+      expect(mockRepository.adjustValue).toHaveBeenLastCalledWith(7, -100.5, 'testuser');
+    });
+
+    it('lets a failed insert roll the adjustment back: the error comes out of the transaction (J10)', async () => {
+      mockRepository.adjustValue.mockResolvedValue(true);
+      mockRepository.create.mockRejectedValue(new Error('insert failed'));
+
+      const result = await putMovementUseCase.execute({ ...validRequest, operate_for: 7 });
+
+      expect(result).toEqual({ success: false, message: 'insert failed' });
+      await expect(mockRepository.runInTransaction.mock.results[0].value).rejects.toThrow('insert failed');
     });
   });
 

@@ -10,9 +10,21 @@ describe('FinanMysqlRepository', () => {
   let repository: FinanMysqlRepository;
   let mockDatabase: jest.Mocked<Database>;
 
+  // Writes run inside runInTransaction (SPEC v0.10, D9). The mocked transaction hands its work the same
+  // executeSafeQuery mock as its query executor, so every test reads the SQL the same way.
+  const inTx = {
+    create: (movement: Movement) => repository.runInTransaction((tx) => tx.create(movement)),
+    update: (id: number, movement: Partial<Movement>, username: string) =>
+      repository.runInTransaction((tx) => tx.update(id, movement, username)),
+    delete: (id: number, username: string) => repository.runInTransaction((tx) => tx.delete(id, username)),
+    adjustValue: (id: number, delta: number, username: string) =>
+      repository.runInTransaction((tx) => tx.adjustValue(id, delta, username)),
+  };
+
   beforeEach(() => {
     mockDatabase = {
       executeSafeQuery: jest.fn(),
+      runInTransaction: jest.fn((work: any) => work(mockDatabase.executeSafeQuery)),
     } as any;
 
     MockedDatabase.mockImplementation(() => mockDatabase);
@@ -46,7 +58,7 @@ describe('FinanMysqlRepository', () => {
       const mockResult = { insertId: 123 };
       mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
 
-      const result = await repository.create(validMovement);
+      const result = await inTx.create(validMovement);
 
       expect(result).toEqual({
         ...validMovement,
@@ -76,7 +88,7 @@ describe('FinanMysqlRepository', () => {
       const mockResult = { insertId: 124 };
       mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
 
-      const result = await repository.create(movementWithoutLog);
+      const result = await inTx.create(movementWithoutLog);
 
       expect(result).toEqual({
         ...movementWithoutLog,
@@ -97,7 +109,7 @@ describe('FinanMysqlRepository', () => {
     it('should handle database errors', async () => {
       mockDatabase.executeSafeQuery.mockRejectedValue(new Error('Database connection failed'));
 
-      await expect(repository.create(validMovement)).rejects.toThrow('Database connection failed');
+      await expect(inTx.create(validMovement)).rejects.toThrow('Database connection failed');
     });
   });
 
@@ -165,7 +177,7 @@ describe('FinanMysqlRepository', () => {
         .mockResolvedValueOnce({ affectedRows: 1 }) // Update query
         .mockResolvedValueOnce([existingMovement]); // FindById query
 
-      const result = await repository.update(1, updateData, 'testuser');
+      const result = await inTx.update(1, updateData, 'testuser');
 
       expect(result).toEqual(existingMovement);
       expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
@@ -188,7 +200,7 @@ describe('FinanMysqlRepository', () => {
         .mockResolvedValueOnce({ affectedRows: 1 })
         .mockResolvedValueOnce([existingMovement]);
 
-      await repository.update(1, updateWithLog, 'testuser');
+      await inTx.update(1, updateWithLog, 'testuser');
 
       expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(expect.any(String), [
         'Updated Movement',
@@ -207,7 +219,7 @@ describe('FinanMysqlRepository', () => {
         .mockResolvedValueOnce({ affectedRows: 1 }) // Update query
         .mockResolvedValueOnce([]); // FindById query returns empty
 
-      await expect(repository.update(1, updateData, 'testuser')).rejects.toThrow(
+      await expect(inTx.update(1, updateData, 'testuser')).rejects.toThrow(
         'Movement not found after update'
       );
     });
@@ -215,7 +227,7 @@ describe('FinanMysqlRepository', () => {
     it('should handle database errors', async () => {
       mockDatabase.executeSafeQuery.mockRejectedValue(new Error('Database error'));
 
-      await expect(repository.update(1, updateData, 'testuser')).rejects.toThrow('Database error');
+      await expect(inTx.update(1, updateData, 'testuser')).rejects.toThrow('Database error');
     });
   });
 
@@ -223,7 +235,7 @@ describe('FinanMysqlRepository', () => {
     it('should delete movement successfully', async () => {
       mockDatabase.executeSafeQuery.mockResolvedValue({ affectedRows: 1 });
 
-      const result = await repository.delete(1, 'testuser');
+      const result = await inTx.delete(1, 'testuser');
 
       expect(result).toBe(true);
       expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('DELETE FROM movements_testuser WHERE id = ?', [
@@ -234,7 +246,7 @@ describe('FinanMysqlRepository', () => {
     it('should return false when no rows affected', async () => {
       mockDatabase.executeSafeQuery.mockResolvedValue({ affectedRows: 0 });
 
-      const result = await repository.delete(999, 'testuser');
+      const result = await inTx.delete(999, 'testuser');
 
       expect(result).toBe(false);
       expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('DELETE FROM movements_testuser WHERE id = ?', [
@@ -245,7 +257,7 @@ describe('FinanMysqlRepository', () => {
     it('should handle database errors', async () => {
       mockDatabase.executeSafeQuery.mockRejectedValue(new Error('Database error'));
 
-      await expect(repository.delete(1, 'testuser')).rejects.toThrow('Database error');
+      await expect(inTx.delete(1, 'testuser')).rejects.toThrow('Database error');
     });
   });
 
@@ -369,18 +381,6 @@ describe('FinanMysqlRepository', () => {
       expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM view_final_trip_info');
     });
 
-    it('should operate for linked movement', async () => {
-      const mockMovement = { id: 1, value: 50, name: 'Test Movement' };
-      mockDatabase.executeSafeQuery
-        .mockResolvedValueOnce([mockMovement]) // SELECT query
-        .mockResolvedValueOnce({ affectedRows: 1 }); // UPDATE query
-
-      await repository.operateForLinkedMovement(1, 100, 1, 'testuser');
-
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM movements_testuser WHERE id = ?', [
-        1,
-      ]);
-    });
   });
 
   describe('Fallback query methods', () => {
@@ -435,107 +435,43 @@ describe('FinanMysqlRepository', () => {
     });
   });
 
-  describe('operateForLinkedMovement comprehensive tests', () => {
-    const mockMovement = { id: 1, value: 100, name: 'Test Movement' };
+  describe('adjustValue (SPEC v0.10)', () => {
+    it('locks the origin row, then adds the delta in SQL', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([{ id: 1 }]).mockResolvedValueOnce({ affectedRows: 1 });
 
-    it('should handle movement not found', async () => {
-      mockDatabase.executeSafeQuery.mockResolvedValue([]); // Empty result
+      expect(await inTx.adjustValue(1, -30, 'testuser')).toBe(true);
 
-      await expect(repository.operateForLinkedMovement(999, 50, 1, 'testuser')).rejects.toThrow(
-        'Linked movement not found'
-      );
-
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM movements_testuser WHERE id = ?', [
-        999,
-      ]);
-    });
-
-    it('should add value for movement type 1', async () => {
-      mockDatabase.executeSafeQuery
-        .mockResolvedValueOnce([mockMovement]) // SELECT query
-        .mockResolvedValueOnce({ affectedRows: 1 }); // UPDATE query
-
-      await repository.operateForLinkedMovement(1, 50, 1, 'testuser');
-
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM movements_testuser WHERE id = ?', [
+      expect(mockDatabase.runInTransaction).toHaveBeenCalledTimes(1);
+      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
         1,
-      ]);
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
-        'UPDATE movements_testuser SET value = ? WHERE id = ?',
-        [150, 1] // 100 + 50
+        'SELECT id FROM movements_testuser WHERE id = ? FOR UPDATE',
+        [1]
+      );
+      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
+        2,
+        'UPDATE movements_testuser SET value = value + ? WHERE id = ?',
+        [-30, 1]
       );
     });
 
-    it('should subtract value for movement type 2', async () => {
-      mockDatabase.executeSafeQuery
-        .mockResolvedValueOnce([mockMovement]) // SELECT query
-        .mockResolvedValueOnce({ affectedRows: 1 }); // UPDATE query
+    it('answers false, and writes nothing, for an origin that does not exist', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([]);
 
-      await repository.operateForLinkedMovement(1, 30, 2, 'testuser');
-
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
-        'UPDATE movements_testuser SET value = ? WHERE id = ?',
-        [70, 1] // 100 - 30
-      );
+      expect(await inTx.adjustValue(999, 50, 'testuser')).toBe(false);
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1);
     });
 
-    it('should subtract value for movement type 8', async () => {
-      mockDatabase.executeSafeQuery
-        .mockResolvedValueOnce([mockMovement]) // SELECT query
-        .mockResolvedValueOnce({ affectedRows: 1 }); // UPDATE query
+    it('only checks the origin when the delta is zero', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([{ id: 1 }]);
 
-      await repository.operateForLinkedMovement(1, 25, 8, 'testuser');
-
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
-        'UPDATE movements_testuser SET value = ? WHERE id = ?',
-        [75, 1] // 100 - 25
-      );
+      expect(await inTx.adjustValue(1, 0, 'testuser')).toBe(true);
+      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1);
     });
 
-    it('should not update for unknown movement type', async () => {
-      mockDatabase.executeSafeQuery.mockResolvedValueOnce([mockMovement]); // SELECT query only
-
-      await repository.operateForLinkedMovement(1, 50, 99, 'testuser'); // Unknown type
-
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1); // Only SELECT, no UPDATE
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('SELECT * FROM movements_testuser WHERE id = ?', [
-        1,
-      ]);
-    });
-
-    it('should handle non-numeric value in movement', async () => {
-      const mockMovementWithStringValue = { id: 1, value: 'invalid', name: 'Test Movement' };
-      mockDatabase.executeSafeQuery.mockResolvedValueOnce([mockMovementWithStringValue]); // SELECT query only
-
-      await repository.operateForLinkedMovement(1, 50, 1, 'testuser');
-
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1); // Only SELECT, no UPDATE
-    });
-
-    it('should handle null value in movement', async () => {
-      const mockMovementWithNullValue = { id: 1, value: null, name: 'Test Movement' };
-      mockDatabase.executeSafeQuery.mockResolvedValueOnce([mockMovementWithNullValue]); // SELECT query only
-
-      await repository.operateForLinkedMovement(1, 50, 1, 'testuser');
-
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1); // Only SELECT, no UPDATE
-    });
-
-    it('should handle undefined value in movement', async () => {
-      const mockMovementWithUndefinedValue = { id: 1, value: undefined, name: 'Test Movement' };
-      mockDatabase.executeSafeQuery.mockResolvedValueOnce([mockMovementWithUndefinedValue]); // SELECT query only
-
-      await repository.operateForLinkedMovement(1, 50, 1, 'testuser');
-
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledTimes(1); // Only SELECT, no UPDATE
-    });
-
-    it('should handle database error during operation', async () => {
+    it('lets a database error out of the transaction, so it rolls back', async () => {
       mockDatabase.executeSafeQuery.mockRejectedValue(new Error('Database connection failed'));
 
-      await expect(repository.operateForLinkedMovement(1, 50, 1, 'testuser')).rejects.toThrow(
-        'Database connection failed'
-      );
+      await expect(inTx.adjustValue(1, 50, 'testuser')).rejects.toThrow('Database connection failed');
     });
   });
 
@@ -548,7 +484,7 @@ describe('FinanMysqlRepository', () => {
 
       mockDatabase.executeSafeQuery.mockRejectedValue(new Error('Database connection failed'));
 
-      await expect(repository.update(1, updateData, 'testuser')).rejects.toThrow('Database connection failed');
+      await expect(inTx.update(1, updateData, 'testuser')).rejects.toThrow('Database connection failed');
     });
 
     it('should handle database error during findById after update', async () => {
@@ -561,7 +497,7 @@ describe('FinanMysqlRepository', () => {
         .mockResolvedValueOnce({ affectedRows: 1 }) // Update query succeeds
         .mockRejectedValueOnce(new Error('Database connection failed')); // FindById fails
 
-      await expect(repository.update(1, updateData, 'testuser')).rejects.toThrow('Database connection failed');
+      await expect(inTx.update(1, updateData, 'testuser')).rejects.toThrow('Database connection failed');
     });
   });
 
@@ -596,7 +532,7 @@ describe('FinanMysqlRepository', () => {
     it('normalizes a mixed-case username in update (including the internal findById re-read)', async () => {
       mockDatabase.executeSafeQuery.mockResolvedValueOnce({ affectedRows: 1 }).mockResolvedValueOnce([{ id: 1 }]);
 
-      await repository.update(1, { name: 'x' }, 'MixedCase');
+      await inTx.update(1, { name: 'x' }, 'MixedCase');
 
       expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
         1,
@@ -613,36 +549,34 @@ describe('FinanMysqlRepository', () => {
     it('normalizes a mixed-case username in delete', async () => {
       mockDatabase.executeSafeQuery.mockResolvedValue({ affectedRows: 1 });
 
-      await repository.delete(1, 'MixedCase');
+      await inTx.delete(1, 'MixedCase');
 
       expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('DELETE FROM movements_mixedcase WHERE id = ?', [
         1,
       ]);
     });
 
-    it('normalizes a mixed-case username in operateForLinkedMovement', async () => {
-      mockDatabase.executeSafeQuery
-        .mockResolvedValueOnce([{ value: 100 }])
-        .mockResolvedValueOnce({ affectedRows: 1 });
+    it('normalizes a mixed-case username in adjustValue', async () => {
+      mockDatabase.executeSafeQuery.mockResolvedValueOnce([{ id: 1 }]).mockResolvedValueOnce({ affectedRows: 1 });
 
-      await repository.operateForLinkedMovement(1, 50, 1, 'MixedCase');
+      await inTx.adjustValue(1, 50, 'MixedCase');
 
       expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
         1,
-        'SELECT * FROM movements_mixedcase WHERE id = ?',
+        'SELECT id FROM movements_mixedcase WHERE id = ? FOR UPDATE',
         [1]
       );
       expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(
         2,
-        'UPDATE movements_mixedcase SET value = ? WHERE id = ?',
-        [150, 1]
+        'UPDATE movements_mixedcase SET value = value + ? WHERE id = ?',
+        [50, 1]
       );
     });
 
     it('normalizes a mixed-case movement.user in create, and returns the normalized value', async () => {
       mockDatabase.executeSafeQuery.mockResolvedValue({ insertId: 1 });
 
-      const result = await repository.create({
+      const result = await inTx.create({
         name: 'x',
         value: 1,
         date_movement: '2023-01-01',
@@ -867,7 +801,7 @@ describe('FinanMysqlRepository', () => {
       const mockResult = { insertId: 125 };
       mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
 
-      const result = await repository.create(validMovement);
+      const result = await inTx.create(validMovement);
 
       expect(result).toEqual({
         ...validMovement,
@@ -898,7 +832,7 @@ describe('FinanMysqlRepository', () => {
       const mockResult = { insertId: 126 };
       mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
 
-      const result = await repository.create(validMovement);
+      const result = await inTx.create(validMovement);
 
       expect(result).toEqual({
         ...validMovement,
@@ -921,7 +855,7 @@ describe('FinanMysqlRepository', () => {
       const mockResult = { insertId: 127 };
       mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
 
-      const result = await repository.create(validMovement);
+      const result = await inTx.create(validMovement);
 
       expect(result).toEqual({
         ...validMovement,
@@ -944,7 +878,7 @@ describe('FinanMysqlRepository', () => {
       const mockResult = { insertId: 128 };
       mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
 
-      const result = await repository.create(validMovement);
+      const result = await inTx.create(validMovement);
 
       expect(result).toEqual({
         ...validMovement,
@@ -968,7 +902,7 @@ describe('FinanMysqlRepository', () => {
       const mockResult = { insertId: 129 };
       mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
 
-      const result = await repository.create(validMovement);
+      const result = await inTx.create(validMovement);
 
       expect(result).toEqual({
         ...validMovement,
@@ -992,7 +926,7 @@ describe('FinanMysqlRepository', () => {
       const mockResult = { insertId: 130 };
       mockDatabase.executeSafeQuery.mockResolvedValue(mockResult);
 
-      const result = await repository.create(validMovement);
+      const result = await inTx.create(validMovement);
 
       expect(result).toEqual({
         ...validMovement,

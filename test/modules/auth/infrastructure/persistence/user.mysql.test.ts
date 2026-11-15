@@ -161,50 +161,6 @@ describe('userMysqlRepository', () => {
     });
   });
 
-  describe('update', () => {
-    it('throws when the user has no id', async () => {
-      await expect(repository.update({ first_name: 'No Id' })).rejects.toThrow(
-        'User ID is required for update'
-      );
-      expect(mockDatabase.executeSafeQuery).not.toHaveBeenCalled();
-    });
-
-    it('updates the user and returns the refreshed record', async () => {
-      mockDatabase.executeSafeQuery
-        .mockResolvedValueOnce({ affectedRows: 1 }) // UPDATE
-        .mockResolvedValueOnce([sampleUser]); // findById
-
-      const result = await repository.update({ id: 1, first_name: 'Updated' });
-
-      expect(result).toEqual(sampleUser);
-      expect(mockDatabase.executeSafeQuery).toHaveBeenNthCalledWith(1, 'UPDATE users SET ? WHERE id = ?', [
-        { id: 1, first_name: 'Updated' },
-        1,
-      ]);
-    });
-
-    it('throws when the user cannot be found after the update', async () => {
-      mockDatabase.executeSafeQuery.mockResolvedValueOnce({ affectedRows: 1 }).mockResolvedValueOnce([]);
-
-      await expect(repository.update({ id: 999 })).rejects.toThrow('User not found after update');
-    });
-  });
-
-  describe('delete', () => {
-    it('returns true when a row was deleted', async () => {
-      mockDatabase.executeSafeQuery.mockResolvedValue({ affectedRows: 1 });
-
-      expect(await repository.delete(1)).toBe(true);
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith('DELETE FROM users WHERE id = ?', [1]);
-    });
-
-    it('returns false when no row was affected', async () => {
-      mockDatabase.executeSafeQuery.mockResolvedValue({ affectedRows: 0 });
-
-      expect(await repository.delete(999)).toBe(false);
-    });
-  });
-
   describe('authentication-support methods', () => {
     it('updatePassword issues the expected query', async () => {
       mockDatabase.executeSafeQuery.mockResolvedValue({});
@@ -260,17 +216,6 @@ describe('userMysqlRepository', () => {
         lockUntil,
         1,
       ]);
-    });
-
-    it('unlockUser issues the expected query', async () => {
-      mockDatabase.executeSafeQuery.mockResolvedValue({});
-
-      await repository.unlockUser(1);
-
-      expect(mockDatabase.executeSafeQuery).toHaveBeenCalledWith(
-        'UPDATE users SET locked_until = NULL WHERE id = ?',
-        [1]
-      );
     });
   });
 

@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
-import { UserController } from '../../../../src/modules/auth/infrastructure/controllers/user.controller';
+import {
+  UserController,
+  IP_LIMIT_MESSAGE,
+} from '../../../../src/modules/auth/infrastructure/controllers/user.controller';
+import { IpAttemptLimiter } from '../../../../src/modules/auth/application/use-cases/ip-attempt.limiter';
 import { RegisterUserUseCase } from '../../../../src/modules/auth/application/use-cases/register.use-case';
 import { LoginUserUseCase } from '../../../../src/modules/auth/application/use-cases/login.use-case';
 
@@ -303,5 +307,111 @@ describe('UserController', () => {
     await userController.confirmPasswordReset(req as Request, res as Response);
     expect(res.status).toHaveBeenLastCalledWith(500);
     error.mockRestore();
+  });
+
+  describe('limit per IP (Auth SPEC v0.6)', () => {
+    const ip = '203.0.113.7';
+    let limiter: IpAttemptLimiter;
+
+    beforeEach(() => {
+      limiter = new IpAttemptLimiter();
+      jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      userController = new UserController(
+        mockRegisterUserUseCase,
+        mockLoginUserUseCase,
+        mockAdminResetPasswordUseCase,
+        mockRequestPasswordResetUseCase,
+        mockConfirmPasswordResetUseCase,
+        limiter
+      );
+      req = { body: {}, ip } as Partial<Request>;
+    });
+
+    afterEach(() => jest.restoreAllMocks());
+
+    const block = () => {
+      for (let i = 0; i < 20; i++) limiter.recordFailure(ip);
+    };
+
+    it('counts a failed secret and never sends the internal flag to the client', async () => {
+      mockLoginUserUseCase.execute.mockResolvedValueOnce({
+        error: true,
+        message: 'Invalid credentials',
+        failedSecret: true,
+      });
+      for (let i = 0; i < 19; i++) limiter.recordFailure(ip);
+      await userController.loginUser(req as Request, res as Response);
+      expect(res.json).toHaveBeenLastCalledWith({ error: true, message: 'Invalid credentials' });
+      expect(limiter.isBlocked(ip)).toBe(true);
+    });
+
+    it('does not count an error that checked no secret', async () => {
+      mockLoginUserUseCase.execute.mockResolvedValueOnce({ error: true, message: 'Account is inactive' });
+      for (let i = 0; i < 19; i++) limiter.recordFailure(ip);
+      await userController.loginUser(req as Request, res as Response);
+      expect(limiter.isBlocked(ip)).toBe(false);
+    });
+
+    it('refuses login with 429 before checking the password, even a right one (F1)', async () => {
+      block();
+      await userController.loginUser(req as Request, res as Response);
+      expect(mockLoginUserUseCase.execute).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenLastCalledWith(429);
+      expect(res.json).toHaveBeenLastCalledWith({ error: true, message: IP_LIMIT_MESSAGE });
+    });
+
+    it('refuses registration with a code, but not the request for a code', async () => {
+      block();
+      req.body = { email: 'sample@example.com', verificationCode: 123456 };
+      await userController.addUser(req as Request, res as Response);
+      expect(mockRegisterUserUseCase.execute).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenLastCalledWith(429);
+
+      req.body = { email: 'sample@example.com' };
+      mockRegisterUserUseCase.execute.mockResolvedValueOnce({ error: false, message: 'Verification code sent' });
+      await userController.addUser(req as Request, res as Response);
+      expect(res.status).toHaveBeenLastCalledWith(201);
+    });
+
+    it('counts a wrong registration code (F4)', async () => {
+      for (let i = 0; i < 19; i++) limiter.recordFailure(ip);
+      req.body = { email: 'sample@example.com', verificationCode: 111111 };
+      mockRegisterUserUseCase.execute.mockResolvedValueOnce({
+        error: true,
+        message: 'Invalid verification code',
+        failedSecret: true,
+      });
+      await userController.addUser(req as Request, res as Response);
+      expect(res.json).toHaveBeenLastCalledWith({ error: true, message: 'Invalid verification code' });
+      expect(limiter.isBlocked(ip)).toBe(true);
+    });
+
+    it('refuses C5 with 429 and counts its wrong codes (F4)', async () => {
+      for (let i = 0; i < 19; i++) limiter.recordFailure(ip);
+      req.body = { email: 'sample@example.com', code: 111111, newPassword: 'newSecret' };
+      mockConfirmPasswordResetUseCase.execute.mockResolvedValueOnce({
+        error: true,
+        message: 'Invalid or expired code',
+        failedSecret: true,
+      });
+      await userController.confirmPasswordReset(req as Request, res as Response);
+      expect(res.json).toHaveBeenLastCalledWith({ error: true, message: 'Invalid or expired code' });
+
+      await userController.confirmPasswordReset(req as Request, res as Response);
+      expect(mockConfirmPasswordResetUseCase.execute).toHaveBeenCalledTimes(1);
+      expect(res.status).toHaveBeenLastCalledWith(429);
+    });
+
+    it('leaves C4 and the admin reset unlimited (S.3)', async () => {
+      block();
+      mockRequestPasswordResetUseCase.execute.mockResolvedValueOnce({ error: false, message: 'ok' });
+      await userController.requestPasswordReset(req as Request, res as Response);
+      expect(res.status).toHaveBeenLastCalledWith(200);
+
+      req.body = { identifier: 'someone', newPassword: 'newSecret' };
+      mockAdminResetPasswordUseCase.execute.mockResolvedValueOnce({ error: false, message: 'ok' });
+      await userController.adminResetPassword(req as Request, res as Response);
+      expect(res.status).toHaveBeenLastCalledWith(200);
+    });
   });
 });

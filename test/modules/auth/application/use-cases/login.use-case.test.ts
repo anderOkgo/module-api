@@ -11,8 +11,6 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   findByUsername: jest.fn(),
   create: jest.fn(),
   findById: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn(),
   findByEmailOrUsername: jest.fn(),
   saveVerificationCode: jest.fn(),
   validateVerificationCode: jest.fn(),
@@ -20,7 +18,6 @@ const mockUserRepository: jest.Mocked<UserRepository> = {
   incrementLoginAttempts: jest.fn(),
   resetLoginAttempts: jest.fn(),
   lockUser: jest.fn(),
-  unlockUser: jest.fn(),
   updateLastLogin: jest.fn(),
   updatePassword: jest.fn(),
 };

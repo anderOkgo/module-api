@@ -43,6 +43,12 @@ EMAILERRORS=
 EMAILPASSWORD=
 EMAILDUMMY=
 EMAILHOST=
+
+# Optional. Express "trust proxy" for req.ip, used by the auth limit per IP
+# (src/infrastructure/config/trust-proxy.ts). Default 1: one proxy in front, as in
+# production (LiteSpeed). Set 0 on a host with nothing in front, so a client cannot
+# name its own IP with X-Forwarded-For.
+TRUST_PROXY=
 ```
 
 There is no `JWT_EXPIRES_IN` variable — the token lifetime (30 days) is a constant in `jwt-token-generator.service.ts`, not configurable via environment.

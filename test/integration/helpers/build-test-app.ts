@@ -1,4 +1,5 @@
 import express, { Application, Router, Request, Response, NextFunction } from 'express';
+import { trustProxySetting } from '../../../src/infrastructure/config/trust-proxy';
 
 /**
  * Builds a minimal Express app that mirrors the request-handling behavior of
@@ -9,6 +10,8 @@ import express, { Application, Router, Request, Response, NextFunction } from 'e
  */
 export function buildTestApp(mounts: Array<{ path: string; router: Router }>): Application {
   const app = express();
+  // Mirrors src/server.ts, so tests can name the client IP with X-Forwarded-For
+  app.set('trust proxy', trustProxySetting());
   app.use(express.json());
 
   for (const { path, router } of mounts) {

@@ -8,6 +8,7 @@ import { Database } from './infrastructure/my.database.helper';
 dotenv.config();
 import { assertRequiredEnvVars } from './infrastructure/config/env';
 assertRequiredEnvVars();
+import { trustProxySetting } from './infrastructure/config/trust-proxy';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './infrastructure/services/swagger';
 import { buildSeriesModule } from './modules/series/infrastructure/config/series.module';
@@ -22,6 +23,8 @@ import { buildBitacoraModule, bitacoraJsonParser } from './modules/bitacora/infr
  */
 export function buildApp(database: Database): Application {
   const app = express();
+  // req.ip must be the client, not the proxy in front, for the auth limit per IP (Auth SPEC v0.6)
+  app.set('trust proxy', trustProxySetting());
 
   app.use(compression());
   // Bitácora needs a larger body limit (see bitacoraJsonParser). It must run before the

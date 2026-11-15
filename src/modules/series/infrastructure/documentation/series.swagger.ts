@@ -36,9 +36,13 @@ export const seriesSwaggerDocumentation = {
                     example: 'Shōnen',
                   },
                   limit: {
-                    type: 'string',
-                    description: 'Results limit',
-                    example: '50',
+                    type: 'integer',
+                    default: 10000,
+                    minimum: 1,
+                    maximum: 10000,
+                    description:
+                      'Results limit, a number or a numeric string. Without it, up to 10,000 (the whole catalog: the fronts load it with an empty body). Below 1 or above 10,000 → 400. The three list endpoints differ on purpose: this one 10,000/10,000, `GET /list` and `POST /search` 50 by default and 100 at most (ACCEPTANCE_CRITERIA #26)',
+                    example: 100,
                   },
                 },
               },
@@ -576,7 +580,8 @@ export const seriesSwaggerDocumentation = {
               minimum: 1,
               maximum: 100,
             },
-            description: 'Maximum number of series to return',
+            description:
+              'Maximum number of series to return. Above 100 it is cut to 100; 0 or less, or none, gives 50 (no 400). `POST /api/series` allows up to 10,000 (ACCEPTANCE_CRITERIA #26)',
             example: 25,
           },
           {
@@ -873,6 +878,14 @@ export const seriesSwaggerDocumentation = {
                     type: 'number',
                     description: 'Number of chapters',
                     example: 25,
+                  },
+                  limit: {
+                    type: 'integer',
+                    default: 50,
+                    maximum: 100,
+                    description:
+                      'Maximum number of results. Above 100 it is cut to 100; 0 or less, or none, gives 50 (no 400). `POST /api/series` allows up to 10,000 (ACCEPTANCE_CRITERIA #26)',
+                    example: 50,
                   },
                 },
               },

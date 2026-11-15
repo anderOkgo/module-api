@@ -196,7 +196,7 @@ describe('UpdateSeriesImageCommand', () => {
     // not at JavaScript runtime, so we can't test runtime immutability
   });
 
-  it('should create unique timestamps for different instances', async () => {
+  it('should create unique timestamps for different instances', () => {
     // Arrange
     const imageFile1: Express.Multer.File = {
       fieldname: 'image',
@@ -224,13 +224,19 @@ describe('UpdateSeriesImageCommand', () => {
       stream: null as any,
     };
 
-    // Act
-    const command1 = new UpdateSeriesImageCommand(1, imageFile1);
-    await new Promise((resolve) => setTimeout(resolve, 10)); // Longer delay to ensure different timestamps
-    const command2 = new UpdateSeriesImageCommand(2, imageFile2);
+    // Act: a fake clock, not a real wait, so the result does not depend on how busy the machine is
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date('2023-01-01T00:00:00.000Z'));
+      const command1 = new UpdateSeriesImageCommand(1, imageFile1);
+      jest.advanceTimersByTime(1);
+      const command2 = new UpdateSeriesImageCommand(2, imageFile2);
 
-    // Assert
-    expect(command1.timestamp).not.toBe(command2.timestamp);
-    expect(command1.timestamp.getTime()).not.toBe(command2.timestamp.getTime());
+      // Assert
+      expect(command1.timestamp).not.toBe(command2.timestamp);
+      expect(command2.timestamp.getTime()).toBe(command1.timestamp.getTime() + 1);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

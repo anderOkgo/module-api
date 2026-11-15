@@ -68,15 +68,20 @@ describe('DeleteSeriesCommand', () => {
     // not at JavaScript runtime, so we can't test runtime immutability
   });
 
-  it('should create unique timestamps for different instances', async () => {
-    // Arrange
-    const command1 = new DeleteSeriesCommand(1);
-    await new Promise((resolve) => setTimeout(resolve, 10)); // Longer delay to ensure different timestamps
-    const command2 = new DeleteSeriesCommand(2);
+  it('should create unique timestamps for different instances', () => {
+    // A fake clock, not a real wait: the result does not depend on how busy the machine is
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date('2023-01-01T00:00:00.000Z'));
+      const command1 = new DeleteSeriesCommand(1);
+      jest.advanceTimersByTime(1);
+      const command2 = new DeleteSeriesCommand(2);
 
-    // Act & Assert
-    expect(command1.timestamp).not.toBe(command2.timestamp);
-    expect(command1.timestamp.getTime()).not.toBe(command2.timestamp.getTime());
+      expect(command1.timestamp).not.toBe(command2.timestamp);
+      expect(command2.timestamp.getTime()).toBe(command1.timestamp.getTime() + 1);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('should maintain timestamp consistency within same instance', () => {

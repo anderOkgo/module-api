@@ -216,13 +216,20 @@ describe('CreateSeriesCompleteCommand', () => {
       titles: ['Title B'],
     };
 
-    // Act
-    const command1 = new CreateSeriesCompleteCommand(seriesData1);
-    await new Promise((resolve) => setTimeout(resolve, 1)); // Small delay to ensure different timestamps
-    const command2 = new CreateSeriesCompleteCommand(seriesData2);
+    // Act: a fake clock moved 1 ms between the two. A real 1 ms setTimeout can fire within the same millisecond,
+    // which made this test fail now and then (2026-11-15)
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date('2023-01-01T00:00:00.000Z'));
+      const command1 = new CreateSeriesCompleteCommand(seriesData1);
+      jest.advanceTimersByTime(1);
+      const command2 = new CreateSeriesCompleteCommand(seriesData2);
 
-    // Assert
-    expect(command1.timestamp).not.toBe(command2.timestamp);
-    expect(command1.timestamp.getTime()).not.toBe(command2.timestamp.getTime());
+      // Assert
+      expect(command1.timestamp).not.toBe(command2.timestamp);
+      expect(command2.timestamp.getTime()).toBe(command1.timestamp.getTime() + 1);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

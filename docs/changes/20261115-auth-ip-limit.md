@@ -1,6 +1,6 @@
 # A limit per IP on failed logins and codes, and dead code removed
 
-**Date:** 2026-11-15 · **Branch:** `feature/20261115-auth-ip-limit` · **Released in:** not yet
+**Date:** 2026-11-15 · **Branch:** `feature/20261115-auth-ip-limit` · **Released in:** https://info.animecream.com, 2026-11-15 (PR #15, `npm run bup`, restarted by the owner)
 **Implements:** `module-docs/apps/auth/SPEC.md` v0.6 — S.2 flows, S.3 contract (C1, C2, C5 gain a 429), S.5, S.6 (F1, F3–F5, F7, F8; F2 by unit tests; F6 after release)
 **Change ID:** `20261115-auth-ip-limit` (module-api only; no data change)
 
@@ -74,3 +74,4 @@ The owner's computer cannot log in for 15 minutes after step 1 (no exceptions, P
 | Date | Change |
 |---|---|
 | 2026-11-15 | Created; unit 100% (1,678), E2E 16/16 local, v0.5 E2E 32/32, negative control recorded |
+| 2026-11-15 | **Merged** (PR #15, `903d17a`) with #16 on `main` (`b9901fb`): unit 1,678 at 100% on the merged `main` (one rerun: `create-series-complete.command.test.ts` "unique timestamps" failed once and passed 5/5 alone; it waits 1 ms with `setTimeout`, a flaky test not touched here). **Deployed:** `npm run bup`, a second sync said "Nothing to synchronize", the owner restarted in cPanel; `/health` UP, uptime 22 s. Public Swagger lists the 429 and still hides `/add` and `/password-reset/*`. **F6 step 1 in production:** 20 failed logins with a username that does not exist → 400 each, the 21st → 429 "Too many attempts, try again later"; one more with a made-up `X-Forwarded-For` → still 429 (the client cannot pick its IP). Step 2 (another network gets its own count) is the owner's, from the phone |

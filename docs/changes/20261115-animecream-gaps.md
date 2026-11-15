@@ -1,6 +1,6 @@
 # Swagger documents the three series page limits (Animecream G3)
 
-**Date:** 2026-11-15 · **Branch:** `feature/20261115-animecream-gaps` · **Released in:** not yet
+**Date:** 2026-11-15 · **Branch:** `feature/20261115-animecream-gaps` · **Released in:** https://info.animecream.com, 2026-11-15 (PR #16, with #15)
 **Implements:** `module-docs/apps/animecream/SPEC.md` v0.8 — G3 (P9: document them, behavior unchanged)
 **Change ID:** `20261115-animecream-gaps` (the same in `animecream-react` for G2 and G6, and in `finan-react` for G9)
 
@@ -38,3 +38,4 @@ different files. Rollback: revert.
 | Date | Change |
 |---|---|
 | 2026-11-15 | Created; limits checked on the local API |
+| 2026-11-15 | **Merged** (PR #16, `b9901fb`) and **deployed** with #15 (`npm run bup`, restarted by the owner). The served Swagger (`/api-docs/swagger-ui-init.js`) holds the new limit texts |

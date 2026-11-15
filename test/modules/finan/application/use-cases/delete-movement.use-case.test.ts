@@ -1,9 +1,9 @@
 import { DeleteMovementUseCase } from '../../../../../src/modules/finan/application/use-cases/delete-movement.use-case';
-import { FinanRepository } from '../../../../../src/modules/finan/application/ports/finan.repository';
+import { FinanRepository, FinanTransaction } from '../../../../../src/modules/finan/application/ports/finan.repository';
 import { MovementType } from '../../../../../src/modules/finan/domain/entities/movement.entity';
 
 // Mock repository
-const mockRepository: jest.Mocked<FinanRepository> = {
+const mockRepository: jest.Mocked<FinanRepository & FinanTransaction> = {
   create: jest.fn(),
   findById: jest.fn(),
   update: jest.fn(),
@@ -18,7 +18,9 @@ const mockRepository: jest.Mocked<FinanRepository> = {
   getMonthlyExpensesUntilCurrentDay: jest.fn(),
   getGeneralInfo: jest.fn(),
   getTripInfo: jest.fn(),
-  operateForLinkedMovement: jest.fn(),
+  adjustValue: jest.fn(),
+  // The transaction gets the same mock: tx.create, tx.update, tx.delete and tx.adjustValue (SPEC v0.10)
+  runInTransaction: jest.fn((work: any) => work(mockRepository)),
 };
 
 describe('DeleteMovementUseCase', () => {
@@ -52,6 +54,43 @@ describe('DeleteMovementUseCase', () => {
       expect(result.message).toBe('Movement deleted successfully');
       expect(mockRepository.findById).toHaveBeenCalledWith(1, 'testuser');
       expect(mockRepository.delete).toHaveBeenCalledWith(1, 'testuser');
+    });
+
+    describe('giving the effect back to the origin (Finanz SPEC v0.10, L.2)', () => {
+      beforeEach(() => mockRepository.delete.mockResolvedValue(true));
+
+      it('J2: a deleted expense gives its value back to its origin, in the delete transaction', async () => {
+        mockRepository.findById.mockResolvedValue({ ...existingMovement, value: 50, type_source_id: MovementType.EXPENSE, log: 7 });
+        mockRepository.adjustValue.mockResolvedValue(true);
+
+        expect((await deleteMovementUseCase.execute(1, 'testuser')).success).toBe(true);
+        expect(mockRepository.runInTransaction).toHaveBeenCalledTimes(1);
+        expect(mockRepository.adjustValue).toHaveBeenCalledWith(7, 50, 'testuser');
+        expect(mockRepository.delete).toHaveBeenCalledWith(1, 'testuser');
+      });
+
+      it('J3: a deleted income takes its value back from its origin', async () => {
+        mockRepository.findById.mockResolvedValue({ ...existingMovement, value: '50' as any, log: 7 });
+        mockRepository.adjustValue.mockResolvedValue(true);
+
+        await deleteMovementUseCase.execute(1, 'testuser');
+        expect(mockRepository.adjustValue).toHaveBeenCalledWith(7, -50, 'testuser');
+      });
+
+      it('J9: a movement whose origin was deleted is still deleted', async () => {
+        mockRepository.findById.mockResolvedValue({ ...existingMovement, log: 7 });
+        mockRepository.adjustValue.mockResolvedValue(false);
+
+        expect((await deleteMovementUseCase.execute(1, 'testuser')).success).toBe(true);
+        expect(mockRepository.delete).toHaveBeenCalled();
+      });
+
+      it('touches no balance for a movement with no origin', async () => {
+        mockRepository.findById.mockResolvedValue(existingMovement);
+
+        await deleteMovementUseCase.execute(1, 'testuser');
+        expect(mockRepository.adjustValue).not.toHaveBeenCalled();
+      });
     });
 
     it('normalizes a mixed-case username to lowercase before hitting the repository (matches the movements_<user> table create/initial-load already write to)', async () => {

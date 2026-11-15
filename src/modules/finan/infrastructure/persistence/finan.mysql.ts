@@ -1,7 +1,6 @@
-import { Database } from '../../../../infrastructure/my.database.helper';
-import { FinanRepository } from '../../application/ports/finan.repository';
+import { Database, QueryExecutor } from '../../../../infrastructure/my.database.helper';
+import { FinanRepository, FinanTransaction } from '../../application/ports/finan.repository';
 import { DataParams } from '../models/dataparams';
-import { isNumber } from '../../../../infrastructure/validatios.helper';
 import Movement from '../../domain/entities/movement.entity';
 
 /**
@@ -41,10 +40,27 @@ export class FinanMysqlRepository implements FinanRepository {
     ]);
   }
 
-  async create(movement: Movement): Promise<Movement> {
+  /**
+   * Every write of a create, edit or delete runs on one connection inside BEGIN/COMMIT, and its queries throw
+   * instead of being swallowed, so any failure rolls all of them back (Finanz SPEC v0.10, D9).
+   */
+  async runInTransaction<T>(work: (tx: FinanTransaction) => Promise<T>): Promise<T> {
+    return this.Database.runInTransaction((query) => work(this.writesOn(query)));
+  }
+
+  private writesOn(query: QueryExecutor): FinanTransaction {
+    return {
+      create: (movement) => this.createWith(query, movement),
+      update: (id, movement, username) => this.updateWith(query, id, movement, username),
+      delete: (id, username) => this.deleteWith(query, id, username),
+      adjustValue: (id, delta, username) => this.adjustValueWith(query, id, delta, username),
+    };
+  }
+
+  private async createWith(query: QueryExecutor, movement: Movement): Promise<Movement> {
     const user = this.normalizeUsername(movement.user);
     const tableName = `movements_${user}`;
-    const query = `
+    const sql = `
       INSERT INTO ${tableName}
       (name, value, date_movement, type_source_id, tag, currency, user, log)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -60,28 +76,18 @@ export class FinanMysqlRepository implements FinanRepository {
       movement.log || 0,
     ];
 
-    const result = await this.Database.executeSafeQuery(query, values);
+    const result = await query(sql, values);
     return { ...movement, user, id: result.insertId };
   }
 
-  async findById(id: number, username: string): Promise<Movement | null> {
+  private async updateWith(
+    query: QueryExecutor,
+    id: number,
+    movement: Partial<Movement>,
+    username: string
+  ): Promise<Movement> {
     const tableName = `movements_${this.normalizeUsername(username)}`;
-    const query = `SELECT * FROM ${tableName} WHERE id = ?`;
-    const result = await this.Database.executeSafeQuery(query, [id]);
-    return result.length > 0 ? result[0] : null;
-  }
-
-  async findByNameAndDate(name: string, date: string, username: string): Promise<Movement | null> {
-    const tableName = `movements_${this.normalizeUsername(username)}`;
-    const query = `SELECT * FROM ${tableName} WHERE name = ? AND date_movement = ? LIMIT 1`;
-    const result = await this.Database.executeSafeQuery(query, [name, date]);
-    return result.length > 0 ? result[0] : null;
-  }
-
-  async update(id: number, movement: Partial<Movement>, username: string): Promise<Movement> {
-    const normalizedUsername = this.normalizeUsername(username);
-    const tableName = `movements_${normalizedUsername}`;
-    const query = `
+    const sql = `
       UPDATE ${tableName}
       SET name = ?, value = ?, date_movement = ?, type_source_id = ?, tag = ?, currency = ?, log = ?
       WHERE id = ?
@@ -97,17 +103,39 @@ export class FinanMysqlRepository implements FinanRepository {
       id,
     ];
 
-    await this.Database.executeSafeQuery(query, values);
-    const updated = await this.findById(id, normalizedUsername);
-    if (!updated) throw new Error('Movement not found after update');
-    return updated;
+    await query(sql, values);
+    const rows = await query(`SELECT * FROM ${tableName} WHERE id = ?`, [id]);
+    if (!rows.length) throw new Error('Movement not found after update');
+    return rows[0];
   }
 
-  async delete(id: number, username: string): Promise<boolean> {
+  private async deleteWith(query: QueryExecutor, id: number, username: string): Promise<boolean> {
     const tableName = `movements_${this.normalizeUsername(username)}`;
-    const query = `DELETE FROM ${tableName} WHERE id = ?`;
-    const result = await this.Database.executeSafeQuery(query, [id]);
+    const result = await query(`DELETE FROM ${tableName} WHERE id = ?`, [id]);
     return result.affectedRows > 0;
+  }
+
+  /** The row is locked first, so two writes on the same balance add up instead of overwriting each other. */
+  private async adjustValueWith(query: QueryExecutor, id: number, delta: number, username: string): Promise<boolean> {
+    const tableName = `movements_${this.normalizeUsername(username)}`;
+    const rows = await query(`SELECT id FROM ${tableName} WHERE id = ? FOR UPDATE`, [id]);
+    if (!rows.length) return false;
+    if (delta !== 0) await query(`UPDATE ${tableName} SET value = value + ? WHERE id = ?`, [delta, id]);
+    return true;
+  }
+
+  async findById(id: number, username: string): Promise<Movement | null> {
+    const tableName = `movements_${this.normalizeUsername(username)}`;
+    const query = `SELECT * FROM ${tableName} WHERE id = ?`;
+    const result = await this.Database.executeSafeQuery(query, [id]);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  async findByNameAndDate(name: string, date: string, username: string): Promise<Movement | null> {
+    const tableName = `movements_${this.normalizeUsername(username)}`;
+    const query = `SELECT * FROM ${tableName} WHERE name = ? AND date_movement = ? LIMIT 1`;
+    const result = await this.Database.executeSafeQuery(query, [name, date]);
+    return result.length > 0 ? result[0] : null;
   }
 
   // ==================== QUERY METHODS ====================
@@ -366,34 +394,5 @@ export class FinanMysqlRepository implements FinanRepository {
   async getTripInfo(): Promise<any[]> {
     const query = `SELECT * FROM view_final_trip_info`;
     return await this.Database.executeSafeQuery(query);
-  }
-
-  async operateForLinkedMovement(
-    id: number,
-    value: number,
-    movementType: number,
-    username: string
-  ): Promise<void> {
-    const tableName = `movements_${this.normalizeUsername(username)}`;
-    const selectQuery = `SELECT * FROM ${tableName} WHERE id = ?`;
-    const prevReg = await this.Database.executeSafeQuery(selectQuery, [id]);
-
-    if (!prevReg || prevReg.length === 0) {
-      throw new Error('Linked movement not found');
-    }
-
-    let newValue = null;
-    if (isNumber(prevReg[0].value)) {
-      if (movementType === 1) {
-        newValue = prevReg[0].value + value;
-      } else if (movementType === 2 || movementType === 8) {
-        newValue = prevReg[0].value - value;
-      }
-
-      if (newValue !== null) {
-        const updateQuery = `UPDATE ${tableName} SET value = ? WHERE id = ?`;
-        await this.Database.executeSafeQuery(updateQuery, [newValue, id]);
-      }
-    }
   }
 }

@@ -1,10 +1,10 @@
 import { GetInitialLoadUseCase } from '../../../../../src/modules/finan/application/use-cases/get-initial-load.use-case';
-import { FinanRepository } from '../../../../../src/modules/finan/application/ports/finan.repository';
+import { FinanRepository, FinanTransaction } from '../../../../../src/modules/finan/application/ports/finan.repository';
 import { InitialLoadRequest } from '../../../../../src/modules/finan/domain/entities/movement-request.entity';
 import { InitialLoadResponse } from '../../../../../src/modules/finan/domain/entities/movement.entity';
 
 // Mock repository
-const mockRepository: jest.Mocked<FinanRepository> = {
+const mockRepository: jest.Mocked<FinanRepository & FinanTransaction> = {
   createTableForUser: jest.fn(),
   create: jest.fn(),
   findById: jest.fn(),
@@ -23,7 +23,9 @@ const mockRepository: jest.Mocked<FinanRepository> = {
   getCurrentMonthExpenses: jest.fn(),
   getGeneralInfo: jest.fn(),
   getTripInfo: jest.fn(),
-  operateForLinkedMovement: jest.fn(),
+  adjustValue: jest.fn(),
+  // The transaction gets the same mock: tx.create, tx.update, tx.delete and tx.adjustValue (SPEC v0.10)
+  runInTransaction: jest.fn((work: any) => work(mockRepository)),
 };
 
 describe('GetInitialLoadUseCase', () => {

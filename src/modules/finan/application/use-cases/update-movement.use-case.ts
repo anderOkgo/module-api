@@ -4,6 +4,7 @@ import Movement, {
   MovementResponse,
   isMovementType,
 } from '../../domain/entities/movement.entity';
+import { applyTo, originOf, undoOn } from './linked-adjustment';
 
 /**
  * Use case for updating an existing financial movement
@@ -46,8 +47,13 @@ export class UpdateMovementUseCase {
         log: request.operate_for || 0,
       };
 
-      // 4. Update in database
-      const updated = await this.repository.update(id, movementUpdate, normalizedUsername);
+      // 4. Undo the old effect on the old origin, apply the new one on the new origin, and update, in one
+      // transaction (Finanz SPEC v0.10, L.2): a new origin that does not exist rolls everything back
+      const updated = await this.repository.runInTransaction(async (tx) => {
+        await undoOn(tx, originOf(existing.log), existing.type_source_id, existing.value, normalizedUsername);
+        await applyTo(tx, originOf(request.operate_for), request.movement_type, request.movement_val, normalizedUsername);
+        return tx.update(id, movementUpdate, normalizedUsername);
+      });
 
       // 5. Map to response
       const response: MovementResponse = {

@@ -1,12 +1,12 @@
 import { UpdateMovementUseCase } from '../../../../../src/modules/finan/application/use-cases/update-movement.use-case';
-import { FinanRepository } from '../../../../../src/modules/finan/application/ports/finan.repository';
+import { FinanRepository, FinanTransaction } from '../../../../../src/modules/finan/application/ports/finan.repository';
 import {
   UpdateMovementRequest,
   MovementType,
 } from '../../../../../src/modules/finan/domain/entities/movement.entity';
 
 // Mock repository
-const mockRepository: jest.Mocked<FinanRepository> = {
+const mockRepository: jest.Mocked<FinanRepository & FinanTransaction> = {
   create: jest.fn(),
   findById: jest.fn(),
   update: jest.fn(),
@@ -21,7 +21,9 @@ const mockRepository: jest.Mocked<FinanRepository> = {
   getMonthlyExpensesUntilCurrentDay: jest.fn(),
   getGeneralInfo: jest.fn(),
   getTripInfo: jest.fn(),
-  operateForLinkedMovement: jest.fn(),
+  adjustValue: jest.fn(),
+  // The transaction gets the same mock: tx.create, tx.update, tx.delete and tx.adjustValue (SPEC v0.10)
+  runInTransaction: jest.fn((work: any) => work(mockRepository)),
 };
 
 describe('UpdateMovementUseCase', () => {
@@ -128,11 +130,15 @@ describe('UpdateMovementUseCase', () => {
       };
 
       mockRepository.findById.mockResolvedValue(existingMovement);
+      mockRepository.adjustValue.mockResolvedValue(true);
       mockRepository.update.mockResolvedValue(updatedMovement);
 
       const result = await updateMovementUseCase.execute(1, requestWithLinked, 'testuser');
 
       expect(result.success).toBe(true);
+      // The new expense takes its value from the new origin (SPEC v0.10); the old movement had no origin
+      expect(mockRepository.adjustValue).toHaveBeenCalledTimes(1);
+      expect(mockRepository.adjustValue).toHaveBeenCalledWith(456, -200.75, 'testuser');
       expect(mockRepository.update).toHaveBeenCalledWith(
         1,
         {
@@ -146,6 +152,74 @@ describe('UpdateMovementUseCase', () => {
         },
         'testuser'
       );
+    });
+
+    describe('re-adjusting the origin (Finanz SPEC v0.10, L.2)', () => {
+      // An expense of 50 taken from origin 7
+      const expense = { ...existingMovement, value: 50, type_source_id: MovementType.EXPENSE, log: 7 };
+      const edit = (changes: Partial<UpdateMovementRequest>) =>
+        updateMovementUseCase.execute(
+          1,
+          { ...validRequest, movement_val: 50, movement_type: MovementType.EXPENSE, operate_for: 7, ...changes },
+          'testuser'
+        );
+
+      beforeEach(() => {
+        mockRepository.findById.mockResolvedValue(expense);
+        mockRepository.adjustValue.mockResolvedValue(true);
+        mockRepository.update.mockResolvedValue(expense);
+      });
+
+      it('J4: a new value gives the old one back and takes the new one', async () => {
+        expect((await edit({ movement_val: 80 })).success).toBe(true);
+        expect(mockRepository.adjustValue.mock.calls).toEqual([
+          [7, 50, 'testuser'],
+          [7, -80, 'testuser'],
+        ]);
+      });
+
+      it('J5: an expense turned into an income gives 50 back and adds 50', async () => {
+        await edit({ movement_type: MovementType.INCOME });
+        expect(mockRepository.adjustValue.mock.calls).toEqual([
+          [7, 50, 'testuser'],
+          [7, 50, 'testuser'],
+        ]);
+      });
+
+      it('J6: a new origin: the old one gets 50 back, the new one loses 50', async () => {
+        await edit({ operate_for: 9 });
+        expect(mockRepository.adjustValue.mock.calls).toEqual([
+          [7, 50, 'testuser'],
+          [9, -50, 'testuser'],
+        ]);
+      });
+
+      it('J7: no origin any more: only the old one gets 50 back', async () => {
+        await edit({ operate_for: undefined });
+        expect(mockRepository.adjustValue.mock.calls).toEqual([[7, 50, 'testuser']]);
+        expect(mockRepository.update).toHaveBeenCalledWith(1, expect.objectContaining({ log: 0 }), 'testuser');
+      });
+
+      it('J8: a new origin that does not exist is refused, and nothing is written', async () => {
+        mockRepository.adjustValue.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+        expect(await edit({ operate_for: 999 })).toEqual({ success: false, message: 'Linked movement not found' });
+        expect(mockRepository.update).not.toHaveBeenCalled();
+        // The undo already done rolls back with the transaction, which ends in that error
+        await expect(mockRepository.runInTransaction.mock.results[0].value).rejects.toThrow('Linked movement not found');
+      });
+
+      it('an old origin that no longer exists is skipped', async () => {
+        mockRepository.adjustValue.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+        expect((await edit({})).success).toBe(true);
+        expect(mockRepository.update).toHaveBeenCalled();
+      });
+
+      it('reads a stored value that comes back as text, and a NULL origin as none', async () => {
+        mockRepository.findById.mockResolvedValue({ ...expense, value: '50.00' as any, log: null as any });
+        await edit({});
+        expect(mockRepository.adjustValue.mock.calls).toEqual([[7, -50, 'testuser']]);
+      });
     });
 
     it('should normalize data correctly', async () => {

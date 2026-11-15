@@ -542,6 +542,17 @@ async function main() {
         const res = await client.delete(`/api/finan/delete/${linkAdjustId}`, { headers: authHeader(userToken) });
         assertStatus(res, 200, 'DELETE /api/finan/delete/:id (link-adjustment cleanup)');
       });
+      // Finanz SPEC v0.10: deleting the adjusting movement gives its 30 back to the base
+      if (linkBaseId) {
+        await check('deleting a movement with operate_for gives its value back to the movement it references', async () => {
+          const loadRes = await client.post('/api/finan/initial-load', { currency: 'COP' }, { headers: authHeader(userToken) });
+          assertStatus(loadRes, 200, 'POST /api/finan/initial-load (after deleting the linked adjustment)');
+          const base = ((loadRes.data.data && loadRes.data.data.movements) || []).find((m) => m.id === linkBaseId);
+          if (!base || Number(base.val) !== 100) {
+            throw new Error(`expected the link base's value to be back to 100, got ${base && base.val}`);
+          }
+        });
+      }
     }
     if (linkBaseId) {
       await check('DELETE /api/finan/delete/:id removes the link-base fixture', async () => {

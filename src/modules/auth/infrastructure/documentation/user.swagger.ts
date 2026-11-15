@@ -3,6 +3,12 @@
  * Separated from controller to maintain clean code
  */
 
+/** Auth SPEC v0.6: an IP with 20 failed passwords or codes in 15 minutes is refused before any check. */
+const ipLimitResponse = (extra = '') => ({
+  description: `"Too many attempts, try again later": this IP failed 20 times in 15 minutes${extra}`,
+  content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+});
+
 export const userSwaggerDocumentation = {
   addUser: {
     '/api/users/add': {
@@ -53,6 +59,9 @@ export const userSwaggerDocumentation = {
               },
             },
           },
+          429: ipLimitResponse(
+            ' (only with verificationCode); or, without one, "Too many requests, try again in a minute" when a code was sent less than a minute ago'
+          ),
           500: {
             description: 'Internal server error',
             content: {
@@ -117,6 +126,7 @@ export const userSwaggerDocumentation = {
               },
             },
           },
+          429: ipLimitResponse(),
           500: {
             description: 'Internal server error',
             content: {
@@ -320,6 +330,7 @@ export const userSwaggerDocumentation = {
               '"Invalid or expired code" (wrong, older than 15 minutes, used up after 5 wrong tries, or unknown email), or a password under 6 characters',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
           },
+          429: ipLimitResponse(),
           500: {
             description: 'Internal server error',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },

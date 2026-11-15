@@ -17,7 +17,7 @@ export class LoginUserUseCase {
 
   async execute(
     loginData: Login
-  ): Promise<{ error: boolean; message?: string; token?: string; data?: LoginResponse }> {
+  ): Promise<{ error: boolean; message?: string; token?: string; data?: LoginResponse; failedSecret?: boolean }> {
     try {
       // 1. Validate that username or email is provided
       const loginIdentifier = loginData.email ?? loginData.username;
@@ -31,8 +31,9 @@ export class LoginUserUseCase {
         loginData.username ?? ''
       );
 
+      // failedSecret: a guess that counts toward the limit per IP (Auth SPEC v0.6)
       if (!user) {
-        return { error: true, message: 'Invalid credentials' };
+        return { error: true, message: 'Invalid credentials', failedSecret: true };
       }
 
       // 3. Check if account is active
@@ -57,10 +58,14 @@ export class LoginUserUseCase {
           const lockUntil = new Date();
           lockUntil.setMinutes(lockUntil.getMinutes() + 15); // Lock for 15 minutes
           await this.userRepository.lockUser(user.id!, lockUntil);
-          return { error: true, message: 'Too many failed attempts. Account locked for 15 minutes' };
+          return {
+            error: true,
+            message: 'Too many failed attempts. Account locked for 15 minutes',
+            failedSecret: true,
+          };
         }
 
-        return { error: true, message: 'Invalid credentials' };
+        return { error: true, message: 'Invalid credentials', failedSecret: true };
       }
 
       // 6. Reset login attempts and update last_login

@@ -65,13 +65,14 @@ Two-step (email verification), driven by whether `verificationCode` is present i
 
 ## Admin password reset
 
-`PUT /api/users/admin/reset-password` — added specifically because `UserRepository.update/delete/unlockUser` were already fully implemented but unreachable from any endpoint (Catalog #16). Takes `{ identifier, newPassword }`, no current-password check (authorization is `validateAdmin`'s job), and also clears any existing lockout so the account is immediately usable (Catalog #17).
+`PUT /api/users/admin/reset-password` — the only way an admin changes another account (Catalog #16: there is no profile update, delete or manual unlock). Takes `{ identifier, newPassword }`, no current-password check (authorization is `validateAdmin`'s job), and also clears any existing lockout so the account is immediately usable (Catalog #17).
 
 ## Security
 
 - **Passwords**: bcrypt, 10 salt rounds (`BcryptPasswordHasherService`).
 - **JWT**: signed/verified with `process.env.SECRET_KEY` — **no fallback**. `src/infrastructure/config/env.ts`'s `assertRequiredEnvVars()` crashes the process at startup if `SECRET_KEY` is missing, rather than ever degrading to a guessable default (Catalog #18 — this used to be two different hardcoded literals for signing vs. verifying).
 - **Account lockout**: see Login flow above.
+- **Limit per IP** (Auth SPEC v0.6, Catalog #37): 20 failed passwords or codes in 15 minutes from one IP → 429 on `/login`, `/add` with a code and `/password-reset/confirm`, checked before anything else. In memory; `req.ip` through `trust proxy` (`TRUST_PROXY`, default one hop).
 - **Username casing**: allowed at registration, never normalized in `auth` itself — but `finan`'s per-user table naming depends on this being handled consistently there (see `docs/modules/finan.md` and Catalog #3).
 
 ## Testing
@@ -83,12 +84,11 @@ Real, current coverage — no fictional test list. See:
 
 ## Known gaps (real, not aspirational)
 
-- No self-service password reset — only the admin-driven one above.
-- No 2FA, no refresh tokens, no rate limiting by IP.
-- `UserRepository.update()` and `unlockUser()` are implemented and tested at the persistence layer but still have no caller anywhere (Catalog #16) — `delete()` is the same.
+- No 2FA, no refresh tokens, no way to end a session before its token expires.
+- The limit per IP is per process: a restart clears it, and several processes would each count on their own.
 
-For the full, continuously-updated list of non-obvious business rules in this module (with exact enforcement points and smoke-test verification status), see **`docs/ACCEPTANCE_CRITERIA.md`**, entries #3, #12–#18.
+For the full, continuously-updated list of non-obvious business rules in this module (with exact enforcement points and smoke-test verification status), see **`docs/ACCEPTANCE_CRITERIA.md`**, entries #3, #12–#18, #37.
 
 ---
 
-**Last verified against source**: 2026-07-18
+**Last verified against source**: 2026-11-15

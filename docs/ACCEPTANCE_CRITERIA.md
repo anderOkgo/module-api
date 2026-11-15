@@ -149,13 +149,13 @@ This catalog is the human-readable statement of *what* must be true. `scripts/sm
 
 **Verified in `scripts/smoke-test.js`:** not automated — would require completing a real registration (blocked by email verification) to observe the created role.
 
-#### 16. `UserRepository` fully implements profile update, account deletion, and manual unlock — none of them are reachable through the API
+#### 16. There is no profile update, account deletion or manual unlock (the unreachable methods were removed)
 
-**Rule:** `update()`, `delete()`, and `unlockUser()` are fully implemented at the persistence layer (`user.mysql.ts`) and declared on the `UserRepository` port, but **no use case or controller ever calls them** (confirmed by grepping every call site in `application/`/`infrastructure/controllers/`/`infrastructure/config/` — zero matches). A rewrite that judged the API surface by the repository interface alone would wrongly assume profile editing, account deletion, and manual unlock already exist as real, reachable features. (`updatePassword()` was in the same state until entry #17 wired it up for real.)
+**Rule:** the API cannot edit a profile, delete an account or unlock one by hand. `update()`, `delete()` and `unlockUser()` used to be implemented in `user.mysql.ts` and declared on the `UserRepository` port with no caller anywhere; they were removed on 2026-11-15 (Auth SPEC v0.6, G5, `docs/changes/20261115-auth-ip-limit.md`). A lock ends after 15 minutes, with a reset by email, or with the admin reset (#17).
 
-**Enforced in:** absence of any caller for `update`/`delete`/`unlockUser` in `src/modules/auth/application/` or `src/modules/auth/infrastructure/controllers/`.
+**Enforced in:** the `UserRepository` port, which no longer declares them.
 
-**Verified in `scripts/smoke-test.js`:** not applicable — there is nothing to call; the finding *is* that these paths don't exist yet.
+**Verified in:** `scripts/20261115-e2e-auth-ip-limit.js` F7 (the source holds none of them).
 
 #### 17. New capability: admin password reset (`PUT /api/users/admin/reset-password`)
 
@@ -331,6 +331,14 @@ Source of truth: `module-docs/apps/bitacora/SPEC.md` v1.0.1 (§3 contract, §4 d
 
 **Verified in:** `scripts/20261108-e2e-bitacora-search.js` Q1–Q7, S1, S5 (38/38 local, 2026-11-08); negative controls: without the escape Q4 fails, without the `user_id` filter Q7 fails.
 
+#### 37. One IP may fail 20 times in 15 minutes on the routes that check a secret
+
+**Rule:** (Auth SPEC v0.6, G6) a wrong password or unknown user on `POST /login`, a wrong code on `POST /add` and a wrong or expired code or unknown email on `POST /password-reset/confirm` count for the client IP. After the 20th failure in 15 minutes (counted from the first), those three routes answer **429** "Too many attempts, try again later" before checking anything; `/add` without a code, `/password-reset/request` and the admin reset are not limited. A success does not reset the count; no IP or account is exempt. Counts live in memory (a restart clears them). An address the API cannot tell apart from other clients (none, or loopback) is never counted, so a missing `X-Forwarded-For` can never lock everyone out. `req.ip` comes from `trust proxy` = one hop by default (`TRUST_PROXY`).
+
+**Enforced in:** `IpAttemptLimiter` (`application/use-cases/ip-attempt.limiter.ts`); `UserController.refuseIfBlocked` / `countFailure`; `failedSecret` in the login, register and reset results; `trustProxySetting` in `src/server.ts`.
+
+**Verified in:** `scripts/20261115-e2e-auth-ip-limit.js` F1, F3, F4, F5 (16/16 local, 2026-11-15); negative control F8: with `isBlocked` always false, F1, F4 and F5 fail. F2 (15 minutes later) by the unit tests with a fake clock.
+
 ---
 
-**Last updated**: 2026-11-08
+**Last updated**: 2026-11-15

@@ -112,9 +112,11 @@ describe('ConfirmPasswordResetUseCase (C5)', () => {
   it('gives one message for a wrong code, an expired one, or an unknown email (D6)', async () => {
     repo.findByEmail.mockResolvedValue(user);
     repo.findVerificationCode.mockResolvedValue({ id: 4, code: 123456, attempts: 0, ageSeconds: 30 });
+    // A wrong code, and an unknown email, count toward the limit per IP (Auth SPEC v0.6)
     expect(await useCase.execute('sample@example.com', 111111, 'newSecret')).toEqual({
       error: true,
       message: RESET_INVALID_MESSAGE,
+      failedSecret: true,
     });
 
     repo.findVerificationCode.mockResolvedValue({ id: 4, code: 123456, attempts: 0, ageSeconds: 901 });

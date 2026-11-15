@@ -3,7 +3,8 @@ import { PasswordHasherPort } from '../../domain/ports/password-hasher.port';
 import { EmailServicePort } from '../ports/email.service.port';
 import { VerificationCodePolicy } from './verification-code.policy';
 
-type Result = { error: boolean; message: string };
+/** failedSecret: a wrong code, which counts toward the limit per IP (Auth SPEC v0.6). */
+type Result = { error: boolean; message: string; failedSecret?: boolean };
 
 /** C4's only answer, whether or not an account uses the email (Auth SPEC v0.5, D6). */
 export const RESET_REQUESTED_MESSAGE = 'If an account uses this email, a code was sent';
@@ -65,7 +66,7 @@ export class ConfirmPasswordResetUseCase {
       }
       const user = await this.userRepository.findByEmail(email);
       if (!user || (await this.codes.check(email, 'reset', code)) !== 'ok') {
-        return { error: true, message: RESET_INVALID_MESSAGE };
+        return { error: true, message: RESET_INVALID_MESSAGE, failedSecret: true };
       }
       const hashedPassword = await this.passwordHasher.hash(newPassword);
       await this.userRepository.updatePassword(user.id!, hashedPassword);

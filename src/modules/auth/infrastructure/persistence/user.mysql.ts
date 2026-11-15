@@ -64,28 +64,6 @@ export class userMysqlRepository implements UserRepository {
     return null;
   }
 
-  async update(user: Partial<User>): Promise<User> {
-    if (!user.id) {
-      throw new Error('User ID is required for update');
-    }
-
-    const query = 'UPDATE users SET ? WHERE id = ?';
-    await this.Database.executeSafeQuery(query, [user, user.id]);
-
-    const updatedUser = await this.findById(user.id);
-    if (!updatedUser) {
-      throw new Error('User not found after update');
-    }
-
-    return updatedUser;
-  }
-
-  async delete(id: number): Promise<boolean> {
-    const query = 'DELETE FROM users WHERE id = ?';
-    const result = await this.Database.executeSafeQuery(query, [id]);
-    return result.affectedRows > 0;
-  }
-
   // ==================== AUTHENTICATION METHODS ====================
 
   async updatePassword(userId: number, hashedPassword: string): Promise<void> {
@@ -111,11 +89,6 @@ export class userMysqlRepository implements UserRepository {
   async lockUser(userId: number, lockUntil: Date): Promise<void> {
     const query = 'UPDATE users SET locked_until = ? WHERE id = ?';
     await this.Database.executeSafeQuery(query, [lockUntil, userId]);
-  }
-
-  async unlockUser(userId: number): Promise<void> {
-    const query = 'UPDATE users SET locked_until = NULL WHERE id = ?';
-    await this.Database.executeSafeQuery(query, [userId]);
   }
 
   // ==================== VERIFICATION CODES ====================

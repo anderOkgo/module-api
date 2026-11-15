@@ -19,7 +19,7 @@ export class RegisterUserUseCase {
 
   async execute(
     userData: UserCreateRequest
-  ): Promise<{ error: boolean; message?: string; data?: UserResponse; status?: number }> {
+  ): Promise<{ error: boolean; message?: string; data?: UserResponse; status?: number; failedSecret?: boolean }> {
     try {
       const errors: string[] = [];
 
@@ -74,7 +74,8 @@ export class RegisterUserUseCase {
         return { error: true, message: 'Verification code expired' };
       }
       if (check !== 'ok') {
-        return { error: true, message: 'Invalid verification code' };
+        // A wrong code counts toward the limit per IP (Auth SPEC v0.6)
+        return { error: true, message: 'Invalid verification code', failedSecret: true };
       }
 
       // 8. Hash password

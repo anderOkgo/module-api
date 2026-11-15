@@ -1,6 +1,6 @@
 # The linked adjustment follows deletes and edits
 
-**Date:** 2026-11-15 · **Branch:** `feature/20261115-finan-linked-adjustment` · **Released in:** not yet
+**Date:** 2026-11-15 · **Branch:** `feature/20261115-finan-linked-adjustment` · **Released in:** https://info.animecream.com, 2026-11-15 (PR #17, `npm run bup`, restarted by the owner)
 **Implements:** `module-docs/apps/finan/SPEC.md` v0.10 — round "the linked adjustment follows deletes and edits" (L.2 rules, L.3 contract, L.6 J1–J10, J13)
 **Change ID:** `20261115-finan-linked-adjustment` (the same in `finan-react` for the restore, L.5)
 
@@ -65,3 +65,4 @@ revert both PRs and deploy, API first. No data change; deletes and edits made be
 | Date | Change |
 |---|---|
 | 2026-11-15 | Created; unit 100% (1,691), E2E 21/21 local, Jest E2E 8/8, negative control recorded |
+| 2026-11-15 | **Merged** (PR #17, `2c99dd6`): unit 1,691 at 100% on `main`. **Deployed:** `npm run bup`, a second sync said "Nothing to synchronize", the owner restarted in cPanel; `/health` UP (uptime under 1 s at the check), the served Swagger holds the new `operate_for` text. Then finan-react #15. Production writes were left to the owner's own check |

@@ -239,13 +239,15 @@ Added directly motivated by entry #16: a way to actually reset a real account's 
 
 **Verified in `scripts/smoke-test.js`:** not automated — would require adding an image-decoding dependency (e.g. `sharp`) to a script deliberately kept dependency-light; the existing upload checks confirm the endpoint *accepts and stores* an image, not its exact pixel dimensions. Fully covered at the unit level (`test/infrastructure/services/image.test.ts`).
 
-#### 26. Three listing/search endpoints, three different, undocumented pagination ceilings
+#### 26. Three listing/search endpoints, two different pagination ceilings, on purpose
 
-**Rule:** `GET /api/series/list` and `POST /api/series/search` (the newer, view-based endpoints) both default to a limit of **50** and cap at **100**. `POST /api/series/` (the legacy "boot" endpoint, `getProductions`) defaults to **500** and caps at **10,000**. The Swagger doc only documents the 50/100 pair (on `/list`); the other two regimes exist only in source. A client (or a rewrite) assuming one pagination convention applies uniformly across "similar" series-listing endpoints will get it wrong for at least one of the three.
+**Rule:** `GET /api/series/list` and `POST /api/series/search` (the newer, view-based endpoints) both default to a limit of **50** and cap at **100**; a limit of 0 or less, or none, gives 50 and a larger one is cut to 100, with no 400. `POST /api/series/` (the legacy "boot" endpoint, `getProductions`) defaults to **10,000** and caps at **10,000**, and answers **400** for a limit below 1 or above 10,000: the fronts load the whole catalog with an empty body, so it stays this way (Animecream SPEC v0.8, G3). Since 2026-11-15 Swagger documents all three (`series.swagger.ts`).
 
-**Enforced in:** `normalizeFilters()` in `search-series.handler.ts` and `validateAndNormalizeLimit()` in `get-all-series.handler.ts` (50/100); `validateFilters()` in `get-productions.handler.ts` (500 default) and `validateProduction()` in `series.validation.ts` (10,000 default/max — used when `getProductions` is called directly with `limit` already present in the body, bypassing the handler's own 500 default).
+Corrected 2026-11-15: this entry used to say the boot endpoint defaults to **500**. Over HTTP it never does: `validateProduction()` runs first in the controller and always sets `limit` (10,000 when absent), so `validateFilters()`'s 500 in `get-productions.handler.ts` only applies to a direct call of the handler without a limit. Checked on the local API: `POST {}` returned the whole catalog (511 series), `{ "limit": 10001 }` and `{ "limit": 0 }` gave 400, `POST /search { "limit": 500 }` returned 100.
 
-**Verified in `scripts/smoke-test.js`:** not automated — the existing checks against these endpoints don't send an explicit `limit`, so the differing defaults are exercised implicitly but not asserted on; adding boundary-value assertions here was judged lower priority than the functional gaps above (documented here as the authoritative reference instead).
+**Enforced in:** `normalizeFilters()` in `search-series.handler.ts` and `validateAndNormalizeLimit()` in `get-all-series.handler.ts` (50/100); `validateProduction()` in `series.validation.ts` (10,000 default and max, the 400s) for the boot endpoint.
+
+**Verified in `scripts/smoke-test.js`:** not automated; the values above were checked by hand against the local API on 2026-11-15 (`docs/changes/20261115-animecream-gaps.md`).
 
 #### 27. Removing a genre/title id that was never assigned (or doesn't exist at all) is a silent no-op — unlike assigning one
 
